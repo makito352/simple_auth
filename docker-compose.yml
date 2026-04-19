@@ -1,0 +1,128 @@
+# version: "3.9"
+
+services:
+  # ============================
+  # PostgreSQL
+  # ============================
+  db:
+    image: postgres:16
+    container_name: simpleauth-db
+    restart: always
+    environment:
+      POSTGRES_USER: simpleauth
+      POSTGRES_PASSWORD: simpleauth
+      POSTGRES_DB: simpleauth
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./backend/sql:/docker-entrypoint-initdb.d
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # Backend (FastAPI)
+  # ============================
+  backend:
+    build: ./backend
+    container_name: simpleauth-backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql+psycopg2://simpleauth:simpleauth@db/simpleauth
+      SMTP_HOST: simpleauth-mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      WEB_AUTHN_RP_ID: "localhost"
+      WEB_AUTHN_RP_NAME: "SimpleAuth"
+      WEB_AUTHN_ORIGIN: "http://localhost:3000"
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # Frontend (Next.js)
+  # ============================
+  frontend:
+    build: ./frontend
+    container_name: simpleauth-frontend
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: "https://localhost:8000/api"
+    depends_on:
+      - backend
+    ports:
+      - 3000:3000
+    networks:
+      - simpleauth-net
+
+  # # ============================
+  # # nginx (Reverse Proxy)
+  # # ============================
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: simpleauth-nginx
+  #   restart: always
+  #   volumes:
+  #     - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./infra/nginx/auth_request.conf:/etc/nginx/auth_request.conf:ro
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #     - snappymail
+  #     - photoprism
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   networks:
+  #     - simpleauth-net
+
+  # # ============================
+  # # SnappyMail
+  # # ============================
+  # snappymail:
+  #   image: ghcr.io/the-djmaze/snappymail:latest
+  #   container_name: snappymail
+  #   restart: always
+  #   networks:
+  #     - simpleauth-net
+
+  # # ============================
+  # # PhotoPrism
+  # # ============================
+  # photoprism:
+  #   image: photoprism/photoprism:latest
+  #   container_name: photoprism
+  #   restart: always
+  #   environment:
+  #     PHOTOPRISM_ADMIN_PASSWORD: "admin"
+  #     PHOTOPRISM_AUTH_MODE: "header"   # X-Auth-User を信頼
+  #   volumes:
+  #     - photoprism_storage:/photoprism/storage
+  #     - photoprism_originals:/photoprism/originals
+  #   networks:
+  #     - simpleauth-net
+
+  # ============================
+  # Mailhog (開発用メールサーバ)
+  # ============================
+  smtp:
+    image: mailhog/mailhog
+    container_name: simpleauth-mailhog
+    restart: always
+    ports:
+      - "8025:8025"
+    networks:
+      - simpleauth-net
+
+# ============================
+# Networks & Volumes
+# ============================
+networks:
+  simpleauth-net:
+
+volumes:
+  db_data:
+  photoprism_storage:
+  photoprism_originals:

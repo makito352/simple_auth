@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy>=2.0
+psycopg2-binary
+pydantic
+pydantic-settings
+python-multipart
+webauthn==2.7.1
+email-validator
+jinja2
+qrcode

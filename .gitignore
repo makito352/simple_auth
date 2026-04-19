@@ -1,0 +1,10 @@
+# Python virtual environment
+venv/
+
+# Node.js dependencies and build output
+frontend/node_modules/
+frontend/.next/
+
+# Environment variables file
+.env
+frontend/.env.local
