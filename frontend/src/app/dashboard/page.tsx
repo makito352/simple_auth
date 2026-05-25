@@ -5,7 +5,7 @@ export default function Dashboard() {
 
       <ul>
         <li>
-          <a href="https://snappymail.local">SnappyMail</a>
+          <a href="https://snappymail.local">roundcubemail</a>
         </li>
         <li>
           <a href="https://photoprism.local">PhotoPrism</a>

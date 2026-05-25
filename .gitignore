@@ -8,3 +8,7 @@ frontend/.next/
 # Environment variables file
 .env
 frontend/.env.local
+
+# myssl
+infra/nginx/ssl/mydev.tailcxxxxx.ts.net.crt
+infra/nginx/ssl/mydev.tailcxxxxx.ts.net.key

@@ -56,10 +56,10 @@ def start_auth(
 
     # メール送信
     send_otp_email(to=user.email, code=otp.code)
-    logger.debug("OTP メール送信: %s", user.email)
 
     session_token = generate_token(db, user.id)
 
+    logger.debug("OTP メール送信: %s, session_token=%s", user.email, session_token)
     # セッション作成
     response.set_cookie(
         key="session_token",
@@ -89,11 +89,13 @@ def verify_otp(
 
     session_token = request.cookies.get("session_token")
     if not session_token:
+        logger.error("session_token is missing")
         raise HTTPException(status_code=400, detail="Session token missing")
 
     # session_token → user_id を復元
     user_id = validate_token(db, session_token)
     if not user_id:
+        logger.error("session_token 不正")
         raise HTTPException(status_code=400, detail="Invalid or expired session")
 
     ok = OTPService.verify_otp(db, user_id, payload.code)

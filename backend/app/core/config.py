@@ -2,7 +2,7 @@
 import logging
 
 from pydantic_settings import BaseSettings
-
+from pydantic import AnyHttpUrl
 
 class Settings(BaseSettings):
     # データベース接続情報
@@ -22,19 +22,37 @@ class Settings(BaseSettings):
     SMTP_USER: str = "user@example.com"
     SMTP_PASS: str = "smtp-secret"
 
+    # FASTAPI のルートパス（API のベースパス）
+    ROOT_PATH: str = "/backend"
+
+    # CORS origins（カンマ区切りで複数指定）
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000,http://localhost"
+
+    # OIDC Issuer (この FastAPI の公開 URL)
+    OIDC_ISSUER: AnyHttpUrl = "http://localhost"
+    OIDC_JWT_ALG: str = "RS256"
+    OIDC_JWT_PRIVATE_KEY: str = ""
+    OIDC_JWT_PUBLIC_KEY: str = ""
+
+    # PhotoPrism から見えるクライアント情報
+    OIDC_CLIENT_ID: str = "photoprism"
+    OIDC_CLIENT_SECRET: str = "photoprism-secret"
+
     # WebAuthn の設定項目
     WEB_AUTHN_RP_ID: str = "localhost"
     WEB_AUTHN_RP_NAME: str = "SimpleAuth"
     WEB_AUTHN_ORIGIN: str = "http://localhost"
 
     # 環境を示すフラグ (開発時は 'development')
-    ENV: str = "development"
+    ENV: str = "production"
 
     class Config:
         env_file = ".env"
 
 
 settings = Settings()
+
+
 
 # ------------------------------
 # ログ設定
@@ -46,3 +64,12 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("app")
+
+# settings の全属性をデバッグログとして出力
+logger.debug("--- 読み込んだ設定値 (Settings) ---")
+for key, value in settings.__dict__.items():
+    # ログに出力したくない機密情報（例：パスワードやシークレットキー）はスキップまたはマスク推奨ですが、
+    # 今回は全てのフィールドを表示するというご要望に基づき、全て出力します。
+    if key not in ["Config", "logger"]: # Pydanticの内部属性など不要なものを除外
+        logger.debug(f"  {key}: {value}")
+logger.debug("----------------------------------")

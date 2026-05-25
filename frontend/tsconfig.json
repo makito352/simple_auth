@@ -22,9 +22,8 @@
         "name": "next"
       }
     ],
-    "baseUrl": "./src",               // ここから相対解決を行う
-    "paths": {                         // エイリアスのマッピング
-      "@/*": ["*"]                    // '@/something'  → 'src/something'
+    "paths": {                              // エイリアスのマッピング
+      "@/*": ["./src/*"]                    // '@/something'  → 'src/something'
     },
   },
   "include": [

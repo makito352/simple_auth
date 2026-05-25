@@ -87,3 +87,31 @@ CREATE TABLE sessions (
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
 
+-- ----------------------------
+-- oidc_auth_codes (OIDC認証コード)
+-- ----------------------------
+CREATE TABLE oidc_auth_codes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(255) NOT NULL UNIQUE,
+    client_id VARCHAR(255) NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_oidc_auth_codes_code ON oidc_auth_codes(code);
+CREATE INDEX idx_oidc_auth_codes_user_id ON oidc_auth_codes(user_id);
+
+-- ----------------------------
+-- oidc_auth_codes (OIDC認証コード)
+-- ----------------------------
+CREATE TABLE oidc_access_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    token TEXT NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_oidc_access_tokens_token ON oidc_access_tokens(token);
+CREATE INDEX idx_oidc_access_tokens_user_id ON oidc_access_tokens(user_id);
