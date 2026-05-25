@@ -1,0 +1,171 @@
+# version: "3.9"
+
+services:
+  # ============================
+  # PostgreSQL
+  # ============================
+  db:
+    image: postgres:16
+    container_name: simpleauth-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./backend/sql:/docker-entrypoint-initdb.d
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # Backend (FastAPI)
+  # ============================
+  backend:
+    build: ./backend
+    container_name: simpleauth-backend
+    restart: always
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      WEB_AUTHN_RP_ID: ${WEB_AUTHN_RP_ID}
+      WEB_AUTHN_RP_NAME: ${WEB_AUTHN_RP_NAME}
+      WEB_AUTHN_ORIGIN: ${WEB_AUTHN_ORIGIN}
+      OIDC_ISSUER: ${OIDC_ISSUER}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_JWT_ALG: "RS256"
+      OIDC_JWT_PRIVATE_KEY: ${OIDC_JWT_PRIVATE_KEY}
+      OIDC_JWT_PUBLIC_KEY: ${OIDC_JWT_PUBLIC_KEY}
+      ENV: ${ENV}
+    # ports:
+    #   - 8000:8000
+    depends_on:
+      - db
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # Frontend (Next.js)
+  # ============================
+  frontend:
+    build: ./frontend
+    container_name: simpleauth-frontend
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    depends_on:
+      - backend
+    # ports:
+    #   - 3000:3000
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # nginx (Reverse Proxy)
+  # ============================
+  nginx:
+    # image: nginx:latest
+    build: ./infra/nginx
+    container_name: simpleauth-nginx
+    restart: always
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx_simpleauth_base:ro
+      - ./infra/nginx/auth_request.conf:/etc/nginx/auth_request.conf:ro
+      - ./infra/nginx/ssl/:/etc/nginx/ssl/:ro
+    environment:
+      SERVER_HOSTNAME: ${SERVER_HOSTNAME}
+      SSL_CERTIFICATE_PATH: ${SSL_CERTIFICATE_PATH}
+      SSL_CERTIFICATE_KEY_PATH: ${SSL_CERTIFICATE_KEY_PATH}
+    depends_on:
+      - backend
+      - frontend
+      - photoprism
+      - roundcubemail
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2343:2343"
+      - "9443:9443"
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # roundcube
+  # ============================
+  roundcubemail:
+    image: roundcube/roundcubemail:latest
+    container_name: roundcubemail
+    volumes:
+      - roundcube_data:/var/www/html
+      - roundcube_db:/var/roundcube/db
+      - ./infra/roundcube/hosts:/etc/hosts 
+    ports:
+      - 9002:80
+    environment:
+      - ROUNDCUBEMAIL_DB_TYPE=sqlite
+      - ROUNDCUBEMAIL_SKIN=elastic
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # PhotoPrism
+  # ============================
+  photoprism:
+    image: photoprism/photoprism:latest
+    container_name: photoprism
+    restart: always
+    environment:
+      PHOTOPRISM_ADMIN_PASSWORD: "admin"
+      PHOTOPRISM_SITE_URL: ${PHOTOPRISM_SITE_URL}
+      PHOTOPRISM_LOG_LEVEL: "debug"
+      PHOTOPRISM_DEBUG: "true"          # デバッグモード（内部処理ログが増える）
+      PHOTOPRISM_TRACE: "true"          # さらに詳細（SQLなど）を出す
+      PHOTOPRISM_REGISTER_URI: ${WEB_AUTHN_ORIGIN}
+      PHOTOPRISM_PASSWORD_RESET_URI: ${WEB_AUTHN_ORIGIN}
+      PHOTOPRISM_OIDC_URI : ${OIDC_ISSUER}
+      PHOTOPRISM_OIDC_CLIENT : ${OIDC_CLIENT_ID}
+      PHOTOPRISM_OIDC_SECRET : ${OIDC_CLIENT_SECRET}
+      PHOTOPRISM_OIDC_SCOPES : openid email profile
+      PHOTOPRISM_OIDC_PROVIDER : SimpleAuth
+      PHOTOPRISM_OIDC_REDIRECT : true
+      PHOTOPRISM_OIDC_REGISTER : false   # 既存ユーザーのみなら false
+      PHOTOPRISM_OIDC_USERNAME : "preferred_username"
+      PHOTOPRISM_DISABLE_OIDC : false
+    volumes:
+      - photoprism_storage:/photoprism/storage
+      - photoprism_originals:/photoprism/originals
+    # ports:
+    #   - "2342:2342"  # PhotoPrismを2342ポートで公開
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # Mailhog (開発用メールサーバ)
+  # ============================
+  smtp:
+    image: mailhog/mailhog
+    container_name: simpleauth-mailhog
+    restart: always
+    ports:
+      - "8025:8025"
+    networks:
+      - simpleauth-net
+
+# ============================
+# Networks & Volumes
+# ============================
+networks:
+  simpleauth-net:
+
+volumes:
+  db_data:
+  photoprism_storage:
+  photoprism_originals:
+  snappymail_data:
+  roundcube_data:
+  roundcube_db:
