@@ -8,7 +8,17 @@ from app.api.proxy.auth_request import router as proxy_router
 from app.api.auth.oidc import router as oidc_router
 from app.core.config import logger,settings
 from app.db.session import Base, engine
+from sqlalchemy.orm import Session
+from contextlib import contextmanager
+from app.services.user_service import UserService
 
+@contextmanager
+def get_db_session():
+    db = Session(engine)
+    try:
+        yield db
+    finally:
+        db.close()
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -35,6 +45,10 @@ def create_app() -> FastAPI:
     # DB 初期化（初回のみ）
     # ----------------------------
     Base.metadata.create_all(bind=engine)
+
+    # Ensure initial admin is created if none exist
+    with get_db_session() as db:
+        UserService.ensure_initial_admin(db)
 
     # ----------------------------
     # ルーター登録
