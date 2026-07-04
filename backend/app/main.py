@@ -3,7 +3,6 @@ from pathlib import Path
 
 from app.api.auth.oidc import router as oidc_router
 from app.api.auth.one_time_link import router as one_time_link_router
-from app.api.auth.otp import router as otp_router
 from app.api.auth.webauthn import router as webauthn_router
 from app.api.dashboard_links import router as dashboard_links_router
 from app.api.health import router as health_router
@@ -93,7 +92,6 @@ def create_app() -> FastAPI:
     # ルーター登録
     # ----------------------------
     app.include_router(health_router)
-    app.include_router(otp_router)
     app.include_router(webauthn_router)
     app.include_router(proxy_router)
     app.include_router(oidc_router)

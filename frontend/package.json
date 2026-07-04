@@ -13,12 +13,14 @@
     "axios": "^1.6.0",
     "lucide-react": "^1.22.0",
     "next": "^16.2.2",
+    "qrcode": "^1.5.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "eslint": "^9.0.0",

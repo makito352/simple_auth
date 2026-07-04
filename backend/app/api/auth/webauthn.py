@@ -2,8 +2,7 @@ import json
 
 from app.core.config import logger, settings
 from app.db.session import get_db
-from app.models.credential import Credential
-from app.schemas.auth import LoginOptionsRequest
+from app.schemas.auth import CredentialCommentUpdateRequest, CredentialOut
 from app.services.auth_options_service import AuthOptionsService
 from app.services.registration_session_service import (get_challenge,
                                                        save_challenge,
@@ -11,8 +10,9 @@ from app.services.registration_session_service import (get_challenge,
 from app.services.session_service import SessionService
 from app.services.user_service import UserService
 from app.services.webauthn_service import WebAuthnService
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
+from uuid import UUID
 from webauthn import (generate_authentication_options,
                       generate_registration_options,
                       verify_authentication_response,
@@ -27,6 +27,27 @@ from webauthn.helpers.structs import (AuthenticatorSelectionCriteria,
 router = APIRouter(prefix="/webauthn", tags=["webauthn"])
 
 
+def get_current_user_id(request: Request, db: Session) -> UUID:
+    """
+    セッションクッキーから現在のユーザーIDを取得する。
+    """
+    session_id = request.cookies.get("simpleauth_session")
+    if not session_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    session = SessionService.validate_session(db, session_id)
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session",
+        )
+
+    return session.user_id
+
+
 # ----------------------------
 # Registration
 # ----------------------------
@@ -39,20 +60,73 @@ async def options_register_options():
     "/register/options",
 )
 def register_options(request: Request, db: Session = Depends(get_db)):
-    # 開始ログ
     logger.debug("register_options request received")
+    return issue_registration_options(request, db)
 
+
+@router.options("/register/verify")
+async def options_register_verify():
+    return {}
+
+
+@router.post("/register/verify")
+def register_verify(payload: dict, request: Request, db: Session = Depends(get_db)):
+    logger.debug("register_verify request received")
+    return verify_registration_and_store(
+        payload=payload,
+        request=request,
+        db=db,
+        update_user_verification=True,
+    )
+
+
+@router.options("/devices/register/options")
+async def options_device_register_options():
+    return {}
+
+
+@router.post("/devices/register/options")
+def device_register_options(request: Request, db: Session = Depends(get_db)):
+    """
+    追加デバイス登録専用のオプション発行API。
+    """
+    logger.debug("device_register_options request received")
+    return issue_registration_options(request, db)
+
+
+@router.options("/devices/register/verify")
+async def options_device_register_verify():
+    return {}
+
+
+@router.post("/devices/register/verify")
+def device_register_verify(payload: dict, request: Request, db: Session = Depends(get_db)):
+    """
+    追加デバイス登録専用の検証API。
+    ユーザーステータスは更新しない。
+    """
+    logger.debug("device_register_verify request received")
+    return verify_registration_and_store(
+        payload=payload,
+        request=request,
+        db=db,
+        update_user_verification=False,
+    )
+
+
+def issue_registration_options(request: Request, db: Session):
+    """
+    セッショントークンからユーザーを解決し、WebAuthn登録オプションを発行する。
+    """
     session_token = request.cookies.get("session_token")
     if not session_token:
         raise HTTPException(status_code=400, detail="Session token missing")
 
-    # session_token → user_id を復元
     user_id = validate_token(db, session_token)
     if not user_id:
         raise HTTPException(status_code=400, detail="Invalid or expired session")
 
     user = UserService.read_user(db=db, user_id=user_id)
-
     options = generate_registration_options(
         rp_id=settings.WEB_AUTHN_RP_ID,
         rp_name="SimpleAuth",
@@ -64,49 +138,48 @@ def register_options(request: Request, db: Session = Depends(get_db)):
         ),
     )
 
-    # チャレンジをDBに保存する
     save_challenge(db, session_token, options.challenge)
-
     return json.loads(options_to_json(options))
 
 
-@router.options("/register/verify")
-async def options_register_verify():
-    return {}
-
-
-@router.post("/register/verify")
-def register_verify(payload: dict, request: Request, db: Session = Depends(get_db)):
-    # 開始ログ
-    logger.debug("register_verify request received")
-
+def verify_registration_and_store(
+    payload: dict,
+    request: Request,
+    db: Session,
+    update_user_verification: bool,
+):
+    """
+    WebAuthn登録レスポンスを検証し、資格情報を保存する共通処理。
+    """
     session_token = request.cookies.get("session_token")
-    # session_token → user_id を復元
+    if not session_token:
+        raise HTTPException(status_code=400, detail="Session token missing")
+
     user_id = validate_token(db, session_token)
     if not user_id:
         raise HTTPException(status_code=400, detail="Invalid or expired session")
+
     challenge_data = get_challenge(db, session_token)
+    device_name = payload.get("device_name")
+    credential_payload = {key: value for key, value in payload.items() if key != "device_name"}
 
     try:
         verification = verify_registration_response(
-            credential=payload,
+            credential=credential_payload,
             expected_challenge=challenge_data,
             expected_rp_id=settings.WEB_AUTHN_RP_ID,
             expected_origin=settings.WEB_AUTHN_ORIGIN,
         )
     except InvalidRegistrationResponse as e:
-        # エラー内容をログに記録し、詳細をレスポンスに含めるか400エラーを返す
         logger.error(f"WebAuthn registration verification failed: {e}")
         raise HTTPException(status_code=400, detail="Registration verification failed.")
 
-    # verification.credential_id は bytes型で返ることが多いため、
-    # 保存前に Base64URL文字列に変換する。
     cred_id_to_save = verification.credential_id
     if isinstance(cred_id_to_save, bytes):
         cred_id_to_save = bytes_to_base64url(cred_id_to_save)
 
-    # 登録成功時、ユーザーのステータスを verified に更新
-    UserService.update_user_email_verification(db, user_id)
+    if update_user_verification:
+        UserService.update_user_email_verification(db, user_id)
 
     WebAuthnService.register_credential(
         db=db,
@@ -114,7 +187,7 @@ def register_verify(payload: dict, request: Request, db: Session = Depends(get_d
         credential_id_str=cred_id_to_save,
         public_key=verification.credential_public_key,
         sign_count=verification.sign_count,
-        # is_discoverable=True,
+        device_name=device_name,
     )
 
     return {"ok": True}
@@ -203,3 +276,67 @@ def login_verify(payload: dict, response: Response, db: Session = Depends(get_db
     )
 
     return {"ok": True, "user_id": str(user_id)}
+
+
+@router.get("/credentials", response_model=list[CredentialOut])
+def list_credentials(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    ログイン中ユーザーに紐づくWebAuthn資格情報一覧を返す。
+    """
+    current_user_id = get_current_user_id(request, db)
+    credentials = WebAuthnService.get_credentials(db, current_user_id)
+    return credentials
+
+
+@router.patch("/credentials/{credential_id}/comment")
+def update_credential_comment(
+    credential_id: str,
+    payload: CredentialCommentUpdateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    ログイン中ユーザーが自身の資格情報コメントを更新する。
+    """
+    current_user_id = get_current_user_id(request, db)
+    credential = WebAuthnService.get_by_credential_id_and_user_id(
+        db,
+        credential_id,
+        current_user_id,
+    )
+    if credential is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Credential not found",
+        )
+
+    WebAuthnService.update_credential_comment(db, credential_id, payload.comment)
+    return {"ok": True}
+
+
+@router.delete("/credentials/{credential_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_credential(
+    credential_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    ログイン中ユーザーが自身の資格情報を削除する。
+    """
+    current_user_id = get_current_user_id(request, db)
+    credential = WebAuthnService.get_by_credential_id_and_user_id(
+        db,
+        credential_id,
+        current_user_id,
+    )
+    if credential is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Credential not found",
+        )
+
+    WebAuthnService.delete_credential(db, credential_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

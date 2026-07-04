@@ -20,7 +20,10 @@ class OneTimeLinkService:
         OneTimeLinkモデルからOneTimeLinkCreateResponseを作成します。
         内部的な共通ロジックとして使用します。
         """
-        url = f"{settings.FRONTEND_BASE_URL}/register?token={link.token}"
+        if link.type == "device_registration":
+            url = f"{settings.FRONTEND_BASE_URL}/devices/add?token={link.token}"
+        else:
+            url = f"{settings.FRONTEND_BASE_URL}/register?token={link.token}"
         return OneTimeLinkCreateResponse(
             token=link.token,
             url=url,
@@ -122,7 +125,7 @@ class OneTimeLinkService:
 
     @staticmethod
     def get_link_by_user_id(
-        db: Session, user_id: UUID
+        db: Session, user_id: UUID, link_type: str = "registration"
     ) -> Optional[OneTimeLinkCreateResponse]:
         """
         ユーザーIDに関連付けられたワンタイムリンクを取得し、
@@ -133,6 +136,7 @@ class OneTimeLinkService:
             db.query(OneTimeLink)
             .filter(
                 OneTimeLink.user_id == user_id,
+                OneTimeLink.type == link_type,
                 OneTimeLink.used_at == None,
                 OneTimeLink.expires_at > now,
             )
