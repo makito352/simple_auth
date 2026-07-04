@@ -1,11 +1,10 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy.orm import Session
-
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.services.session_service import SessionService
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/proxy", tags=["proxy"])
 

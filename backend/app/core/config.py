@@ -1,8 +1,9 @@
 # backend/app/core/config.py
 import logging
 
-from pydantic_settings import BaseSettings
 from pydantic import AnyHttpUrl
+from pydantic_settings import BaseSettings
+
 
 class Settings(BaseSettings):
     # データベース接続情報
@@ -15,6 +16,8 @@ class Settings(BaseSettings):
     SESSION_EXPIRE_DAYS: int = 14
     # セッショントークン用のシークレットキー
     SESSION_TOKEN_SECRET: str = "session-secret"
+    # 暗号化用（UserOptionなどの暗号化に使用）
+    ENCRYPTION_KEY: str = "your-base64-encoded-key"
 
     # SMTP 用設定項目
     SMTP_HOST: str = "smtp.example.com"
@@ -28,8 +31,8 @@ class Settings(BaseSettings):
     # CORS origins（カンマ区切りで複数指定）
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000,http://localhost"
 
-    # OIDC Issuer (この FastAPI の公開 URL)
-    OIDC_ISSUER: AnyHttpUrl = "http://localhost"
+    # このバックエンドのベース URL
+    BACKEND_BASE_URI: AnyHttpUrl = "http://localhost:8000"
     OIDC_JWT_ALG: str = "RS256"
     OIDC_JWT_PRIVATE_KEY: str = ""
     OIDC_JWT_PUBLIC_KEY: str = ""
@@ -43,6 +46,11 @@ class Settings(BaseSettings):
     WEB_AUTHN_RP_NAME: str = "SimpleAuth"
     WEB_AUTHN_ORIGIN: str = "http://localhost"
 
+    # 初期設定用
+    INITIAL_ADMIN_USER_EMAIL: str = "admin@example"
+    # 招待リンク用ベースアドレス
+    FRONTEND_BASE_URL: str = "http://localhost"
+
     # 環境を示すフラグ (開発時は 'development')
     ENV: str = "production"
 
@@ -51,7 +59,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
 
 
 # ------------------------------
@@ -70,6 +77,6 @@ logger.debug("--- 読み込んだ設定値 (Settings) ---")
 for key, value in settings.__dict__.items():
     # ログに出力したくない機密情報（例：パスワードやシークレットキー）はスキップまたはマスク推奨ですが、
     # 今回は全てのフィールドを表示するというご要望に基づき、全て出力します。
-    if key not in ["Config", "logger"]: # Pydanticの内部属性など不要なものを除外
+    if key not in ["Config", "logger"]:  # Pydanticの内部属性など不要なものを除外
         logger.debug(f"  {key}: {value}")
 logger.debug("----------------------------------")

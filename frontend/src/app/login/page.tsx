@@ -1,24 +1,3 @@
-// "use client";
-
-// import { useState } from "react";
-// import { apiPost } from "@/lib/api/client";
-
-// export default function LoginPage() {
-//   const [email, setEmail] = useState("");
-
-//   async function handleSubmit() {
-//     const res = await apiPost("/webauthn/login/options", { email });
-//     window.location.href = `/login/webauthn?email=${email}`;
-//   }
-
-//   return (
-//     <div>
-//       <h1>Login</h1>
-//       <input value={email} onChange={(e) => setEmail(e.target.value)} />
-//       <button onClick={handleSubmit}>Next</button>
-//     </div>
-//   );
-// }
 "use client";
 
 import { useState } from "react";
@@ -26,21 +5,27 @@ import { apiPost } from "@/lib/api/client";
 import { webauthnLogin } from "@/lib/webauthn"; // 認証用ヘルパー
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-
   async function handleNext() {
     setLoading(true);
     try {
       // 1. サーバーからオプション（チャレンジ含む）を取得
-      const options = await apiPost("/webauthn/login/options", { email });
+      // メールアドレスを伴わないリクエストに変更
+      const response = await apiPost("/webauthn/login/options");
 
-      // 2. そのままブラウザの生体認証を起動！
-      const cred = await webauthnLogin(options);
+      // backendのレスポンス構造: { options: {...}, session_token: "..." }
+      const webauthnOptions = response.options; 
+      const sessionToken = response.session_token;
 
-      // 3. 検証APIを叩く
-      await apiPost("/webauthn/login/verify", cred);
+      // 2. ブラウザの生体認証を実行
+      const cred = await webauthnLogin(webauthnOptions);
 
+      // 3. 検証APIを叩く（credentialとsession_tokenを両方送る）
+      await apiPost("/webauthn/login/verify", {
+        ...cred,
+        session_token: sessionToken,
+      });
+      
       // 4. 成功したら一気にダッシュボードへ
       window.location.href = "/dashboard";
     } catch (err) {
@@ -54,14 +39,8 @@ export default function LoginPage() {
   return (
     <div>
       <h1>Login</h1>
-      <p>メールアドレスを入力してください</p>
-      <input 
-        type="email" 
-        value={email} 
-        onChange={(e) => setEmail(e.target.value)} 
-        placeholder="test@test.com"
-      />
-      <button onClick={handleNext} disabled={loading || !email}>
+      <p>「次へ」を押して生体認証を開始してください</p>
+      <button onClick={handleNext} disabled={loading}>
         {loading ? "認証中..." : "次へ (生体認証)"}
       </button>
     </div>

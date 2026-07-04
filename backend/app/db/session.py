@@ -1,7 +1,6 @@
+from app.core.config import settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
-
-from app.core.config import settings
 
 
 class Base(DeclarativeBase):
@@ -20,3 +19,11 @@ SessionLocal = sessionmaker(
     bind=engine,
     future=True,
 )
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

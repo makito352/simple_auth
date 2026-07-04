@@ -1,3 +1,8 @@
+# ==========================================
+# フロントエンド本番用 Dockerfile
+# マルチステージビルドによる最適化
+# ==========================================
+
 # ============================
 # 1. Build Stage
 # ============================
@@ -20,6 +25,8 @@ RUN npm run build
 # 環境変数
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_ENV 
+ENV NEXT_PUBLIC_ENV =${NEXT_PUBLIC_ENV}
 
 # ============================
 # 2. Production Stage
@@ -28,7 +35,7 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV=production
+# ENV NODE_ENV=production
 
 # Copy only necessary build artifacts
 COPY --from=builder /app/.next ./.next

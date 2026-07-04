@@ -7,10 +7,9 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from app.models.registration_session import RegistrationSession
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session
-
-from app.models.registration_session import RegistrationSession
 
 # トークン有効期間は5分の定数定義
 TOKEN_VALIDITY_PERIOD = 5
