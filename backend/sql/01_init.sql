@@ -119,6 +119,7 @@ CREATE TABLE credentials (
     public_key TEXT NOT NULL,
     sign_count INTEGER NOT NULL DEFAULT 0,
     device_name TEXT,
+    user_comment TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

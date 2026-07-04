@@ -62,6 +62,9 @@ export default function Dashboard() {
             </li>
           );
         })}
+        <li key="devices-management">
+          <a href="/devices">⚙️ 認証ディバイスの管理へ移動</a>
+        </li>
 
         {/* 管理者の場合のみ、最後に「管理パネル」へのリンクを追加 */}
         {isUserAdmin && (

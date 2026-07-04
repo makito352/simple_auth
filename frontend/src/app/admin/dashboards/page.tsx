@@ -200,7 +200,12 @@ export default function DashboardsPage() {
                         <button 
                           onClick={() => {
                             setEditingId(link.id);
-                            setEditFormData({ title: link.title, url: link.url, icon_path: link.icon_path || "" });
+                            setEditFormData({ 
+                              title: link.title, 
+                              url: link.url, 
+                              icon_path: link.icon_path || "" ,
+                              file: null
+                            });
                           }}
                           className="text-blue-600 hover:underline"
                         >

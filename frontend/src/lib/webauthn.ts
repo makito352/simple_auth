@@ -6,6 +6,62 @@ export const isWebAuthnJsonSupported = !!(
   (PublicKeyCredential as any).parseCreationOptionsFromJSON
 );
 
+type NavigatorWithUserAgentData = Navigator & {
+  userAgentData?: {
+    platform?: string;
+  };
+};
+
+const OS_NAME_MAP: Record<string, string> = {
+  windows: "Windows",
+  ios: "iOS",
+  macos: "macOS",
+  linux: "Linux",
+  android: "Android",
+  unknown: "Unknown",
+};
+
+/**
+ * ブラウザのクライアント情報から保存用のOS名を推定する
+ */
+export function detectClientOs(): string {
+  const navigatorWithUserAgentData = navigator as NavigatorWithUserAgentData;
+  const userAgentDataPlatform = navigatorWithUserAgentData.userAgentData?.platform ?? "";
+  const platform = navigator.platform ?? "";
+  const userAgent = navigator.userAgent ?? "";
+  const normalizedSources = [userAgentDataPlatform, platform, userAgent].join(" ").toLowerCase();
+  const maxTouchPoints = navigator.maxTouchPoints ?? 0;
+
+  if (normalizedSources.includes("iphone") || normalizedSources.includes("ipad") || normalizedSources.includes("ipod")) {
+    return OS_NAME_MAP.ios;
+  }
+
+  if (
+    normalizedSources.includes("macintosh") &&
+    maxTouchPoints > 1
+  ) {
+    return OS_NAME_MAP.ios;
+  }
+
+  if (normalizedSources.includes("android")) {
+    return OS_NAME_MAP.android;
+  }
+
+  if (normalizedSources.includes("win")) {
+    return OS_NAME_MAP.windows;
+  }
+
+  if (normalizedSources.includes("mac os") || normalizedSources.includes("macintosh") || normalizedSources.includes("macintel")) {
+    return OS_NAME_MAP.macos;
+  }
+
+  if (normalizedSources.includes("linux") || normalizedSources.includes("x11")) {
+    return OS_NAME_MAP.linux;
+  }
+
+  return OS_NAME_MAP.unknown;
+}
+
 export async function webauthnRegister(options: any) {
   if (!isWebAuthnJsonSupported) {
     throw new Error("Your browser does not support the latest WebAuthn JSON API.");

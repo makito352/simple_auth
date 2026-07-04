@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react"; // Suspenseを追加
 import { useSearchParams } from "next/navigation";
 import { apiPost,apiGet } from "@/lib/api/client";
-import { webauthnRegister } from "@/lib/webauthn";
+import { detectClientOs, webauthnRegister } from "@/lib/webauthn";
 
 // コンテンツ部分を別コンポーネントとして定義
 function RegistrationContent() {
@@ -47,11 +47,18 @@ function RegistrationContent() {
       const cred = await webauthnRegister(options);
       if (!cred) {
         console.error("Credential is null/undefined");
+        return;
       }
       // console.log("Credential received from device:", cred);
 
+      // 監査用途で保存するOS名をWebAuthnの検証payloadへ付与する
+      const verifyPayload = {
+        ...cred,
+        device_name: detectClientOs(),
+      };
+
       // console.log("Step 3: Verifying credentials on server...");
-      const verifyResponse = await apiPost("/webauthn/register/verify", cred);
+      const verifyResponse = await apiPost("/webauthn/register/verify", verifyPayload);
       // console.log("Verification response from server:", verifyResponse);
 
       // トップページへリダイレクト
