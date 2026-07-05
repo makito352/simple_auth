@@ -1,10 +1,9 @@
 import uuid
 
+from app.db.session import Base
 from sqlalchemy import Column, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-
-from app.db.session import Base
 
 
 class Session(Base):

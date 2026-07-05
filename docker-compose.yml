@@ -8,6 +8,13 @@ services:
     image: postgres:16
     container_name: simpleauth-db
     restart: always
+    # ヘルスチェックを追加（DBの起動を待つための準備）
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -27,6 +34,8 @@ services:
     restart: always
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      SESSION_TOKEN_SECRET: ${SESSION_TOKEN_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
@@ -35,17 +44,22 @@ services:
       WEB_AUTHN_RP_ID: ${WEB_AUTHN_RP_ID}
       WEB_AUTHN_RP_NAME: ${WEB_AUTHN_RP_NAME}
       WEB_AUTHN_ORIGIN: ${WEB_AUTHN_ORIGIN}
-      OIDC_ISSUER: ${OIDC_ISSUER}
+      BACKEND_BASE_URI: ${BACKEND_BASE_URI}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
       OIDC_JWT_ALG: "RS256"
       OIDC_JWT_PRIVATE_KEY: ${OIDC_JWT_PRIVATE_KEY}
       OIDC_JWT_PUBLIC_KEY: ${OIDC_JWT_PUBLIC_KEY}
+      INITIAL_ADMIN_USER_EMAIL: ${INITIAL_ADMIN_USER_EMAIL}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
       ENV: ${ENV}
-    # ports:
-    #   - 8000:8000
+    volumes:
+      - backend_icon:/app/app/static
+    ports:
+      - 8000:8000
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - simpleauth-net
 
@@ -58,6 +72,9 @@ services:
     restart: always
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      INTERNAL_API_URL: ${INTERNAL_API_URL}
+      NEXT_PUBLIC_ENV: ${ENV}
+      NODE_ENV: ${ENV}
     depends_on:
       - backend
     # ports:
@@ -103,7 +120,7 @@ services:
     volumes:
       - roundcube_data:/var/www/html
       - roundcube_db:/var/roundcube/db
-      - ./infra/roundcube/hosts:/etc/hosts 
+      # - ./infra/roundcube/hosts:/etc/hosts 
     ports:
       - 9002:80
     environment:
@@ -127,7 +144,7 @@ services:
       PHOTOPRISM_TRACE: "true"          # さらに詳細（SQLなど）を出す
       PHOTOPRISM_REGISTER_URI: ${WEB_AUTHN_ORIGIN}
       PHOTOPRISM_PASSWORD_RESET_URI: ${WEB_AUTHN_ORIGIN}
-      PHOTOPRISM_OIDC_URI : ${OIDC_ISSUER}
+      PHOTOPRISM_OIDC_URI : ${BACKEND_BASE_URI}/oidc
       PHOTOPRISM_OIDC_CLIENT : ${OIDC_CLIENT_ID}
       PHOTOPRISM_OIDC_SECRET : ${OIDC_CLIENT_SECRET}
       PHOTOPRISM_OIDC_SCOPES : openid email profile
@@ -144,17 +161,17 @@ services:
     networks:
       - simpleauth-net
 
-  # ============================
-  # Mailhog (開発用メールサーバ)
-  # ============================
-  smtp:
-    image: mailhog/mailhog
-    container_name: simpleauth-mailhog
-    restart: always
-    ports:
-      - "8025:8025"
-    networks:
-      - simpleauth-net
+  # # ============================
+  # # Mailhog (開発用メールサーバ)
+  # # ============================
+  # smtp:
+  #   image: mailhog/mailhog
+  #   container_name: simpleauth-mailhog
+  #   restart: always
+  #   ports:
+  #     - "8025:8025"
+  #   networks:
+  #     - simpleauth-net
 
 # ============================
 # Networks & Volumes
@@ -164,6 +181,7 @@ networks:
 
 volumes:
   db_data:
+  backend_icon:
   photoprism_storage:
   photoprism_originals:
   snappymail_data:

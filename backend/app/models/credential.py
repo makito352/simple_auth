@@ -1,10 +1,9 @@
 import uuid
 
+from app.db.session import Base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-
-from app.db.session import Base
 
 
 class Credential(Base):
@@ -18,4 +17,5 @@ class Credential(Base):
     public_key = Column(String, nullable=False)
     sign_count = Column(Integer, default=0)
     device_name = Column(String)
+    user_comment = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

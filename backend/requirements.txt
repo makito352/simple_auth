@@ -5,6 +5,7 @@ psycopg2-binary
 pydantic
 pydantic-settings
 python-multipart
+Pillow
 webauthn==2.7.1
 email-validator
 jinja2

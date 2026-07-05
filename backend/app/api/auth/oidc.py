@@ -1,30 +1,21 @@
 import secrets
 import time
+from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import RedirectResponse, JSONResponse
-from sqlalchemy.orm import Session
-from jose import jwt
-from jwcrypto import jwk
-
-from app.core.config import settings
-from app.db.session import SessionLocal
-from app.models.oidc import OidcAuthCode,OidcAccessToken
+from app.core.config import logger, settings
+from app.db.session import get_db
+from app.models.oidc import OidcAccessToken, OidcAuthCode
+from app.services.oidc_service import OidcClaimService
 from app.services.session_service import SessionService
 from app.services.user_service import UserService
-from app.core.config import logger
-from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import JSONResponse, RedirectResponse
+from jose import jwt
+from jwcrypto import jwk
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/oidc", tags=["oidc"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # ----------------------------
@@ -35,19 +26,7 @@ def openid_configuration():
     # 開始ログ
     logger.info("OpenID Configuration requested")
 
-    issuer = str(settings.OIDC_ISSUER).rstrip("/")
-    # return {
-    #     "issuer": issuer,
-    #     "authorization_endpoint": f"{issuer}/oidc/authorize",
-    #     "token_endpoint": f"{issuer}/oidc/token",
-    #     "userinfo_endpoint": f"{issuer}/oidc/userinfo",
-    #     "jwks_uri": f"{issuer}/oidc/jwks.json",
-    #     "response_types_supported": ["code"],
-    #     "subject_types_supported": ["public"],
-    #     "id_token_signing_alg_values_supported": [settings.OIDC_JWT_ALG],
-    #     "scopes_supported": ["openid", "profile", "email"],
-    #     "token_endpoint_auth_methods_supported": ["client_secret_post"],
-    # }
+    issuer = f"{str(settings.BACKEND_BASE_URI).rstrip('/')}/oidc"
     return {
         "issuer": issuer,
         "authorization_endpoint": f"{issuer}/authorize",
@@ -60,6 +39,7 @@ def openid_configuration():
         "scopes_supported": ["openid", "profile", "email"],
         "token_endpoint_auth_methods_supported": ["client_secret_post"],
     }
+
 
 @router.get("/jwks.json")
 def jwks():
@@ -82,6 +62,7 @@ def jwks():
 
     return {"keys": [key_dict]}
 
+
 # ----------------------------
 # /authorize
 # ----------------------------
@@ -98,7 +79,7 @@ def authorize(
 ):
     # 開始ログ
     logger.info("authorize called")
-    logger.debug("scope: %s",scope)
+    logger.debug("scope: %s", scope)
 
     # クライアント検証（最低限）
     if client_id != settings.OIDC_CLIENT_ID:
@@ -166,7 +147,10 @@ async def token(
     if grant_type != "authorization_code":
         raise HTTPException(status_code=400, detail="unsupported_grant_type")
 
-    if client_id != settings.OIDC_CLIENT_ID or client_secret != settings.OIDC_CLIENT_SECRET:
+    if (
+        client_id != settings.OIDC_CLIENT_ID
+        or client_secret != settings.OIDC_CLIENT_SECRET
+    ):
         raise HTTPException(status_code=401, detail="invalid_client")
 
     auth_code = (
@@ -195,7 +179,7 @@ async def token(
     exp = now + 3600
     exp_dt = datetime.fromtimestamp(exp, tz=timezone.utc)
 
-    issuer = str(settings.OIDC_ISSUER).rstrip("/")
+    issuer = f"{str(settings.BACKEND_BASE_URI).rstrip('/')}/oidc"
     subject = str(user.id)
 
     id_token_claims = {
@@ -215,7 +199,7 @@ async def token(
     )
 
     # アクセストークンの発行
-    logger.debug("requested_scopes=%s ",requested_scopes)
+    logger.debug("requested_scopes=%s ", requested_scopes)
     access_token = jwt.encode(
         {
             "sub": str(user.id),
@@ -223,14 +207,16 @@ async def token(
             "exp": time.time() + 3600,
         },
         settings.OIDC_JWT_PRIVATE_KEY,
-        algorithm="RS256"
+        algorithm="RS256",
     )
 
-    db.add(OidcAccessToken(
-        token=access_token,
-        user_id=user.id,
-        expires_at=exp_dt,
-    ))
+    db.add(
+        OidcAccessToken(
+            token=access_token,
+            user_id=user.id,
+            expires_at=exp_dt,
+        )
+    )
     db.commit()
 
     return {
@@ -248,7 +234,7 @@ async def token(
 def userinfo(request: Request, db: Session = Depends(get_db)):
     # 開始ログ
     logger.info("userinfo called")
-    
+
     # Authorization: Bearer <token>
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
@@ -258,9 +244,7 @@ def userinfo(request: Request, db: Session = Depends(get_db)):
     token = auth.split(" ")[1]
 
     # DB からアクセストークンを検索
-    token_row = db.query(OidcAccessToken).filter(
-        OidcAccessToken.token == token
-    ).first()
+    token_row = db.query(OidcAccessToken).filter(OidcAccessToken.token == token).first()
 
     if not token_row:
         logger.debug("Access token not found")
@@ -275,12 +259,12 @@ def userinfo(request: Request, db: Session = Depends(get_db)):
     if not user:
         logger.debug("User not found")
         raise HTTPException(status_code=401, detail="not_authenticated")
-    
+
     # tokenからトークン取得
     payload = jwt.decode(token, settings.OIDC_JWT_PUBLIC_KEY, algorithms=["RS256"])
     scope = payload.get("scope", "")
-    scopes = scope.split(" ")
-    logger.debug("scope=%s, scopes=%s",scope, scopes)
+    scopes = scope.split(" ") if isinstance(scope, str) else []
+    logger.debug("scope=%s, scopes=%s", scope, scopes)
 
     # 基本情報を返す
     response = {
@@ -291,11 +275,10 @@ def userinfo(request: Request, db: Session = Depends(get_db)):
         "preferred_username": user.email,
     }
 
-     # スコープに "imap" が含まれていれば IMAP 用情報を追加
-    if "imap" in scopes:
-        response.update({
-            "imap_server": "s203.xrea.com",
-            "imap_p": "",
-        })
+    # OidcClaimService を利用して動的なマッピングを適用
+    dynamic_claims = OidcClaimService.resolve_claims(
+        db=db, requested_scopes=scopes, user_id=token_row.user_id
+    )
+    response.update(dynamic_claims)
 
     return response
