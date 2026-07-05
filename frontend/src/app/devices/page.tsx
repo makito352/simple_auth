@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   createDeviceRegistrationLink,
   deleteDeviceCredential,
@@ -155,6 +156,12 @@ export default function DevicesPage() {
 
   return (
     <main style={{ padding: 24 }}>
+      {/* Launcherに戻るリンクを追加 */}
+      <div style={{ marginBottom: 16 }}>
+        <Link href="/dashboard" style={{ color: "#0070f3", textDecoration: "underline" }}>
+          ← 🏠Launcherに戻る
+        </Link>
+      </div>
       <h1>デバイス管理</h1>
       <p style={{ marginBottom: 16 }}>
         ログイン中ユーザーのWebAuthnデバイス一覧です。コメント編集と削除が行えます。
