@@ -6,9 +6,10 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 class Base(DeclarativeBase):
     pass
 
+db_url = f"postgresql+psycopg2://{settings.DATABASE_USER}:{settings.DATABASE_PASSWORD}@{settings.DATABASE_DB_HOST}/{settings.DATABASE_NAME}"
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    db_url,
     future=True,
     pool_pre_ping=True,
 )
