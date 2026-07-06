@@ -1,11 +1,10 @@
-from typing import List
 from uuid import UUID
 
 from app.models.user_option import UserOption, UserOptionAttribute
-from app.schemas.user_option import OptionAttributeOut, UserOptionOut
+from app.schemas.user_option import OptionAttributeOut, UserOptionOut, UserOptionBulkUpdate
 from app.utils.crypto import decrypt_value, encrypt_value
 from sqlalchemy.orm import Session
-
+from app.core.config import logger
 
 class UserOptionService:
     @staticmethod
@@ -88,21 +87,23 @@ class UserOptionService:
 
     @staticmethod
     def bulk_update_user_options(
-        db: Session, user_id: UUID, options: list[dict]
-    ) -> list[UserOption]:
+        db: Session, user_id: UUID, options: list[UserOptionBulkUpdate]
+    ) -> list[UserOptionOut]:
         """
         【Bulk Update】
         マスタの encrypted フラグを確認し、True の場合は暗号化処理を施してから保存します。
         """
+        logger.debug("Bulk updating user options for user_id=%s optionslen=%d options=%s", user_id, len(options), options)    
+
         # 効率のためマスタ情報を一括取得して辞書化
         attributes_map = {
             attr.key: attr for attr in db.query(UserOptionAttribute).all()
         }
 
-        updated_items = []
+        processed_items  = []
         for item in options:
-            key = item["key"]
-            raw_value = item["value"]  # ユーザーから送られてくる生のデータ
+            key =  item.key
+            raw_value = item.value  # ユーザーから送られてくる生のデータ
 
             # マスタ情報の取得
             attr_meta = attributes_map.get(key)
@@ -116,25 +117,46 @@ class UserOptionService:
             )
 
             if existing:
+                # 既存のレコードを更新する場合
                 if is_encrypted:
                     # 暗号化して格納
                     existing.encrypted_value = encrypt_value(raw_value)
-                    existing.value = None  # 明文をクリア（任意）
+                    existing.value = None  # 明文をクリア
                 else:
+                    # 暗号化せずに格納
                     existing.value = raw_value
-                    existing.encrypted_value = None
-                updated_items.append(existing)
+                    existing.encrypted_value = None  # 暗号文をクリア
+                processed_items .append(existing)
             else:
+                # 新規作成する場合
                 if is_encrypted:
+                    # 暗号化して格納
                     new_opt = UserOption(
                         user_id=user_id,
                         key=key,
                         encrypted_value=encrypt_value(raw_value),
                     )
                 else:
-                    new_opt = UserOption(user_id=user_id, key=key, value=raw_value)
+                    # 暗号化せずに格納
+                    new_opt = UserOption(
+                        user_id=user_id, 
+                        key=key, 
+                        value=raw_value
+                    )
                 db.add(new_opt)
-                updated_items.append(new_opt)
+                processed_items .append(new_opt)
 
         db.commit()
-        return updated_items
+        # レスポンス用に UserOptionOut に変換
+        results = []
+        for opt in processed_items:
+            attr_meta = attributes_map.get(opt.key)
+            final_value = opt.value
+            if attr_meta and attr_meta.encrypted and opt.encrypted_value:
+                final_value = decrypt_value(opt.encrypted_value)
+
+            results.append(UserOptionOut(key=opt.key, value=final_value))
+
+        # 更新後のアイテムを返す
+        logger.debug("Successfully updated/created items for user_id=%s: %s", user_id, results)
+        return results
