@@ -19,14 +19,16 @@ RUN npm ci
 # Copy source
 COPY . .
 
-# Build Next.js (App Router)
-RUN npm run build
-
 # 環境変数
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ARG NEXT_PUBLIC_ENV 
-ENV NEXT_PUBLIC_ENV =${NEXT_PUBLIC_ENV}
+ENV NEXT_PUBLIC_ENV=${NEXT_PUBLIC_ENV}
+ARG INTERNAL_API_URL
+ENV INTERNAL_API_URL=${INTERNAL_API_URL}
+
+# Build Next.js (App Router)
+RUN npm run build
 
 # ============================
 # 2. Production Stage

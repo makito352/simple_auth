@@ -52,8 +52,9 @@ services:
       ENV: ${ENV}
     volumes:
       - backend_icon:/app/app/static
-    ports:
-      - 8000:8000
+    # nginxでリバースプロキシするため、直接ポートを公開しない
+    # ports:
+    #   - 8000:8000
     depends_on:
       db:
         condition: service_healthy
@@ -64,7 +65,12 @@ services:
   # Frontend (Next.js)
   # ============================
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - NEXT_PUBLIC_API_URL=${BACKEND_BASE_URI}
+        - NEXT_PUBLIC_ENV=${ENV}
+        - INTERNAL_API_URL=${INTERNAL_BACKEND_API_URL}
     container_name: simpleauth-frontend
     restart: always
     environment:
@@ -74,6 +80,7 @@ services:
       NODE_ENV: ${ENV}
     depends_on:
       - backend
+    # nginxでリバースプロキシするため、直接ポートを公開しない
     # ports:
     #   - 3000:3000
     networks:
@@ -118,8 +125,8 @@ services:
       - roundcube_data:/var/www/html
       - roundcube_db:/var/roundcube/db
       # - ./infra/roundcube/hosts:/etc/hosts 
-    ports:
-      - 9002:80
+    # ports:
+    #   - 9002:80
     environment:
       - ROUNDCUBEMAIL_DB_TYPE=sqlite
       - ROUNDCUBEMAIL_SKIN=elastic
