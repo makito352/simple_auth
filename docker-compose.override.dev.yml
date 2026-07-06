@@ -10,8 +10,6 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       INTERNAL_API_URL: ${INTERNAL_API_URL}
-      NEXT_PUBLIC_DEV_ORG: ${NEXT_PUBLIC_DEV_ORG}
-      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
       NEXT_PUBLIC_ENV: ${ENV}
       NODE_ENV: ${ENV}
     ports:

@@ -197,7 +197,8 @@ export default function OidcClientManagementPage() {
         <div>
           <h1 className="text-2xl font-bold">OIDCクライアント管理</h1>
           <p className="text-sm text-gray-500 mt-1">
-            一覧ではclient_secretの平文は表示されません。シークレットの取得は保存時または再発行時のみで、再取得する場合は再発行が必要です。
+            一覧ではclient_secretの平文は表示されません。
+            シークレットの取得は保存時または再発行時にクリップボードにコピーされるのみで、再取得する場合は再発行が必要です。
           </p>
         </div>
         <button
