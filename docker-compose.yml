@@ -45,12 +45,14 @@ services:
       WEB_AUTHN_ORIGIN: ${WEB_AUTHN_ORIGIN}
       BACKEND_BASE_URI: ${BACKEND_BASE_URI}
       OIDC_JWT_ALG: "RS256"
-      OIDC_JWT_PRIVATE_KEY: ${OIDC_JWT_PRIVATE_KEY}
-      OIDC_JWT_PUBLIC_KEY: ${OIDC_JWT_PUBLIC_KEY}
+      OIDC_JWT_PRIVATE_KEY_PATH: /app/keys/oidc_private.pem
+      OIDC_JWT_PUBLIC_KEY_PATH: /app/keys/oidc_public.pem
       INITIAL_ADMIN_USER_EMAIL: ${INITIAL_ADMIN_USER_EMAIL}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
       ENV: ${ENV}
     volumes:
+      - ./backend/secrets/oidc_private.pem:/app/keys/oidc_private.pem:ro
+      - ./backend/secrets/oidc_public.pem:/app/keys/oidc_public.pem:ro
       - backend_icon:/app/app/static
     # nginxでリバースプロキシするため、直接ポートを公開しない
     # ports:
