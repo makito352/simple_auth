@@ -57,10 +57,10 @@ def update_user_options(
     例: GET /user-options/123-abc/options に list[{"key": "imap", "value": "..."}, ...] を送る
     """
     return UserOptionService.bulk_update_user_options(
-        db, user_id, [o.dict() for o in options_in.options]
+        db, user_id, options_in.options
     )
 
 
-@router.get("/{user_id}/options")
+@router.get("/{user_id}/options", response_model=list[UserOptionOut])
 def get_user_options(user_id: UUID, db: Session = Depends(get_db)):
     return UserOptionService.get_user_options(db, user_id)
