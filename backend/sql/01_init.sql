@@ -169,14 +169,60 @@ CREATE INDEX idx_oidc_access_tokens_token ON oidc_access_tokens(token);
 CREATE INDEX idx_oidc_access_tokens_user_id ON oidc_access_tokens(user_id);
 
 -- ----------------------------
+-- oidc_clients (OIDCクライアントの基本情報)
+-- ----------------------------
+CREATE TABLE oidc_clients (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,                    -- 管理画面に表示するアプリ名
+    client_id TEXT NOT NULL UNIQUE,          -- アプリ側で識別するID
+    client_secret TEXT NOT NULL,            -- 暗号化されたシークレット（またはハッシュ）
+    description TEXT,                       -- 管理画面等に表示される「アプリの備考」
+    allowed_redirect_uris TEXT[] NOT NULL, -- 許可されたリダイレクトURLのリスト
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ----------------------------
+-- oidc_scopes (定義済みのスコープ一覧)
+-- ----------------------------
+CREATE TABLE oidc_scopes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    scope_name TEXT NOT NULL UNIQUE,        -- 例: "imap", "profile"
+    description TEXT,                       -- スコープの説明（何ができるか）
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ----------------------------
 -- oidc_auth_codes (OIDCクレームマッピング)
 -- ----------------------------
 CREATE TABLE oidc_claim_mappings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    scope TEXT NOT NULL,                     -- 例: "imap"
+    scope TEXT NOT NULL REFERENCES oidc_scopes(scope_name) ON DELETE CASCADE, -- 例: "imap"
     claim_name TEXT NOT NULL,                -- 例: "imap_server"
     value_source TEXT NOT NULL,              -- "user_attribute" / "static" / "user_field"
     value_key TEXT,                          -- user_attribute の key など
     static_value TEXT,                       -- value_source=static の場合
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ----------------------------
+-- oidc_client_scopes (クライアントとスコープの紐付け)
+-- ※ user_option_attributes とは別に、システム的な権限設計として分離します。
+-- ----------------------------
+CREATE TABLE oidc_client_scopes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    client_id TEXT NOT NULL REFERENCES oidc_clients(client_id) ON DELETE CASCADE,
+    scope_name TEXT NOT NULL REFERENCES oidc_scopes(scope_name) ON DELETE CASCADE,
+    UNIQUE(client_id, scope_name)
+);
+
+-- ----------------------------
+-- oidc_scopes 初期データ
+-- ----------------------------
+INSERT INTO oidc_scopes (scope_name, description)
+VALUES
+    ('openid', 'OpenID Connect の必須スコープ'),
+    ('profile', 'ユーザープロファイル情報の参照'),
+    ('email', 'ユーザーのメール情報の参照')
+ON CONFLICT (scope_name) DO NOTHING;

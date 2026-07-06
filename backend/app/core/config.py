@@ -7,7 +7,10 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # データベース接続情報
-    DATABASE_URL: str = "postgresql+psycopg2://user:pass@db/simpleauth"
+    DATABASE_USER: str = "simpleauth"
+    DATABASE_NAME: str ="simpleauth"
+    DATABASE_PASSWORD:str = "simpleauth"
+    DATABASE_DB_HOST:str = "db"
     # JWT 認証用のシークレットキー
     SECRET_KEY: str = "change-me"
     # OTPの有効期限（分）
@@ -18,12 +21,6 @@ class Settings(BaseSettings):
     SESSION_TOKEN_SECRET: str = "session-secret"
     # 暗号化用（UserOptionなどの暗号化に使用）
     ENCRYPTION_KEY: str = "your-base64-encoded-key"
-
-    # SMTP 用設定項目
-    SMTP_HOST: str = "smtp.example.com"
-    SMTP_PORT: int = 587
-    SMTP_USER: str = "user@example.com"
-    SMTP_PASS: str = "smtp-secret"
 
     # FASTAPI のルートパス（API のベースパス）
     ROOT_PATH: str = "/backend"
@@ -36,10 +33,6 @@ class Settings(BaseSettings):
     OIDC_JWT_ALG: str = "RS256"
     OIDC_JWT_PRIVATE_KEY: str = ""
     OIDC_JWT_PUBLIC_KEY: str = ""
-
-    # PhotoPrism から見えるクライアント情報
-    OIDC_CLIENT_ID: str = "photoprism"
-    OIDC_CLIENT_SECRET: str = "photoprism-secret"
 
     # WebAuthn の設定項目
     WEB_AUTHN_RP_ID: str = "localhost"

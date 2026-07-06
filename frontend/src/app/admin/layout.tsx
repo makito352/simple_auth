@@ -4,7 +4,7 @@ import { isAdmin, type UserProfile } from "@/lib/api/users";
 import { logger } from "@/lib/logger";
 // import { buildUrl } from "@/lib/api/client";
 import { fetchUserProfileForServer } from "@/lib/api/users_server"
-import { LayoutDashboard, Settings, User, Users, ArrowLeft, SlidersHorizontal } from "lucide-react";
+import { LayoutDashboard, Settings, User, Users, ArrowLeft, SlidersHorizontal, KeyRound } from "lucide-react";
 
 // async function fetchUserProfileForServer(): Promise<UserProfile | null> {
 //   const cookieStore = await cookies();
@@ -120,7 +120,14 @@ export default async function AdminLayout({
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:pl-5"
             >
               <Settings size={18} className="text-gray-600 transition-colors" />
-              <span>OIDC基本設定</span>
+              <span>OIDCスコープ・クレーム設定</span>
+            </a>
+            <a 
+              href="/admin/oidc/clients" 
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:pl-5"
+            >
+              <KeyRound size={18} className="text-gray-600 transition-colors" />
+              <span>OIDCクライアント管理</span>
             </a>
             <a 
               href="/admin/useroption" 

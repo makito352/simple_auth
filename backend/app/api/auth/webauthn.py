@@ -129,7 +129,7 @@ def issue_registration_options(request: Request, db: Session):
     user = UserService.read_user(db=db, user_id=user_id)
     options = generate_registration_options(
         rp_id=settings.WEB_AUTHN_RP_ID,
-        rp_name="SimpleAuth",
+        rp_name=settings.WEB_AUTHN_RP_NAME,
         user_id=str(user.id).encode("utf-8"),
         user_name=user.email,
         authenticator_selection=AuthenticatorSelectionCriteria(
