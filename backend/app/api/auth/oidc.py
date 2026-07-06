@@ -6,11 +6,11 @@ from typing import Optional
 from app.core.config import logger, settings
 from app.db.session import get_db
 from app.models.oidc import OidcAccessToken, OidcAuthCode
-from app.services.oidc_service import OidcClaimService
+from app.services.oidc_service import OidcClaimService, OidcClientService
 from app.services.session_service import SessionService
 from app.services.user_service import UserService
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from jose import jwt
 from jwcrypto import jwk
 from sqlalchemy.orm import Session
@@ -22,11 +22,14 @@ router = APIRouter(prefix="/oidc", tags=["oidc"])
 # OpenID Provider Metadata
 # ----------------------------
 @router.get("/.well-known/openid-configuration")
-def openid_configuration():
+def openid_configuration(db: Session = Depends(get_db)):
     # 開始ログ
     logger.info("OpenID Configuration requested")
 
     issuer = f"{str(settings.BACKEND_BASE_URI).rstrip('/')}/oidc"
+    scope_names = [scope.scope_name for scope in OidcClientService.get_all_scopes(db)]
+    supported_scopes = sorted(set(["openid", *scope_names]))
+
     return {
         "issuer": issuer,
         "authorization_endpoint": f"{issuer}/authorize",
@@ -36,7 +39,7 @@ def openid_configuration():
         "response_types_supported": ["code"],
         "subject_types_supported": ["public"],
         "id_token_signing_alg_values_supported": [settings.OIDC_JWT_ALG],
-        "scopes_supported": ["openid", "profile", "email"],
+        "scopes_supported": supported_scopes,
         "token_endpoint_auth_methods_supported": ["client_secret_post"],
     }
 
@@ -81,14 +84,19 @@ def authorize(
     logger.info("authorize called")
     logger.debug("scope: %s", scope)
 
-    # クライアント検証（最低限）
-    if client_id != settings.OIDC_CLIENT_ID:
-        raise HTTPException(status_code=400, detail="invalid_client")
+    if response_type != "code":
+        raise HTTPException(status_code=400, detail="unsupported_response_type")
 
-    # redirect_uri のホワイトリストチェックを本番では必須
-    # ここでは簡略化してそのまま許可
-    if not redirect_uri.startswith("https://"):
-        raise HTTPException(status_code=400, detail="invalid_redirect_uri")
+    requested_scopes = scope.split(" ") if isinstance(scope, str) else []
+    try:
+        OidcClientService.validate_authorize_request(
+            db=db,
+            client_id=client_id,
+            redirect_uri=redirect_uri,
+            requested_scope_names=requested_scopes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # SimpleAuth のセッションからユーザーを特定
     simpleauth_session_id = request.cookies.get("simpleauth_session")
@@ -147,11 +155,10 @@ async def token(
     if grant_type != "authorization_code":
         raise HTTPException(status_code=400, detail="unsupported_grant_type")
 
-    if (
-        client_id != settings.OIDC_CLIENT_ID
-        or client_secret != settings.OIDC_CLIENT_SECRET
-    ):
-        raise HTTPException(status_code=401, detail="invalid_client")
+    try:
+        OidcClientService.validate_token_client(db, client_id, client_secret)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
 
     auth_code = (
         db.query(OidcAuthCode)

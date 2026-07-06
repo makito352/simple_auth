@@ -34,10 +34,6 @@ class Settings(BaseSettings):
     OIDC_JWT_PRIVATE_KEY: str = ""
     OIDC_JWT_PUBLIC_KEY: str = ""
 
-    # PhotoPrism から見えるクライアント情報
-    OIDC_CLIENT_ID: str = "photoprism"
-    OIDC_CLIENT_SECRET: str = "photoprism-secret"
-
     # WebAuthn の設定項目
     WEB_AUTHN_RP_ID: str = "localhost"
     WEB_AUTHN_RP_NAME: str = "SimpleAuth"

@@ -1,7 +1,21 @@
 from app.db.session import get_db
-from app.models.oidc import ValueSourceType
-from app.schemas.oidc import ClaimMappingCreate, ClaimMappingResponse
-from app.services.oidc_service import OidcClaimService
+from app.schemas.oidc import (
+    ClaimMappingCreate,
+    ClaimMappingResponse,
+    OidcClientActivationUpdate,
+    OidcClientCreate,
+    OidcClientResponse,
+    OidcClientSecretResponse,
+    OidcClientUpdate,
+    OidcScopeCreate,
+    OidcScopeResponse,
+    OidcScopeUpdate,
+)
+from app.services.oidc_service import (
+    OidcClaimService,
+    OidcClientService,
+    OidcScopeService,
+)
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -20,6 +34,22 @@ def _get_mapping_or_400(db: Session, mapping_id: str):
     return mapping
 
 
+def _handle_client_service_error(exc: ValueError) -> None:
+    message = str(exc)
+    if message in {"invalid_client", "client not found"}:
+        raise HTTPException(status_code=404, detail=message) from exc
+    raise HTTPException(status_code=400, detail=message) from exc
+
+
+def _handle_scope_service_error(exc: ValueError) -> None:
+    message = str(exc)
+    if message == "scope not found":
+        raise HTTPException(status_code=404, detail=message) from exc
+    if message == "scope is in use":
+        raise HTTPException(status_code=409, detail=message) from exc
+    raise HTTPException(status_code=400, detail=message) from exc
+
+
 @router.get("/mappings", response_model=list[ClaimMappingResponse])
 def list_claim_mappings(db: Session = Depends(get_db)):
     """すべてのマッピングルールを取得する"""
@@ -36,7 +66,10 @@ def get_claim_mapping(mapping_id: str, db: Session = Depends(get_db)):
 @router.post("/mappings", response_model=ClaimMappingResponse)
 def create_claim_mapping(data: ClaimMappingCreate, db: Session = Depends(get_db)):
     """新しいマッピングルールを作成する"""
-    new_mapping = OidcClaimService.create_claim_mapping(db, data=data)
+    try:
+        new_mapping = OidcClaimService.create_claim_mapping(db, data=data)
+    except ValueError as exc:
+        _handle_scope_service_error(exc)
     return new_mapping
 
 
@@ -45,22 +78,13 @@ def update_claim_mapping(
     mapping_id: str, data: ClaimMappingCreate, db: Session = Depends(get_db)
 ):
     """既存のマッピングを更新する"""
-    mapping = _get_mapping_or_400(db, mapping_id)
-
-    # スキーマのデータを用いて更新
-    mapping.scope = data.scope
-    mapping.claim_name = data.claim_name
-    mapping.value_source = (
-        data.value_source.value
-        if isinstance(data.value_source, ValueSourceType)
-        else data.value_source
-    )
-    mapping.value_key = data.value_key
-    mapping.static_value = data.static_value
-
-    db.commit()
-    db.refresh(mapping)
-    return mapping
+    try:
+        return OidcClaimService.update_claim_mapping(db, mapping_id, data)
+    except ValueError as exc:
+        message = str(exc)
+        if message == "mapping not found":
+            raise HTTPException(status_code=404, detail=message) from exc
+        _handle_scope_service_error(exc)
 
 
 @router.delete("/mappings/{mapping_id}", status_code=204)
@@ -71,3 +95,114 @@ def delete_claim_mapping(mapping_id: str, db: Session = Depends(get_db)):
     db.delete(mapping)
     db.commit()
     return None
+
+
+@router.get("/scopes", response_model=list[OidcScopeResponse])
+def list_oidc_scopes(db: Session = Depends(get_db)):
+    """OIDCクライアントに割り当て可能なスコープ一覧を取得する。"""
+    return OidcScopeService.list_scopes(db)
+
+
+@router.post("/scopes", response_model=OidcScopeResponse)
+def create_oidc_scope(data: OidcScopeCreate, db: Session = Depends(get_db)):
+    """OIDCスコープを作成する。"""
+    try:
+        scope = OidcScopeService.create_scope(db, data)
+    except ValueError as exc:
+        _handle_scope_service_error(exc)
+    return OidcScopeService.to_response_dict(db, scope)
+
+
+@router.put("/scopes/{scope_name}", response_model=OidcScopeResponse)
+def update_oidc_scope(
+    scope_name: str,
+    data: OidcScopeUpdate,
+    db: Session = Depends(get_db),
+):
+    """OIDCスコープの説明を更新する。"""
+    try:
+        scope = OidcScopeService.update_scope(db, scope_name, data)
+    except ValueError as exc:
+        _handle_scope_service_error(exc)
+    return OidcScopeService.to_response_dict(db, scope)
+
+
+@router.delete("/scopes/{scope_name}", status_code=204)
+def delete_oidc_scope(scope_name: str, db: Session = Depends(get_db)):
+    """OIDCスコープを削除する。"""
+    try:
+        OidcScopeService.delete_scope(db, scope_name)
+    except ValueError as exc:
+        _handle_scope_service_error(exc)
+    return None
+
+
+@router.get("/clients", response_model=list[OidcClientResponse])
+def list_oidc_clients(db: Session = Depends(get_db)):
+    """OIDCクライアント一覧を取得する。"""
+    return OidcClientService.list_clients(db)
+
+
+@router.get("/clients/{client_id}", response_model=OidcClientResponse)
+def get_oidc_client(client_id: str, db: Session = Depends(get_db)):
+    """OIDCクライアント詳細を取得する。"""
+    client = OidcClientService.get_client_by_client_id(db, client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="client not found")
+    return OidcClientService.to_response_dict(db=db, client=client)
+
+
+@router.post("/clients", response_model=OidcClientSecretResponse)
+def create_oidc_client(data: OidcClientCreate, db: Session = Depends(get_db)):
+    """OIDCクライアントを作成する。"""
+    try:
+        client, plain_secret = OidcClientService.create_client(db, data)
+    except ValueError as exc:
+        _handle_client_service_error(exc)
+    return OidcClientService.to_response_dict(
+        db=db,
+        client=client,
+        include_plain_secret=plain_secret,
+    )
+
+
+@router.put("/clients/{client_id}", response_model=OidcClientResponse)
+def update_oidc_client(
+    client_id: str,
+    data: OidcClientUpdate,
+    db: Session = Depends(get_db),
+):
+    """OIDCクライアントを更新する。"""
+    try:
+        client = OidcClientService.update_client(db, client_id, data)
+    except ValueError as exc:
+        _handle_client_service_error(exc)
+    return OidcClientService.to_response_dict(db=db, client=client)
+
+
+@router.post("/clients/{client_id}/rotate-secret", response_model=OidcClientSecretResponse)
+def rotate_oidc_client_secret(client_id: str, db: Session = Depends(get_db)):
+    """OIDCクライアントのシークレットを再発行する。"""
+    try:
+        client, plain_secret = OidcClientService.rotate_client_secret(db, client_id)
+    except ValueError as exc:
+        _handle_client_service_error(exc)
+    return OidcClientService.to_response_dict(
+        db=db,
+        client=client,
+        include_plain_secret=plain_secret,
+    )
+
+
+@router.patch("/clients/{client_id}/active", response_model=OidcClientResponse)
+def update_oidc_client_active(
+    client_id: str,
+    data: OidcClientActivationUpdate,
+    db: Session = Depends(get_db),
+):
+    """OIDCクライアントの有効状態を変更する。"""
+    try:
+        client = OidcClientService.set_client_active(db, client_id, data.is_active)
+    except ValueError as exc:
+        _handle_client_service_error(exc)
+    return OidcClientService.to_response_dict(db=db, client=client)

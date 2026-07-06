@@ -42,3 +42,56 @@ export interface ClaimMapping {
 }
 
 export type ClaimMappingInput = Omit<ClaimMapping, "id">;
+
+/**
+ * OIDCクライアント管理の型定義
+ */
+export interface OidcScope {
+  scope_name: string;
+  description?: string;
+  is_system_scope: boolean;
+  is_deletable: boolean;
+}
+
+export interface OidcScopeInput {
+  scope_name: string;
+  description?: string;
+}
+
+export interface OidcScopeUpdateInput {
+  description?: string;
+}
+
+export interface OidcClient {
+  id: string;
+  name: string;
+  client_id: string;
+  client_secret_masked: string;
+  description?: string;
+  allowed_redirect_uris: string[];
+  scope_names: string[];
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface OidcClientWithSecret extends OidcClient {
+  client_secret: string;
+}
+
+export interface OidcClientInput {
+  name: string;
+  client_id: string;
+  description?: string;
+  allowed_redirect_uris: string[];
+  scope_names: string[];
+  is_active: boolean;
+}
+
+export interface OidcClientUpdateInput {
+  name: string;
+  description?: string;
+  allowed_redirect_uris: string[];
+  scope_names: string[];
+  is_active: boolean;
+}

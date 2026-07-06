@@ -4,7 +4,8 @@ export default function AdminPortal() {
   const menuItems = [
     { title: "ダッシュボード設定", href: "/admin/dashboards", desc: "リンクの追加・削除" },
     { title: "システム管理", href: "/admin/useroption", desc: "ユーザ個別プロファイル設定(OIDCユーザ個別設定)" },
-    { title: "システム管理", href: "/admin/oidc", desc: "OIDC / 基本設定" },
+    { title: "システム管理", href: "/admin/oidc", desc: "OIDC / スコープ・クレーム設定" },
+    { title: "システム管理", href: "/admin/oidc/clients", desc: "OIDC / クライアント設定" },
     { title: "ユーザー管理", href: "/admin/users", desc: "権限・アカウント操作" },
   ];
 
