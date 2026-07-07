@@ -5,8 +5,9 @@
 
 echo "--- OIDC Key Generation ---"
 mkdir -p backend/secrets
-openssl ecparam -name prime256v1 -genkey -noout -out backend/secrets/oidc_private.pem
-openssl ec -in backend/secrets/oidc_private.pem -pubout -out backend/secrets/oidc_public.pem
+openssl genpkey -algorithm RSA -out backend/secrets/oidc_private.pem -pkeyopt rsa_keygen_bits:2048
+openssl rsa -in backend/secrets/oidc_private.pem -pubout -out backend/secrets/oidc_public.pem
+
 
 # --- Additional Keys Generation (Postgres, Encryption, Session) ---
 # 追加された3つのキーを生成します。
