@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     ENCRYPTION_KEY: str = "your-base64-encoded-key"
 
     # FASTAPI のルートパス（API のベースパス）
-    ROOT_PATH: str = "/backend"
+    BACKEND_PROXY_PREFIX: str = "/backend"
 
     # CORS origins（カンマ区切りで複数指定）
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000,http://localhost"
