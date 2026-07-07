@@ -134,7 +134,7 @@ export default async function AdminLayout({
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:pl-5"
             >
               <SlidersHorizontal size={18} className="text-gray-600 transition-colors" />
-              <span>属性管理</span>
+              <span>カスタムフィールド設定</span>
             </a>
             <a 
               href="/admin/useroption/uservalues" 

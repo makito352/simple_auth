@@ -114,7 +114,6 @@ export default function OptionAttributePage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">キー</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">暗号化</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
@@ -123,7 +122,6 @@ export default function OptionAttributePage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {attributes.map((attr) => (
               <tr key={attr.id}>
-                <td className="px-6 py-4 text-sm text-gray-900">{attr.id.slice(0, 8)}...</td>
                 <td className="px-6 py-4 text-sm text-gray-900 font-mono">{attr.key}</td>
                 <td className="px-6 py-4 text-sm">
                   {attr.encrypted ? (

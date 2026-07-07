@@ -241,7 +241,7 @@ export default function OidcManagementPage() {
   const getValueSourceLabel = (valueSource: ClaimMapping['value_source']) => {
     switch (valueSource) {
       case 'user_attribute':
-        return 'ユーザー属性';
+        return 'カスタムフィールド';
       case 'user_profile':
         return 'ユーザープロファイル';
       default:
@@ -257,21 +257,6 @@ export default function OidcManagementPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">OIDCスコープ・クレーム設定</h1>
-        <div className="flex gap-2">
-          <a
-            href="/admin/oidc/clients"
-            className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-          >
-            クライアント管理へ
-          </a>
-          <button 
-            onClick={() => openNewMappingForm(scopes)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            disabled={scopes.length === 0}
-          >
-            <Plus size={18} /> 新規追加
-          </button>
-        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr,1.4fr]">
@@ -372,6 +357,13 @@ export default function OidcManagementPage() {
         <div className="space-y-4">
           <div className="bg-white p-6 border rounded shadow-sm">
             <h2 className="text-lg font-semibold mb-2">OIDCクレームマッピング設定</h2>
+              <button 
+                onClick={() => openNewMappingForm(scopes)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                disabled={scopes.length === 0}
+              >
+              <Plus size={18} /> 新規追加
+              </button>
             <p className="text-sm text-gray-500">各スコープで返すクレームの内容を定義します。</p>
           </div>
 
@@ -410,13 +402,12 @@ export default function OidcManagementPage() {
                     onChange={e => handleValueSourceChange(e.target.value as ClaimMapping['value_source'])}
                   >
                     <option value="static">固定値</option>
-                    <option value="user_attribute">ユーザー属性</option>
-                    <option value="user_profile">ユーザープロファイル</option>
+                    <option value="user_attribute">カスタムフィールド</option>
                   </select>
                 </div>
                 {formData.value_source === 'user_attribute' ? (
                   <div>
-                    <label className="block text-sm">ユーザー属性</label>
+                    <label className="block text-sm">カスタムフィールド</label>
                     <select
                       className="border p-2 w-full rounded"
                       value={formData.value_key || ''}
