@@ -40,9 +40,6 @@ export default function UsersPage() {
     loadData(); // 関数を呼び出すように修正
   }, []);
 
-  // ※ 以下、ダッシュボードと同様のロジックで更新・削除を実装します（実際にはバックエンドとの連携が必要）
-  // 今回は「ユーザー一覧」を管理するUIとして構築します。
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -123,6 +120,7 @@ export default function UsersPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">subject id</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メールアドレス</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">役割</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
@@ -131,6 +129,9 @@ export default function UsersPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm text-gray-500 font-mono">
+                  {user.id}
+                </td>
                 <td className="px-6 py-4">
                   {editingId === user.id ? (
                     <input 
