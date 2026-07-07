@@ -290,4 +290,5 @@ def userinfo(request: Request, db: Session = Depends(get_db)):
     )
     response.update(dynamic_claims)
 
+    logger.debug("userinfo response: %s", response)
     return response
