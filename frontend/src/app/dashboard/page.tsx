@@ -3,12 +3,23 @@
 import { useEffect, useState } from "react";
 import { fetchDashboardLinks, type DashboardLink } from "@/lib/api/dashboards";
 import { fetchUserProfile, isAdmin, type UserProfile } from "@/lib/api/users";
+import { logout } from "@/lib/api/webauthn";
+import { logger } from "@/lib/logger";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<DashboardLink[]>([]);
   const [user, setUser] = useState<UserProfile | null>(null);
-
+  // ログアウト処理のハンドラー
+  const handleLogout = async () => {
+    try {
+      await logout(); // APIを叩く
+      // ログアウト後にホームページへリダイレクト
+      window.location.href = "/";
+    } catch (err) {
+      logger.error(`Logout failed: ${err}`);
+    }
+  };
   useEffect(() => {
     /**
      * データを一括で取得する
@@ -23,7 +34,7 @@ export default function Dashboard() {
         const data = await fetchDashboardLinks();
         setLinks(data);
       } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
+        logger.error(`Failed to fetch dashboard data: ${error}`);
       } finally {
         setLoading(false);
       }
@@ -40,39 +51,61 @@ export default function Dashboard() {
   const isUserAdmin = isAdmin(user);
 
   return (
-    <div>
-      <h1>SimpleAuth Launcher</h1>
+    <div className="max-w-md mx-auto p-6">
+      {/* ヘッダーエリア */}
+      <header className="flex justify-between items_center mb-8">
+        <h1 className="text-2xl font-bold text-gray-800">SimpleAuth Launcher</h1>
+        <button 
+          onClick={handleLogout}
+          className="text-sm bg-gray-100 hover:bg-red-50 px-3 py-1 rounded border border-gray-300"
+        >
+          ログアウト
+        </button>
+      </header>
 
-      <ul className="space-y-3">
+      <div className="space-y-4">
         {links.map((link) => {
           return (
-            <li key={link.id} className="flex items-center gap-3">
+            <a 
+              key={link.id} 
+              href={link.url}
+              className="flex items-center gap-4 p-4 bg-white border rounded-lg shadow-sm hover:shadow-md transition-all"
+            >
               {link.icon_path ? (
                 <img
                   src={link.icon_path}
                   alt={link.title}
-                  className="w-8 h-8 rounded"
+                  className="w-10 h-10 rounded-md object-cover bg-gray-50"
                 />
               ) : (
-                <div className="w-8 h-8 bg-gray-200 rounded" />
+                <div className="w-10 h-10 bg-gray-200 rounded-md" />
               )}
-              <a href={link.url} className="text-blue-600 hover:underline">
-                {link.title}
-              </a>
-            </li>
+              <span className="text-lg font-medium text-gray-700">{link.title}</span>
+            </a>
           );
         })}
-        <li key="devices-management">
-          <a href="/devices">⚙️ 認証ディバイスの管理へ移動</a>
-        </li>
+
+        <div className="pt-6 border-t mt-6">
+          <a 
+            href="/devices" 
+            className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+          >
+            <span>⚙️</span> 認証ディバイスの管理へ移動
+          </a>
+        </div>
 
         {/* 管理者の場合のみ、最後に「管理パネル」へのリンクを追加 */}
         {isUserAdmin && (
-          <li key="admin-link">
-            <a href="/admin">⚙️ 管理者パネルへ移動</a>
-          </li>
+          <div className="pt-2">
+            <a 
+              href="/admin" 
+              className="flex items-center gap-2 text-sm text-red-600 font-bold hover:underline"
+            >
+              <span>🔐</span> 管理者パネルへ移動
+            </a>
+          </div>
         )}
-      </ul>
+      </div>
     </div>
   );
 }
