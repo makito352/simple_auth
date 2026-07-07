@@ -1,4 +1,8 @@
-# version: "3.9"
+# ==========================================================================
+# Project: SimpleAuth Infrastructure
+# Description: Docker configuration for backend, frontend, and proxy.
+# Last Updated: 2026-07-08
+# ==========================================================================
 
 services:
   # ============================
@@ -92,7 +96,6 @@ services:
   # nginx (Reverse Proxy)
   # ============================
   nginx:
-    # image: nginx:latest
     build: ./infra/nginx
     container_name: simpleauth-nginx
     restart: always
@@ -102,83 +105,16 @@ services:
       - ./infra/nginx/ssl/:/etc/nginx/ssl/:ro
     environment:
       SERVER_HOSTNAME: ${SERVER_HOSTNAME}
-      BACKEND_PROXY_PREFIX: ${BACKEND_PROXY_PREFIX}
       SSL_CERTIFICATE_PATH: ${SSL_CERTIFICATE_PATH}
       SSL_CERTIFICATE_KEY_PATH: ${SSL_CERTIFICATE_KEY_PATH}
     depends_on:
       - backend
       - frontend
-      - photoprism
-      - roundcubemail
     ports:
       - "80:80"
       - "443:443"
-      - "2343:2343"
-      - "9443:9443"
     networks:
       - simpleauth-net
-
-  # ============================
-  # roundcube
-  # ============================
-  roundcubemail:
-    image: roundcube/roundcubemail:latest
-    container_name: roundcubemail
-    volumes:
-      - roundcube_data:/var/www/html
-      - roundcube_db:/var/roundcube/db
-      # - ./infra/roundcube/hosts:/etc/hosts 
-    # ports:
-    #   - 9002:80
-    environment:
-      - ROUNDCUBEMAIL_DB_TYPE=sqlite
-      - ROUNDCUBEMAIL_SKIN=elastic
-    networks:
-      - simpleauth-net
-
-  # ============================
-  # PhotoPrism
-  # ============================
-  photoprism:
-    image: photoprism/photoprism:latest
-    container_name: photoprism
-    restart: always
-    environment:
-      PHOTOPRISM_ADMIN_PASSWORD: "admin"
-      PHOTOPRISM_SITE_URL: ${PHOTOPRISM_SITE_URL}
-      PHOTOPRISM_LOG_LEVEL: "debug"
-      PHOTOPRISM_DEBUG: "true"          # デバッグモード（内部処理ログが増える）
-      PHOTOPRISM_TRACE: "true"          # さらに詳細（SQLなど）を出す
-      PHOTOPRISM_REGISTER_URI: ${FRONTEND_BASE_URL}
-      PHOTOPRISM_PASSWORD_RESET_URI: ${FRONTEND_BASE_URL}
-      PHOTOPRISM_OIDC_URI : ${BACKEND_BASE_URI}/oidc
-      PHOTOPRISM_OIDC_CLIENT : ${PHOTOPRISM_OIDC_CLIENT_ID}
-      PHOTOPRISM_OIDC_SECRET : ${PHOTOPRISM_OIDC_CLIENT_SECRET}
-      PHOTOPRISM_OIDC_SCOPES : openid email profile
-      PHOTOPRISM_OIDC_PROVIDER : SimpleAuth
-      PHOTOPRISM_OIDC_REDIRECT : true
-      PHOTOPRISM_OIDC_REGISTER : false   # 既存ユーザーのみなら false
-      PHOTOPRISM_OIDC_USERNAME : "preferred_username"
-      PHOTOPRISM_DISABLE_OIDC : false
-    volumes:
-      - photoprism_storage:/photoprism/storage
-      - photoprism_originals:/photoprism/originals
-    # ports:
-    #   - "2342:2342"  # PhotoPrismを2342ポートで公開
-    networks:
-      - simpleauth-net
-
-  # # ============================
-  # # Mailhog (開発用メールサーバ)
-  # # ============================
-  # smtp:
-  #   image: mailhog/mailhog
-  #   container_name: simpleauth-mailhog
-  #   restart: always
-  #   ports:
-  #     - "8025:8025"
-  #   networks:
-  #     - simpleauth-net
 
 # ============================
 # Networks & Volumes
@@ -189,8 +125,3 @@ networks:
 volumes:
   db_data:
   backend_icon:
-  photoprism_storage:
-  photoprism_originals:
-  snappymail_data:
-  roundcube_data:
-  roundcube_db:

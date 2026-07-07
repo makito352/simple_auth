@@ -1,0 +1,78 @@
+# ==========================================================================
+# Project: SimpleAuth Infrastructure
+# Optional Add-on Services (Extras)
+# Includes: Roundcube Mail and PhotoPrism components
+# Last Updated: 2026-07-08
+# ==========================================================================
+
+services:
+  # ============================
+  # nginx (Reverse Proxy)
+  # (nginxを介してRoundcubeとPhotoPrismを公開設定を追加)
+  # ============================
+  nginx:
+    depends_on:
+      - photoprism
+      - roundcubemail
+    ports:
+      - "2343:2343"
+      - "9443:9443"
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # roundcube
+  # ============================
+  roundcubemail:
+    image: roundcube/roundcubemail:latest
+    container_name: roundcubemail
+    volumes:
+      - roundcube_data:/var/www/html
+      - roundcube_db:/var/roundcube/db
+    # ports:
+    #   - 9002:80
+    environment:
+      - ROUNDCUBEMAIL_DB_TYPE=sqlite
+      - ROUNDCUBEMAIL_SKIN=elastic
+    networks:
+      - simpleauth-net
+
+  # ============================
+  # PhotoPrism
+  # ============================
+  photoprism:
+    image: photoprism/photoprism:latest
+    container_name: photoprism
+    restart: always
+    environment:
+      PHOTOPRISM_ADMIN_PASSWORD: "admin"
+      PHOTOPRISM_SITE_URL: ${PHOTOPRISM_SITE_URL}
+      #以下のログレベル設定は必要に応じて有効化してください
+      #PHOTOPRISM_LOG_LEVEL: "debug"
+      #PHOTOPRISM_DEBUG: "true"          # デバッグモード（内部処理ログが増える）
+      #PHOTOPRISM_TRACE: "true"          # さらに詳細（SQLなど）を出す
+      # OIDC設定
+      PHOTOPRISM_REGISTER_URI: ${FRONTEND_BASE_URL}
+      PHOTOPRISM_PASSWORD_RESET_URI: ${FRONTEND_BASE_URL}
+      PHOTOPRISM_OIDC_URI : ${BACKEND_BASE_URI}/oidc
+      PHOTOPRISM_OIDC_CLIENT : ${PHOTOPRISM_OIDC_CLIENT_ID}
+      PHOTOPRISM_OIDC_SECRET : ${PHOTOPRISM_OIDC_CLIENT_SECRET}
+      PHOTOPRISM_OIDC_SCOPES : openid email profile
+      PHOTOPRISM_OIDC_PROVIDER : SimpleAuth
+      PHOTOPRISM_OIDC_REDIRECT : true
+      PHOTOPRISM_OIDC_REGISTER : false   # 既存ユーザーのみなら false
+      PHOTOPRISM_OIDC_USERNAME : "preferred_username"
+      PHOTOPRISM_DISABLE_OIDC : false
+    volumes:
+      - photoprism_storage:/photoprism/storage
+      - photoprism_originals:/photoprism/originals
+    # ports:
+    #   - "2342:2342"  # PhotoPrismを2342ポートで公開
+    networks:
+      - simpleauth-net
+
+volumes:
+  photoprism_storage:
+  photoprism_originals:
+  roundcube_data:
+  roundcube_db:
