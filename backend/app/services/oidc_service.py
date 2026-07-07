@@ -3,24 +3,15 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from app.models.oidc import (
-    OidcClaimMapping,
-    OidcClient,
-    OidcClientScope,
-    OidcScope,
-    ValueSourceType,
-)
+from app.core.config import logger
+from app.models.oidc import (OidcClaimMapping, OidcClient, OidcClientScope,
+                             OidcScope, ValueSourceType)
 from app.models.user_option import UserOption
-from app.schemas.oidc import (
-    ClaimMappingCreate,
-    OidcClientCreate,
-    OidcClientUpdate,
-    OidcScopeCreate,
-    OidcScopeUpdate,
-)
+from app.schemas.oidc import (ClaimMappingCreate, OidcClientCreate,
+                              OidcClientUpdate, OidcScopeCreate,
+                              OidcScopeUpdate)
 from app.utils.crypto import decrypt_value, encrypt_value
 from sqlalchemy.orm import Session
-
 
 SYSTEM_SCOPE_NAMES = {"openid", "profile", "email"}
 
@@ -455,7 +446,11 @@ class OidcClientService:
     ) -> OidcClient:
         """/authorize で必要なクライアント検証を行う。"""
         client = OidcClientService.get_client_by_client_id(db, client_id)
-        if not client or not client.is_active:
+        if not client:
+            logger.info("Client %s is not found", client_id)
+            raise ValueError("invalid_client")
+        if not client.is_active:
+            logger.info("Client %s is inactive", client_id)
             raise ValueError("invalid_client")
 
         if redirect_uri not in (client.allowed_redirect_uris or []):
@@ -482,7 +477,11 @@ class OidcClientService:
             raise ValueError("invalid_client")
 
         client = OidcClientService.get_client_by_client_id(db, client_id)
-        if not client or not client.is_active:
+        if not client:
+            logger.info("Client %s is not found", client_id)
+            raise ValueError("invalid_client")
+        if not client.is_active:
+            logger.info("Client %s is inactive", client_id)
             raise ValueError("invalid_client")
 
         try:
