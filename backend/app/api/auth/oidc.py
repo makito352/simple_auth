@@ -96,6 +96,8 @@ def authorize(
             requested_scope_names=requested_scopes,
         )
     except ValueError as exc:
+        # ここでエラーの前に、比較対象をログに出すと原因がすぐわかります
+        logger.debug("Validation failed for client %s with redirect_uri %s", client_id, redirect_uri)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # SimpleAuth のセッションからユーザーを特定
@@ -288,4 +290,5 @@ def userinfo(request: Request, db: Session = Depends(get_db)):
     )
     response.update(dynamic_claims)
 
+    logger.debug("userinfo response: %s", response)
     return response

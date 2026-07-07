@@ -88,13 +88,10 @@ def build_icon_url(icon_path: Optional[str]) -> Optional[str]:
     if icon_path.startswith("http://") or icon_path.startswith("https://"):
         return icon_path
 
-    # バックエンドのベース URI とルートパスを結合して、フロント用の URL を構築する
+    # フロント用の URL を構築する
     base_uri = str(settings.BACKEND_BASE_URI).rstrip("/")
-    root_path = str(settings.ROOT_PATH or "").strip("/")
     relative_path = icon_path.lstrip("/")
 
-    if root_path:
-        return f"{base_uri}/{root_path}/{relative_path}"
     return f"{base_uri}/{relative_path}"
 
 

@@ -3,24 +3,15 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from app.models.oidc import (
-    OidcClaimMapping,
-    OidcClient,
-    OidcClientScope,
-    OidcScope,
-    ValueSourceType,
-)
-from app.models.user_option import UserOption
-from app.schemas.oidc import (
-    ClaimMappingCreate,
-    OidcClientCreate,
-    OidcClientUpdate,
-    OidcScopeCreate,
-    OidcScopeUpdate,
-)
+from app.core.config import logger
+from app.models.oidc import (OidcClaimMapping, OidcClient, OidcClientScope,
+                             OidcScope, ValueSourceType)
+from app.schemas.oidc import (ClaimMappingCreate, OidcClientCreate,
+                              OidcClientUpdate, OidcScopeCreate,
+                              OidcScopeUpdate)
+from app.services.user_option_service import UserOptionService
 from app.utils.crypto import decrypt_value, encrypt_value
 from sqlalchemy.orm import Session
-
 
 SYSTEM_SCOPE_NAMES = {"openid", "profile", "email"}
 
@@ -238,7 +229,7 @@ class OidcClaimService:
         Returns:
             辞書型: {"imap_server": "xxx.example.com", ...} のようなマッピングされた結果
         """
-        # 1. マッピング定義を取得（該当するスコープに紐づくもの）
+        # マッピング定義を取得（該当するスコープに紐づくもの）
         normalized_scopes = [scope.strip() for scope in requested_scopes if scope and scope.strip()]
         if not normalized_scopes:
             return {}
@@ -258,6 +249,23 @@ class OidcClaimService:
             .all()
         )
 
+        # UserOptionの暗号化・復号詳細はUserOptionServiceに集約する。
+        requested_user_option_keys = sorted(
+            {
+                mapping.value_key
+                for mapping in mappings
+                if (
+                    mapping.value_source == ValueSourceType.USER_ATTRIBUTE.value
+                    and mapping.value_key
+                )
+            }
+        )
+        user_option_values = UserOptionService.get_user_option_values_by_keys(
+            db=db,
+            user_id=user_id,
+            keys=requested_user_option_keys,
+        )
+
         resolved_claims = {}
 
         for mapping in mappings:
@@ -274,16 +282,10 @@ class OidcClaimService:
                 mapping.value_source == ValueSourceType.USER_ATTRIBUTE.value
                 and mapping.value_key
             ):
-                # UserOptionテーブルから動的に取得する
-                option = (
-                    db.query(UserOption)
-                    .filter(
-                        UserOption.user_id == user_id,
-                        UserOption.key == mapping.value_key,
-                    )
-                    .first()
+                # ユーザー属性はサービスから復号済み値を取得する。
+                resolved_claims[mapping.claim_name] = user_option_values.get(
+                    mapping.value_key
                 )
-                resolved_claims[mapping.claim_name] = option.value if option else None
 
         return {k: v for k, v in resolved_claims.items() if v is not None}
 
@@ -455,7 +457,11 @@ class OidcClientService:
     ) -> OidcClient:
         """/authorize で必要なクライアント検証を行う。"""
         client = OidcClientService.get_client_by_client_id(db, client_id)
-        if not client or not client.is_active:
+        if not client:
+            logger.info("Client %s is not found", client_id)
+            raise ValueError("invalid_client")
+        if not client.is_active:
+            logger.info("Client %s is inactive", client_id)
             raise ValueError("invalid_client")
 
         if redirect_uri not in (client.allowed_redirect_uris or []):
@@ -482,7 +488,11 @@ class OidcClientService:
             raise ValueError("invalid_client")
 
         client = OidcClientService.get_client_by_client_id(db, client_id)
-        if not client or not client.is_active:
+        if not client:
+            logger.info("Client %s is not found", client_id)
+            raise ValueError("invalid_client")
+        if not client.is_active:
+            logger.info("Client %s is inactive", client_id)
             raise ValueError("invalid_client")
 
         try:

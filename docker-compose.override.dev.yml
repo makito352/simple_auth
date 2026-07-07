@@ -12,6 +12,7 @@ services:
       - /app/node_modules # node_modulesだけはホスト側と混ざらないように匿名ボリュームで保護
     environment:
       NEXT_PUBLIC_API_URL: ${BACKEND_BASE_URI}
+      NEXT_PUBLIC_HOSTNAME: ${SERVER_HOSTNAME}
       INTERNAL_API_URL: ${INTERNAL_BACKEND_API_URL}
       NEXT_PUBLIC_ENV: ${ENV}
       NODE_ENV: ${ENV}

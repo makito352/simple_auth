@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     ENCRYPTION_KEY: str = "your-base64-encoded-key"
 
     # FASTAPI のルートパス（API のベースパス）
-    ROOT_PATH: str = "/backend"
+    BACKEND_PROXY_PREFIX: str = "/backend"
 
     # CORS origins（カンマ区切りで複数指定）
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000,http://localhost"
@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # このバックエンドのベース URL
     BACKEND_BASE_URI: AnyHttpUrl = "http://localhost:8000"
     OIDC_JWT_ALG: str = "RS256"
+    # ファイルパスの設定（初期値として定義）
+    OIDC_JWT_PRIVATE_KEY_PATH: str = "/app/keys/oidc_private.pem"
+    OIDC_JWT_PUBLIC_KEY_PATH: str = "/app/keys/oidc_public.pem"
+    
+    # ファイルから読み込んだ中身を格納するフィールド（初期値を空文字にする）
     OIDC_JWT_PRIVATE_KEY: str = ""
     OIDC_JWT_PUBLIC_KEY: str = ""
 
@@ -53,6 +58,16 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+
+# ファイルからキーを読み込む処理（インスタンス生成後に実行）
+try:
+    with open(settings.OIDC_JWT_PRIVATE_KEY_PATH, "r") as f:
+        settings.OIDC_JWT_PRIVATE_KEY = f.read()
+    with open(settings.OIDC_JWT_PUBLIC_KEY_PATH, "r") as f:
+        settings.OIDC_JWT_PUBLIC_KEY = f.read()
+except FileNotFoundError as e:
+    # ファイルがない場合に備えたエラーハンドリング
+    logging.error(f"Certificate file not found: {e}")
 
 # ------------------------------
 # ログ設定

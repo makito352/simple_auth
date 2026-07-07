@@ -39,7 +39,7 @@ def get_db_session():
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        root_path=settings.ROOT_PATH,
+        root_path=settings.BACKEND_PROXY_PREFIX,
         title="SimpleAuth",
         description="Passwordless SSO with WebAuthn + OTP",
         version="1.0.0",

@@ -277,6 +277,13 @@ def login_verify(payload: dict, response: Response, db: Session = Depends(get_db
 
     return {"ok": True, "user_id": str(user_id)}
 
+@router.post("/logout")
+def logout(response: Response):
+    """
+    セッションクッキーを削除する。
+    """
+    response.delete_cookie("simpleauth_session")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.get("/credentials", response_model=list[CredentialOut])
 def list_credentials(

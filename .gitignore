@@ -12,3 +12,8 @@ frontend/.env.local
 # myssl
 infra/nginx/ssl/mydev.tailcxxxxx.ts.net.crt
 infra/nginx/ssl/mydev.tailcxxxxx.ts.net.key
+.aider*
+
+# backend secrets
+backend/secrets/oidc_private.pem
+backend/secrets/oidc_public.pem
