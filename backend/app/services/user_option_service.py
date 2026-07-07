@@ -8,6 +8,41 @@ from app.core.config import logger
 
 class UserOptionService:
     @staticmethod
+    def get_user_option_values_by_keys(
+        db: Session, user_id: UUID | str, keys: list[str]
+    ) -> dict[str, str]:
+        """指定ユーザーの指定キー群を復号込みで辞書化して返す。"""
+        normalized_keys = sorted({key.strip() for key in keys if key and key.strip()})
+        if not normalized_keys:
+            return {}
+
+        # マスタ情報を取得して、暗号化されているかどうかを判定するための辞書を作成
+        attributes_map = {
+            attr.key: attr
+            for attr in db.query(UserOptionAttribute)
+            .filter(UserOptionAttribute.key.in_(normalized_keys))
+            .all()
+        }
+
+        # 指定ユーザーの指定キー群の値を取得
+        raw_options = (
+            db.query(UserOption)
+            .filter(UserOption.user_id == user_id, UserOption.key.in_(normalized_keys))
+            .all()
+        )
+
+        # 復号処理を行い、最終的な値を辞書化して返す
+        resolved_values: dict[str, str] = {}
+        for opt in raw_options:
+            attr_meta = attributes_map.get(opt.key)
+            if attr_meta and attr_meta.encrypted and opt.encrypted_value:
+                resolved_values[opt.key] = decrypt_value(opt.encrypted_value)
+            elif opt.value is not None:
+                resolved_values[opt.key] = opt.value
+
+        return resolved_values
+
+    @staticmethod
     def get_all_attributes(db: Session) -> list[OptionAttributeOut]:
         """全属性の定義を取得する（マスタ）"""
         return db.query(UserOptionAttribute).all()
