@@ -10,7 +10,7 @@ from sqlalchemy.sql import func
 class OidcAuthCode(Base):
     __tablename__ = "oidc_auth_codes"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     code = Column(String(255), unique=True, index=True, nullable=False)
     client_id = Column(String(255), nullable=False)
     redirect_uri = Column(String(1024), nullable=False)
