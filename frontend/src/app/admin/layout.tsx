@@ -1,55 +1,8 @@
-// import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isAdmin, type UserProfile } from "@/lib/api/users";
 import { logger } from "@/lib/logger";
-// import { buildUrl } from "@/lib/api/client";
 import { fetchUserProfileForServer } from "@/lib/api/users_server"
 import { LayoutDashboard, Settings, User, Users, ArrowLeft, SlidersHorizontal, KeyRound } from "lucide-react";
-
-// async function fetchUserProfileForServer(): Promise<UserProfile | null> {
-//   const cookieStore = await cookies();
-//   const sessionCookie = cookieStore.get("simpleauth_session")?.value;
-//   // const rawBackendUrl = process.env.NEXT_PUBLIC_API_URL;
-//   const targetUrl = buildUrl("/users/me");
-//   // if (!rawBackendUrl) {
-//   //   logger.error(`fetchUserProfileForServer - NEXT_PUBLIC_API_URL is not defined. Current value: "${rawBackendUrl}"`);
-//   //   return null;
-//   // }
-//   if (!targetUrl) { // buildUrl内のロジックに合わせるため、または単純な存在チェックとして
-//     logger.error(`fetchUserProfileForServer - URL construction failed.`);
-//     return null;
-//   }
-//   if (!sessionCookie) {
-//     logger.warn("fetchUserProfileForServer - session cookie not found");
-//     return null;
-//   }
-//   logger.debug(`fetchUserProfileForServer - Attempting to fetch from URL: ${targetUrl}`);
-
-//   try {
-//     const response = await fetch(targetUrl, {
-//       headers: {
-//         Cookie: `simpleauth_session=${sessionCookie}`,
-//       },
-//       credentials: "include",
-//       cache: "no-store",
-//     });
-
-//     if (!response.ok) {
-//       logger.warn(`fetchUserProfileForServer - API returned ${response.status}`);
-//       return null;
-//     }
-
-//     const data = await response.json();
-//     logger.debug(`fetchUserProfileForServer - Raw response body: ${JSON.stringify(data)}`);
-
-//     const user = data as UserProfile;
-//     logger.debug(`fetchUserProfileForServer - loaded user: ${JSON.stringify(user)}`);
-//     return user;
-//   } catch (error) {
-//     logger.error(`fetchUserProfileForServer - failed: ${error}`);
-//     return null;
-//   }
-// }
 
 /**
  * 管理者権限チェック用の関数

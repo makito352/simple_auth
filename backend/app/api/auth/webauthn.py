@@ -283,7 +283,7 @@ def login_verify(payload: dict, response: Response, db: Session = Depends(get_db
     # 6. セッション発行
     session = SessionService.create_session(db, user_id)
     response.set_cookie(
-        key="simpleauth_session",
+        key=settings.SESSION_COOKIE_NAME,
         value=str(session.id),
         httponly=True,
         secure=True,
@@ -299,5 +299,5 @@ def logout(response: Response):
     """
     セッションクッキーを削除する。
     """
-    response.delete_cookie("simpleauth_session")
+    response.delete_cookie(settings.SESSION_COOKIE_NAME)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

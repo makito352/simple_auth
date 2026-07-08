@@ -9,6 +9,7 @@ from app.models.oidc import OidcAccessToken, OidcAuthCode
 from app.services.oidc_service import OidcClaimService, OidcClientService
 from app.services.session_service import SessionService
 from app.services.user_service import UserService
+from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from jose import jwt
@@ -105,7 +106,7 @@ def authorize(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # SimpleAuth のセッションからユーザーを特定
-    simpleauth_session_id = request.cookies.get("simpleauth_session")
+    simpleauth_session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if not simpleauth_session_id:
         # 未ログインなら SimpleAuth のログイン画面へリダイレクト
         # （ログイン後に元の /authorize に戻すようフロントで実装）

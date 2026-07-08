@@ -3,6 +3,7 @@ from datetime import datetime
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.services.session_service import SessionService
+from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
@@ -20,7 +21,7 @@ def get_db():
 @router.get("/auth-request")
 def auth_request(request: Request, response: Response, db: Session = Depends(get_db)):
     # Cookie からセッションIDを取得
-    session_id = request.cookies.get("simpleauth_session")
+    session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if not session_id:
         raise HTTPException(status_code=401, detail="No session")
 

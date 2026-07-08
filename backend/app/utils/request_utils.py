@@ -5,6 +5,7 @@
 
 from app.db.session import SessionLocal
 from app.services.session_service import SessionService
+from app.core.config import settings
 from fastapi import Request
 
 
@@ -30,7 +31,7 @@ def resolve_request_user_id(request: Request) -> str | None:
     セッションクッキーからアクセス主体の user_id を解決する。
     """
     # クッキーからセッションIDを取得
-    session_id = request.cookies.get("simpleauth_session")
+    session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if not session_id:
         return None
 

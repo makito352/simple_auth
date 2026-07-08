@@ -10,6 +10,7 @@ import { cookies } from "next/headers";
 import { isAdmin, type UserProfile } from "@/lib/api/users";
 import { logger } from "@/lib/logger";
 import { buildUrl } from "@/lib/api/client";
+import { SESSION_COOKIE_NAME } from "@/lib/config/auth";
 
 /**
  * サーバーサイドで実行されるユーザープロフィール取得関数
@@ -18,7 +19,7 @@ import { buildUrl } from "@/lib/api/client";
  */
 export async function fetchUserProfileForServer(): Promise<UserProfile | null> {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get("simpleauth_session")?.value;
+  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const targetUrl = buildUrl("/users/me");
 
   if (!targetUrl) { // buildUrl内のロジックに合わせるため、または単純な存在チェックとして
@@ -34,7 +35,7 @@ export async function fetchUserProfileForServer(): Promise<UserProfile | null> {
   try {
     const response = await fetch(targetUrl, {
       headers: {
-        Cookie: `simpleauth_session=${sessionCookie}`,
+        Cookie: `${SESSION_COOKIE_NAME}=${sessionCookie}`,
       },
       credentials: "include",
       cache: "no-store",

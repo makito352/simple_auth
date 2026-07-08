@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     SESSION_EXPIRE_DAYS: int = 14
     # セッショントークン用のシークレットキー
     SESSION_TOKEN_SECRET: str = "session-secret"
+    # セッションクッキーの名前
+    SESSION_COOKIE_NAME: str = "simpleauth_session"
     # 暗号化用（UserOptionなどの暗号化に使用）
     ENCRYPTION_KEY: str = "your-base64-encoded-key"
 

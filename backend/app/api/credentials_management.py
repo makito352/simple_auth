@@ -12,6 +12,7 @@ from app.db.session import get_db
 from app.schemas.auth import CredentialCommentUpdateRequest, CredentialOut
 from app.services.session_service import SessionService
 from app.services.webauthn_service import WebAuthnService
+from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
@@ -22,7 +23,7 @@ def get_current_user_id(request: Request, db: Session) -> UUID:
     """
     セッションクッキーから現在のユーザーIDを取得する。
     """
-    session_id = request.cookies.get("simpleauth_session")
+    session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if not session_id:
         logger.debug("No session cookie found in request.")
         raise HTTPException(
