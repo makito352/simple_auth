@@ -39,11 +39,20 @@ def get_db_session():
 
 
 def create_app() -> FastAPI:
+    # 開発環境ではドキュメントを有効化し、本番環境では無効化する
+    docs_url = "/docs" if settings.ENV == "development" else None
+    redoc_url = "/redoc" if settings.ENV == "development" else None
+    openapi_url = "/openapi.json" if settings.ENV == "development" else None
+
+    # FastAPIアプリケーションのインスタンスを作成
     app = FastAPI(
         root_path=settings.BACKEND_PROXY_PREFIX,
         title="SimpleAuth",
         description="Passwordless SSO with WebAuthn",
         version="1.0.0",
+        docs_url=docs_url,
+        redoc_url=redoc_url,
+        openapi_url=openapi_url,
     )
 
     # ミドルウェアの登録をここで行う
