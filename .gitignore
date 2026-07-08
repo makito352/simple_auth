@@ -7,12 +7,18 @@ frontend/.next/
 
 # Environment variables file
 .env
+.env_homesv
 frontend/.env.local
 
 # myssl
 infra/nginx/ssl/mydev.tailcxxxxx.ts.net.crt
 infra/nginx/ssl/mydev.tailcxxxxx.ts.net.key
+
+# aide
 .aider*
+
+# roundcube用一時ファイル(開発)
+infra/roundcube
 
 # backend secrets
 backend/secrets/oidc_private.pem
