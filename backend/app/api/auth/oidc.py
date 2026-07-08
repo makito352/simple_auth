@@ -1,3 +1,8 @@
+"""
+OIDC (OpenID Connect) のエンドポイントを提供する FastAPI ルーター。
+このモジュールでは、OIDC の認可コードフローに必要なエンドポイントを実装しています。
+"""
+
 import secrets
 import time
 from datetime import datetime, timezone
@@ -6,14 +11,22 @@ from typing import Optional
 from app.core.config import logger, settings
 from app.db.session import get_db
 from app.models.oidc import OidcAccessToken, OidcAuthCode
+from app.schemas.oidc_auth import (
+    JwksResponse,
+    JwkKey,
+    OpenIdConfigurationResponse,
+    TokenRequest,
+    TokenResponse,
+    UserInfoResponse,
+)
 from app.services.oidc_service import OidcClaimService, OidcClientService
 from app.services.session_service import SessionService
 from app.services.user_service import UserService
-from app.core.config import settings
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import RedirectResponse
 from jose import jwt
 from jwcrypto import jwk
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/oidc", tags=["oidc"])
@@ -22,32 +35,34 @@ router = APIRouter(prefix="/oidc", tags=["oidc"])
 # ----------------------------
 # OpenID Provider Metadata
 # ----------------------------
-@router.get("/.well-known/openid-configuration")
-def openid_configuration(db: Session = Depends(get_db)):
+@router.get(
+    "/.well-known/openid-configuration", response_model=OpenIdConfigurationResponse
+)
+def openid_configuration(db: Session = Depends(get_db)) -> OpenIdConfigurationResponse:
     # 開始ログ
-    logger.info("OpenID Configuration requested")
+    logger.debug("OpenID Configuration requested")
 
     issuer = f"{str(settings.BACKEND_BASE_URI).rstrip('/')}/oidc"
     scope_names = [scope.scope_name for scope in OidcClientService.get_all_scopes(db)]
     supported_scopes = sorted(set(["openid", *scope_names]))
 
-    return {
-        "issuer": issuer,
-        "authorization_endpoint": f"{issuer}/authorize",
-        "token_endpoint": f"{issuer}/token",
-        "userinfo_endpoint": f"{issuer}/userinfo",
-        "jwks_uri": f"{issuer}/jwks.json",
-        "response_types_supported": ["code"],
-        "subject_types_supported": ["public"],
-        "id_token_signing_alg_values_supported": [settings.OIDC_JWT_ALG],
-        "scopes_supported": supported_scopes,
-        "token_endpoint_auth_methods_supported": ["client_secret_post"],
-    }
+    return OpenIdConfigurationResponse(
+        issuer=issuer,
+        authorization_endpoint=f"{issuer}/authorize",
+        token_endpoint=f"{issuer}/token",
+        userinfo_endpoint=f"{issuer}/userinfo",
+        jwks_uri=f"{issuer}/jwks.json",
+        response_types_supported=["code"],
+        subject_types_supported=["public"],
+        id_token_signing_alg_values_supported=[settings.OIDC_JWT_ALG],
+        scopes_supported=supported_scopes,
+        token_endpoint_auth_methods_supported=["client_secret_post"],
+    )
 
 
-@router.get("/jwks.json")
-def jwks():
-    logger.info("jwks.json called")
+@router.get("/jwks.json", response_model=JwksResponse)
+def jwks() -> JwksResponse:
+    logger.debug("jwks.json called")
 
     # settings.OIDC_JWT_PUBLIC_KEY は PEM 形式の公開鍵文字列を想定
     public_key_pem = settings.OIDC_JWT_PUBLIC_KEY
@@ -64,7 +79,7 @@ def jwks():
     key_dict["use"] = "sig"
     key_dict["alg"] = "RS256"
 
-    return {"keys": [key_dict]}
+    return JwksResponse(keys=[JwkKey.model_validate(key_dict)])
 
 
 # ----------------------------
@@ -82,7 +97,7 @@ def authorize(
     db: Session = Depends(get_db),
 ):
     # 開始ログ
-    logger.info("authorize called")
+    logger.debug("authorize called")
     logger.debug("scope: %s", scope)
 
     if response_type != "code":
@@ -146,19 +161,35 @@ def authorize(
 # ----------------------------
 @router.post("/token")
 async def token(
-    request: Request,
+    grant_type: str = Form(...),
+    code: str = Form(...),
+    redirect_uri: str = Form(...),
+    client_id: str = Form(...),
+    client_secret: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-):
+) -> TokenResponse:
     # 開始ログ
-    logger.info("token called")
+    logger.debug("token called")
 
-    form = await request.form()
-    grant_type = form.get("grant_type")
-    code = form.get("code")
-    redirect_uri = form.get("redirect_uri")
-    client_id = form.get("client_id")
-    client_secret = form.get("client_secret")
+    # フォーム入力をスキーマに通して、入力仕様を API とコード上で一致させる
+    try:
+        token_request = TokenRequest(
+            grant_type=grant_type,
+            code=code,
+            redirect_uri=redirect_uri,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+    except ValidationError as exc:
+        logger.debug("Token request validation failed")
+        raise HTTPException(status_code=400, detail="invalid_request") from exc
 
+    grant_type = token_request.grant_type
+    code = token_request.code
+    redirect_uri = token_request.redirect_uri
+    client_id = token_request.client_id
+    client_secret = token_request.client_secret
+    
     if grant_type != "authorization_code":
         logger.debug("Unsupported grant_type: %s", grant_type)
         raise HTTPException(status_code=400, detail="unsupported_grant_type")
@@ -243,21 +274,21 @@ async def token(
     )
     db.commit()
 
-    return {
-        "access_token": access_token,
-        "token_type": "Bearer",
-        "expires_in": 3600,
-        "id_token": id_token,
-    }
+    return TokenResponse(
+        access_token=access_token,
+        token_type="Bearer",
+        expires_in=3600,
+        id_token=id_token,
+    )
 
 
 # ----------------------------
 # /userinfo
 # ----------------------------
-@router.get("/userinfo")
-def userinfo(request: Request, db: Session = Depends(get_db)):
+@router.get("/userinfo", response_model=UserInfoResponse)
+def userinfo(request: Request, db: Session = Depends(get_db)) -> UserInfoResponse:
     # 開始ログ
-    logger.info("userinfo called")
+    logger.debug("userinfo called")
 
     # Authorization: Bearer <token>
     auth = request.headers.get("Authorization")
@@ -290,20 +321,22 @@ def userinfo(request: Request, db: Session = Depends(get_db)):
     scopes = scope.split(" ") if isinstance(scope, str) else []
     logger.debug("scope=%s, scopes=%s", scope, scopes)
 
-    # 基本情報を返す
-    response = {
-        "sub": str(user.id),
-        "email": user.email,
-        "email_verified": True,
-        "name": user.email,
-        "preferred_username": user.email,
-    }
+    # 基本情報をモデルとして構築する
+    response = UserInfoResponse(
+        sub=str(user.id),
+        email=user.email,
+        email_verified=True,
+        name=user.email,
+        preferred_username=user.email,
+    )
 
     # OidcClaimService を利用して動的なマッピングを適用
     dynamic_claims = OidcClaimService.resolve_claims(
         db=db, requested_scopes=scopes, user_id=token_row.user_id
     )
-    response.update(dynamic_claims)
+    if dynamic_claims:
+        response = response.model_copy(update=dynamic_claims)
 
+    # OIDC認証問題が発生した場合用に、ログに出力
     logger.debug("userinfo response: %s", response)
     return response
