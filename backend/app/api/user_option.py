@@ -5,6 +5,7 @@
 
 from uuid import UUID
 
+from app.api.current_user import get_current_admin_user
 from app.core.config import logger
 from app.db.session import get_db
 from app.schemas.user_option import (
@@ -20,7 +21,9 @@ router = APIRouter(prefix="/user-options", tags=["user-options"])
 
 
 @router.get("/attributes", response_model=list[OptionAttributeOut])
-def list_attributes(db: Session = Depends(get_db)):
+def list_attributes(
+    db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+):
     """
     すべての属性を取得する。
     """
@@ -28,7 +31,11 @@ def list_attributes(db: Session = Depends(get_db)):
 
 
 @router.post("/attributes", status_code=status.HTTP_201_CREATED)
-def create_attribute(db: Session = Depends(get_db), data: dict = None):
+def create_attribute(
+    db: Session = Depends(get_db),
+    data: dict = None,
+    _admin=Depends(get_current_admin_user),
+):
     """
     新しい属性を作成する。
     """
@@ -37,7 +44,12 @@ def create_attribute(db: Session = Depends(get_db), data: dict = None):
 
 
 @router.put("/attributes/{attr_id}")
-def update_attribute(attr_id: UUID, db: Session = Depends(get_db), data: dict = None):
+def update_attribute(
+    attr_id: UUID,
+    db: Session = Depends(get_db),
+    data: dict = None,
+    _admin=Depends(get_current_admin_user),
+):
     """
     既存の属性を更新する。
     データが存在しない場合は 404 Not Found を返す。
@@ -52,7 +64,9 @@ def update_attribute(attr_id: UUID, db: Session = Depends(get_db), data: dict = 
 
 
 @router.delete("/attributes/{attr_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_attribute(attr_id: UUID, db: Session = Depends(get_db)):
+def delete_attribute(
+    attr_id: UUID, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+):
     """
     既存の属性を削除する。
     データが存在しない場合は 404 Not Found を返す。
@@ -63,7 +77,10 @@ def delete_attribute(attr_id: UUID, db: Session = Depends(get_db)):
 
 @router.patch("/{user_id}/options", response_model=list[UserOptionOut])
 def update_user_options(
-    user_id: UUID, options_in: UserOptionBulkUpdate, db: Session = Depends(get_db)
+    user_id: UUID,
+    options_in: UserOptionBulkUpdate,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ):
     """
     【Bulk Update】
@@ -74,7 +91,9 @@ def update_user_options(
 
 
 @router.get("/{user_id}/options", response_model=list[UserOptionOut])
-def get_user_options(user_id: UUID, db: Session = Depends(get_db)):
+def get_user_options(
+    user_id: UUID, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+):
     """
     特定ユーザーのすべてのオプションを取得する。
     """

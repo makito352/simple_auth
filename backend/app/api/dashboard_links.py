@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
+from app.api.current_user import get_current_admin_user
 from app.core.config import logger, settings
 from app.db.session import get_db
 from app.schemas.dashboard_link import DashboardLinkCreate, DashboardLinkRead
@@ -123,7 +124,7 @@ def delete_icon_file(icon_path: str) -> None:
 
 
 @router.get("/", response_model=list[DashboardLinkRead])
-def list_links(db: Session = Depends(get_db)):
+def list_links(db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)):
     """登録済みのダッシュボードリンク一覧を取得する。"""
 
     # DB からすべてのリンクを取得し、レスポンス用にシリアライズする
@@ -138,6 +139,7 @@ def create_link(
     order_index: int = Form(0),
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ):
     """新しいダッシュボードリンクを作成する。"""
 
@@ -163,6 +165,7 @@ def update_link(
     order_index: Optional[int] = Form(None),
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ):
     """既存のダッシュボードリンクを更新する。"""
     icon_path = None
@@ -197,7 +200,9 @@ def update_link(
 
 
 @router.get("/{link_id}", response_model=DashboardLinkRead)
-def get_link(link_id: UUID, db: Session = Depends(get_db)):
+def get_link(
+    link_id: UUID, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+):
     """指定した ID のダッシュボードリンクを取得する。"""
 
     link = DashboardLinkService.get_by_id(db, link_id)
@@ -208,7 +213,9 @@ def get_link(link_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.delete("/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_link(link_id: UUID, db: Session = Depends(get_db)):
+def delete_link(
+    link_id: UUID, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+):
     """指定した ID のダッシュボードリンクを削除する。"""
 
     success = DashboardLinkService.delete(db, link_id)

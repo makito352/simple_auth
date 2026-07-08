@@ -20,6 +20,7 @@ router = APIRouter(prefix="/webauthn", tags=["webauthn"])
 
 def get_current_user_id(request: Request, db: Session) -> UUID:
     """
+    【内部関数】
     セッションクッキーから現在のユーザーIDを取得する。
     """
     session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
@@ -47,6 +48,7 @@ def list_credentials(
     db: Session = Depends(get_db),
 ):
     """
+    【一般ユーザー向け】
     ログイン中ユーザーに紐づくWebAuthn資格情報一覧を返す。
     """
     current_user_id = get_current_user_id(request, db)
@@ -64,6 +66,7 @@ def update_credential_comment(
     db: Session = Depends(get_db),
 ):
     """
+    【一般ユーザー向け】
     ログイン中ユーザーが自身の資格情報コメントを更新する。
     """
     current_user_id = get_current_user_id(request, db)
@@ -103,6 +106,7 @@ def delete_credential(
     db: Session = Depends(get_db),
 ):
     """
+    【一般ユーザー向け】
     ログイン中ユーザーが自身の資格情報を削除する。
     """
     current_user_id = get_current_user_id(request, db)

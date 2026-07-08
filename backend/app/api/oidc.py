@@ -4,6 +4,7 @@ OIDC関連のリソースを管理するためのAPIエンドポイント。
 作成、更新、削除、および取得の処理を提供します。
 """
 
+from app.api.current_user import get_current_admin_user
 from app.db.session import get_db
 from app.schemas.oidc import (
     ClaimMappingCreate,
@@ -68,20 +69,30 @@ def _handle_scope_service_error(exc: ValueError) -> None:
 
 
 @router.get("/mappings", response_model=list[ClaimMappingResponse])
-def list_claim_mappings(db: Session = Depends(get_db)):
+def list_claim_mappings(
+    db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+):
     """すべてのマッピングを取得する。"""
     mappings = OidcClaimService.get_all_claim_mappings(db)
     return mappings
 
 
 @router.get("/mappings/{mapping_id}", response_model=ClaimMappingResponse)
-def get_claim_mapping(mapping_id: str, db: Session = Depends(get_db)):
+def get_claim_mapping(
+    mapping_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+):
     """特定のIDのマッピングを取得する。"""
     return _get_mapping_or_400(db, mapping_id)
 
 
 @router.post("/mappings", response_model=ClaimMappingResponse)
-def create_claim_mapping(data: ClaimMappingCreate, db: Session = Depends(get_db)):
+def create_claim_mapping(
+    data: ClaimMappingCreate,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+):
     """新しいマッピングを作成する。"""
     try:
         new_mapping = OidcClaimService.create_claim_mapping(db, data=data)
@@ -92,7 +103,10 @@ def create_claim_mapping(data: ClaimMappingCreate, db: Session = Depends(get_db)
 
 @router.put("/mappings/{mapping_id}", response_model=ClaimMappingResponse)
 def update_claim_mapping(
-    mapping_id: str, data: ClaimMappingCreate, db: Session = Depends(get_db)
+    mapping_id: str,
+    data: ClaimMappingCreate,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ):
     """既存のマッピングを更新する。"""
     try:
@@ -105,7 +119,11 @@ def update_claim_mapping(
 
 
 @router.delete("/mappings/{mapping_id}", status_code=204)
-def delete_claim_mapping(mapping_id: str, db: Session = Depends(get_db)):
+def delete_claim_mapping(
+    mapping_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+):
     """マッピングを削除する。"""
     mapping = _get_mapping_or_400(db, mapping_id)
 
@@ -115,13 +133,19 @@ def delete_claim_mapping(mapping_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/scopes", response_model=list[OidcScopeResponse])
-def list_oidc_scopes(db: Session = Depends(get_db)):
+def list_oidc_scopes(
+    db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+):
     """OIDCクライアントに割り当て可能なスコープ一覧を取得する。"""
     return OidcScopeService.list_scopes(db)
 
 
 @router.post("/scopes", response_model=OidcScopeResponse)
-def create_oidc_scope(data: OidcScopeCreate, db: Session = Depends(get_db)):
+def create_oidc_scope(
+    data: OidcScopeCreate,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+):
     """OIDCスコープを作成する。"""
     try:
         scope = OidcScopeService.create_scope(db, data)
@@ -135,6 +159,7 @@ def update_oidc_scope(
     scope_name: str,
     data: OidcScopeUpdate,
     db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ):
     """OIDCスコープの説明を更新する。"""
     try:
@@ -145,7 +170,11 @@ def update_oidc_scope(
 
 
 @router.delete("/scopes/{scope_name}", status_code=204)
-def delete_oidc_scope(scope_name: str, db: Session = Depends(get_db)):
+def delete_oidc_scope(
+    scope_name: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+):
     """OIDCスコープを削除する。"""
     try:
         OidcScopeService.delete_scope(db, scope_name)
@@ -155,13 +184,19 @@ def delete_oidc_scope(scope_name: str, db: Session = Depends(get_db)):
 
 
 @router.get("/clients", response_model=list[OidcClientResponse])
-def list_oidc_clients(db: Session = Depends(get_db)):
+def list_oidc_clients(
+    db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+):
     """OIDCクライアント一覧を取得する。"""
     return OidcClientService.list_clients(db)
 
 
 @router.get("/clients/{client_id}", response_model=OidcClientResponse)
-def get_oidc_client(client_id: str, db: Session = Depends(get_db)):
+def get_oidc_client(
+    client_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+):
     """OIDCクライアント詳細を取得する。"""
     client = OidcClientService.get_client_by_client_id(db, client_id)
     if not client:
@@ -170,7 +205,11 @@ def get_oidc_client(client_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/clients", response_model=OidcClientSecretResponse)
-def create_oidc_client(data: OidcClientCreate, db: Session = Depends(get_db)):
+def create_oidc_client(
+    data: OidcClientCreate,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+):
     """OIDCクライアントを作成する。"""
     try:
         client, plain_secret = OidcClientService.create_client(db, data)
@@ -188,6 +227,7 @@ def update_oidc_client(
     client_id: str,
     data: OidcClientUpdate,
     db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ):
     """OIDCクライアントを更新する。"""
     try:
@@ -200,7 +240,11 @@ def update_oidc_client(
 @router.post(
     "/clients/{client_id}/rotate-secret", response_model=OidcClientSecretResponse
 )
-def rotate_oidc_client_secret(client_id: str, db: Session = Depends(get_db)):
+def rotate_oidc_client_secret(
+    client_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+):
     """OIDCクライアントのシークレットを再発行する。"""
     try:
         client, plain_secret = OidcClientService.rotate_client_secret(db, client_id)
@@ -218,6 +262,7 @@ def update_oidc_client_active(
     client_id: str,
     data: OidcClientActivationUpdate,
     db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ):
     """OIDCクライアントの有効状態を変更する。"""
     try:
