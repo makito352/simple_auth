@@ -1,9 +1,14 @@
-"use client";
-
 /**
  * @file page.tsx
  * @description OIDCクライアント管理画面
+ * 
+ * このページでは、OIDC（OpenID Connect）のクライアント情報の閲覧、新規作成、編集、
+ * およびシークレットの再発行を行うことができます。
+ * セキュリティの観点から、シークレットの平文は常にマスクされ、コピー機能を通じてのみ取得可能となります。
  */
+
+
+"use client";
 import React, { useEffect, useState } from "react";
 import {
   createOidcClient,
@@ -21,11 +26,19 @@ import type {
 import { Edit2, KeyRound, Loader2, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 
+/**
+ * 編集モードの状態を定義する型
+ * @property {mode} 現在の操作が「作成」か「編集」かを識別
+ * @property {clientId} 編集時に対象となるクライアントID
+ */
 type EditingState = {
   mode: "create" | "edit";
   clientId?: string;
 };
 
+/**
+ * 初期フォームのデフォルト値定義
+ */
 const INITIAL_FORM: OidcClientInput = {
   name: "",
   client_id: "",
@@ -36,7 +49,9 @@ const INITIAL_FORM: OidcClientInput = {
 };
 
 /**
- * 改行区切りテキストをURI配列に変換する
+ * 入力されたリダイレクトURIを正規化し、配列に変換する
+ * @param {string} text 改行区切りの文字列
+ * @returns {string[]} 重複や空行を除去したURLの配列
  */
 function parseRedirectUris(text: string): string[] {
   return text
@@ -45,6 +60,10 @@ function parseRedirectUris(text: string): string[] {
     .filter((line) => line.length > 0);
 }
 
+
+/**
+ * OIDCクライアント管理のメインコンポーネント
+ */
 export default function OidcClientManagementPage() {
   const [clients, setClients] = useState<OidcClient[]>([]);
   const [scopes, setScopes] = useState<OidcScope[]>([]);
@@ -54,6 +73,9 @@ export default function OidcClientManagementPage() {
   const [formData, setFormData] = useState<OidcClientInput>(INITIAL_FORM);
   const [redirectUrisText, setRedirectUrisText] = useState("");
 
+  /**
+   * クライアント一覧と利用可能なスコープを初期ロードする
+   */
   const loadData = async () => {
     try {
       const [clientsData, scopesData] = await Promise.all([
@@ -67,6 +89,9 @@ export default function OidcClientManagementPage() {
     }
   };
 
+  /**
+   * コンポーネントマウント時にデータを取得する
+   */
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -78,12 +103,19 @@ export default function OidcClientManagementPage() {
     initialize();
   }, []);
 
+  /**
+   * 「新規作成」ボタンクリック時の処理
+   */
   const handleOpenCreate = () => {
     setEditing({ mode: "create" });
     setFormData(INITIAL_FORM);
     setRedirectUrisText("");
   };
 
+  /**
+   * 「編集」ボタンクリック時の処理（フォームを既存データで初期化）
+   * @param {OidcClient} client 対象のクライアントオブジェクト
+   */
   const handleOpenEdit = (client: OidcClient) => {
     setEditing({ mode: "edit", clientId: client.client_id });
     setFormData({
@@ -97,6 +129,10 @@ export default function OidcClientManagementPage() {
     setRedirectUrisText(client.allowed_redirect_uris.join("\n"));
   };
 
+  /**
+   * スコープの選択状態を切り替える
+   * @param {string} scopeName 対象のスコープ名
+   */
   const handleToggleScope = (scopeName: string) => {
     setFormData((prev) => {
       const exists = prev.scope_names.includes(scopeName);
@@ -109,10 +145,14 @@ export default function OidcClientManagementPage() {
     });
   };
 
+  /**
+   * フォーム送信処理（新規作成または更新）
+   */
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     const normalizedRedirectUris = parseRedirectUris(redirectUrisText);
+    // バリデーションチェック
     if (normalizedRedirectUris.length === 0) {
       toast.error("リダイレクトURIを1件以上入力してください");
       return;
@@ -125,6 +165,7 @@ export default function OidcClientManagementPage() {
 
     try {
       if (editing?.mode === "create") {
+        // 新規作成処理
         const result = await createOidcClient({
           ...formData,
           allowed_redirect_uris: normalizedRedirectUris,
@@ -132,6 +173,7 @@ export default function OidcClientManagementPage() {
         toast.success("OIDCクライアントを作成しました。シークレットをコピーします");
         await copyToClipboard(result.client_secret, "create");
       } else if (editing?.mode === "edit" && editing.clientId) {
+        // 更新処理
         const payload: OidcClientUpdateInput = {
           name: formData.name,
           description: formData.description,
@@ -143,13 +185,17 @@ export default function OidcClientManagementPage() {
         toast.success("OIDCクライアントを更新しました");
       }
 
-      setEditing(null);
-      await loadData();
+      setEditing(null);// フォームを閉じる
+      await loadData(); // リストを再読み込み
     } catch (error) {
       toast.error("保存に失敗しました");
     }
   };
 
+  /**
+   * クライアントシークレットの再発行処理
+   * @param {string} clientId 対象のクライアントID
+   */
   const handleRotateSecret = async (clientId: string) => {
     if (!confirm("クライアントシークレットを再発行します。よろしいですか？")) {
       return;
@@ -168,6 +214,8 @@ export default function OidcClientManagementPage() {
   /**
    * シークレットをクリップボードにコピーする
    * 秘密情報の平文を画面上に保持しないため、表示ではなくコピー通知のみ行う。
+   * @param {string} text コピーするテキスト
+   * @param {"create" | "rotate"} source コピー元の操作
    */
   const copyToClipboard = async (text: string, source: "create" | "rotate") => {
     try {

@@ -1,8 +1,9 @@
-"use client";
 /**
  * @file page.tsx
  * @description OIDCスコープとクレームマッピングの管理画面
  */
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { ClaimMapping, ClaimMappingInput, OidcScope, OptionAttribute } from '@/types';
 import {
@@ -24,13 +25,21 @@ type ScopeFormState = {
   description: string;
 };
 
+/**
+ * OIDC管理ページのメインコンポーネント
+ * スコープ一覧とクレームマッピングの一覧を表示し、追加・編集を行うためのフォームを提供します。
+ * @returns 構成されたUI要素
+ */
 export default function OidcManagementPage() {
-  const [mappings, setMappings] = useState<ClaimMapping[]>([]);
-  const [scopes, setScopes] = useState<OidcScope[]>([]);
-  const [attributeOptions, setAttributeOptions] = useState<OptionAttribute[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingScopeName, setEditingScopeName] = useState<string | null>(null);
+  // --- ステート定義 ---
+  const [mappings, setMappings] = useState<ClaimMapping[]>([]); // クレームマッピング一覧
+  const [scopes, setScopes] = useState<OidcScope[]>([]); // OIDCスコープ一覧
+  const [attributeOptions, setAttributeOptions] = useState<OptionAttribute[]>([]); // 利用可能な属性オプション
+  const [loading, setLoading] = useState(true); // 初期ロード中かどうかのフラグ
+  const [editingId, setEditingId] = useState<string | null>(null); // 現在編集中のマッピングID（"new"も含む）
+  const [editingScopeName, setEditingScopeName] = useState<string | null>(null); // 現在編集中のスコープ名
+  
+  // マッピングフォームの状態
   const [formData, setFormData] = useState<ClaimMappingInput>({
     scope: '',
     claim_name: '',
@@ -38,13 +47,17 @@ export default function OidcManagementPage() {
     value_key: '',
     static_value: '',
   });
+
+  // スコープフォームの状態
   const [scopeFormData, setScopeFormData] = useState<ScopeFormState>({
     scope_name: '',
     description: '',
   });
 
   /**
-   * 一覧データを再取得する
+   * サーバーから関連する全データを一括取得する。
+   * マッピング、属性オプション、スコープの3つを並行してフェッチします。
+   * @returns Promise<OidcScope[]> 取得したスコープ一覧
    */
   const loadData = async () => {
     const [mappingsData, attributesData, scopesData] = await Promise.all([
@@ -60,7 +73,8 @@ export default function OidcManagementPage() {
   };
 
   /**
-   * 新規マッピングフォームを初期化する
+   * 新規マッピングの追加用フォームを初期状態に設定する。
+   * @param scopeOptions 利用可能なスコープのリスト（存在確認のため）
    */
   const openNewMappingForm = (scopeOptions: OidcScope[]) => {
     if (scopeOptions.length === 0) {
@@ -78,6 +92,9 @@ export default function OidcManagementPage() {
     });
   };
 
+  /**
+   * コンポーネントのマウント時に初期データをロードする。
+   */
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -132,7 +149,8 @@ export default function OidcManagementPage() {
   };
 
   /**
-   * スコープの追加・更新を処理する
+   * クレームマッピングの送信処理（新規作成および更新）。
+   * @param e フォームイベント
    */
   const handleScopeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,14 @@
+/**
+ * @file フロントエンドのメインページコンポーネント
+ * @description ホーム画面のUIを定義するコンポーネントです。
+ */
+
 import Link from 'next/link';
 
+/**
+ * ホーム画面を表示するメインコンポーネント
+ * @returns 構成されたHTML要素を含むJSX
+ */
 export default function Home() {
   return (
     <div>

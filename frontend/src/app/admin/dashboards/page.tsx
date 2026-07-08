@@ -1,3 +1,9 @@
+/**
+ * @file ダッシュボードリンク管理ページ
+ * 
+ * このコンポーネントは、管理者用ダッシュボードに表示される各種リンク（タイトル、URL、アイコン）を
+ * 追加、更新、削除するためのインターフェースを提供します。
+ */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,20 +16,27 @@ import {
 } from "@/lib/api/dashboards";
 
 /**
- * ダッシュボードリンクの管理ページ
+ * ダッシュボードリンクの管理ページコンポーネント
+ * 
+ * @returns 管理用ダッシュボードページのUI
  */
 export default function DashboardsPage() {
-  const [links, setLinks] = useState<DashboardLink[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState({ title: "", url: "", icon_path: "", file: null as File | null });
+  // --- ステート定義 ---
+  const [links, setLinks] = useState<DashboardLink[]>([]); // 全てのダッシュボードリンク
+  const [loading, setLoading] = useState(true); // 初期データの読み込み中フラグ
+  const [editingId, setEditingId] = useState<string | null>(null); // 現在編集中の項目のID（nullの場合は通常表示）
+  const [editFormData, setEditFormData] = useState({ title: "", url: "", icon_path: "", file: null as File | null }); // 編集用フォームデータ
 
   // 追加用フォームの状態（新規作成時にも利用）
   const [newLinkFormData, setNewLinkFormData] = useState({ title: "", url: "", icon_path: "", file: null as File | null });
 
-  // 成功・失敗の通知用ステート
+  // 操作結果の通知（成功/失敗メッセージ）
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
+  /**
+   * 初期データの読み込み
+   * コンポーネントのマウント時に実行されます。
+   */
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -34,7 +47,10 @@ export default function DashboardsPage() {
     loadData();
   }, []);
 
-  // 更新処理
+  /**
+   * 既存リンクの更新処理
+   * @param id 更新する対象のID
+   */
   const handleUpdate = async (id: string) => {
     try {
       const formData = new FormData();
@@ -45,6 +61,7 @@ export default function DashboardsPage() {
       }
 
       const updatedLink = await updateDashboardLinkForm(id, formData);
+      // 状態を更新し、現在の選択を解除
       setLinks(prev => prev.map(link => link.id === id ? updatedLink : link));
       setEditingId(null);
       setStatusMessage({ text: "更新に成功しました", type: "success" });
@@ -52,10 +69,15 @@ export default function DashboardsPage() {
       setStatusMessage({ text: "更新に失敗しました", type: "error" });
     }
 
+    // 3秒後に通知メッセージを消去
     setTimeout(() => setStatusMessage(null), 3000);
   };
-  // 新規作成処理
+
+  /**
+   * 新規リンクの登録処理
+   */
   const handleCreate = async () => {
+    // バリデーション（必須チェック）
     if (!newLinkFormData.title || !newLinkFormData.url) {
       setStatusMessage({ text: "タイトルとURLは必須項目です", type: "error" });
       return;
@@ -70,6 +92,7 @@ export default function DashboardsPage() {
 
       const newLink = await createDashboardLinkForm(formData);
       setLinks(prev => [...prev, newLink]);
+      // フォームをリセット
       setNewLinkFormData({ title: "", url: "", icon_path: "", file: null });
       setStatusMessage({ text: "新規登録に成功しました", type: "success" });
     } catch (error) {
@@ -78,11 +101,15 @@ export default function DashboardsPage() {
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
-  // 削除処理
+  /**
+   * リンクの削除処理
+   * @param id 削除対象のID
+   */
   const handleDelete = async (id: string) => {
     if (!confirm("本当にこのリンクを削除しますか？")) return;
     try {
       await deleteDashboardLink(id);
+      // リストから該当要素を除外
       setLinks(prev => prev.filter(link => link.id !== id));
       setStatusMessage({ text: "削除に成功しました", type: "success" });
     } catch (error) {
@@ -92,20 +119,21 @@ export default function DashboardsPage() {
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
+  // ローディング中の表示
   if (loading) return <div className="p-8">読み込み中...</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-2xl font-bold mb-6">ダッシュボードリンクの管理</h1>
 
-      {/* ステータスメッセージの表示エリア */}
+      {/* 成功・失敗の通知メッセージ表示 */}
       {statusMessage && (
         <div className={`mb-4 p-3 rounded ${statusMessage.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
           {statusMessage.text}
         </div>
       )}
       
-      {/* 新規追加用フォーム */}
+      {/* 新規追加用フォームのセクション */}
       <div className="mb-8 p-6 bg-gray-50 rounded-lg border">
         <h2 className="text-lg font-semibold mb-4">新規リンクの追加</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -121,6 +149,7 @@ export default function DashboardsPage() {
             value={newLinkFormData.url}
             onChange={(e) => setNewLinkFormData({ ...newLinkFormData, url: e.target.value })}
           />
+          {/* 画像ファイルを選択 */}
           <input
             type="file"
             accept="image/*"
@@ -136,6 +165,7 @@ export default function DashboardsPage() {
         </div>
       </div>
 
+      {/* 既存リンク一覧のテーブル */}
       <div className="overflow-hidden border rounded-lg shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -203,7 +233,7 @@ export default function DashboardsPage() {
                             setEditFormData({ 
                               title: link.title, 
                               url: link.url, 
-                              icon_path: link.icon_path || "" ,
+                              icon_path: link.icon_path || "",
                               file: null
                             });
                           }}
@@ -227,7 +257,7 @@ export default function DashboardsPage() {
         </table>
       </div>
 
-      {/* 説明用テキスト（任意） */}
+      {/* 補助説明 */}
       <p className="mt-4 text-sm text-gray-500">
         ※ 更新後、ページをリロードすることなく即座に反映されます。
       </p>

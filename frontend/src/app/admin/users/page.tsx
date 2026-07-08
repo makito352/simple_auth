@@ -1,8 +1,11 @@
+/**
+ * @file page.tsx
+ * @description ユーザー管理ページのコンポーネント。ユーザーの一覧表示、作成、編集、削除を行う。
+ */
 "use client";
 
 import { useState, useEffect } from "react";
 import { 
-  fetchUserProfile, 
   fetchUserList,
   type UserProfile, 
   createUser, 
@@ -11,23 +14,27 @@ import {
 } from "@/lib/api/users";
 
 /**
- * ユーザー管理ページ
+ * ユーザー管理メインページコンポーネント
+ * @returns ユーザー一覧と操作フォームを含むUIをレンダリングします。
  */
 export default function UsersPage() {
+  // --- ステート定義 ---
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({ email: "", role: "user" as "admin" | "user" });
   
-  // ステータスメッセージ用
+  // ユーザー操作時のフィードバックメッセージ用（成功/失敗）
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  // 初期データの読み込み（実際にはバックエンドに/users/の一覧取得APIがある想定）
+  /**
+   * 初期データの読み込み
+   * コンポーネントのマウント時に実行されます。
+   */
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        // 修正: fetchUserProfile (個人用) ではなく fetchUserList (一覧用) を使用
         const data = await fetchUserList();
         setUsers(data);
       } catch (error) {
@@ -40,23 +47,34 @@ export default function UsersPage() {
     loadData(); // 関数を呼び出すように修正
   }, []);
 
+  /**
+   * 新規ユーザーの登録処理
+   * @param e - フォームの送信イベント
+   */
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await createUser(editFormData);
+      // 作成成功時、ステートを更新（実際の実装ではAPIから返却されたIDを使用）
       setUsers(prev => [...prev, { ...editFormData, id: "new-id" } as UserProfile]); // 仮のID
       setStatusMessage({ text: "ユーザーを作成しました", type: "success" });
     } catch (err) {
       setStatusMessage({ text: "作成に失敗しました", type: "error" });
     }
+    // 3秒後にメッセージをクリア
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
+  /**
+   * ユーザー情報の更新処理
+   * @param id - 更新対象のユーザーID
+   */
   const handleUpdate = async (id: string) => {
     try {
       await updateUser(id, editFormData);
+      // ローカルのステートを更新
       setUsers(prev => prev.map(u => u.id === id ? { ...u, ...editFormData } : u));
-      setEditingId(null);
+      setEditingId(null); // 編集モードを終了
       setStatusMessage({ text: "更新しました", type: "success" });
     } catch (err) {
       setStatusMessage({ text: "更新に失敗しました", type: "error" });
@@ -64,6 +82,10 @@ export default function UsersPage() {
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
+  /**
+   * ユーザー削除の処理
+   * @param id - 削除対象のユーザーID
+   */
   const handleDelete = async (id: string) => {
     if (!confirm("このユーザーを削除してもよろしいですか？")) return;
     try {
@@ -76,12 +98,14 @@ export default function UsersPage() {
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
+  // ロード中の表示処理
   if (loading) return <div className="p-8">読み込み中...</div>;
 
-  return (
+    return (
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-2xl font-bold mb-6">ユーザー管理</h1>
 
+      {/* エラーや成功の通知メッセージ */}
       {statusMessage && (
         <div className={`mb-4 p-3 rounded ${statusMessage.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
           {statusMessage.text}
@@ -116,10 +140,11 @@ export default function UsersPage() {
         </form>
       </div>
 
+      {/* ユーザー一覧テーブル */}
       <div className="overflow-hidden border rounded-lg shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
-            <tr>
+            <tr className="divide-x divide-gray-200">
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">subject id</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メールアドレス</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">役割</th>
@@ -133,6 +158,7 @@ export default function UsersPage() {
                   {user.id}
                 </td>
                 <td className="px-6 py-4">
+                  {/* 編集モードの場合のみインプットを表示 */}
                   {editingId === user.id ? (
                     <input 
                       className="border border-blue-300 rounded px-2 py-1"
