@@ -7,7 +7,7 @@
 
 from uuid import UUID
 
-from app.core.config import logger
+from app.core.config import logger, settings
 from app.db.session import get_db
 from app.schemas.one_time_link import (
     CreateLinkRequest,
@@ -17,7 +17,6 @@ from app.schemas.one_time_link import (
 from app.services.one_time_link_service import OneTimeLinkService
 from app.services.registration_session_service import generate_token
 from app.services.session_service import SessionService
-from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 

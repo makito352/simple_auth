@@ -1,9 +1,9 @@
 from datetime import datetime
 
+from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.services.session_service import SessionService
-from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 

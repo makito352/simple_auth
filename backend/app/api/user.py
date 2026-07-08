@@ -5,13 +5,12 @@
 
 from uuid import UUID
 
-from app.core.config import logger
+from app.core.config import logger, settings
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserOut, UserUpdate
 from app.services.session_service import SessionService
 from app.services.user_service import UserService
-from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
@@ -24,7 +23,9 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     """
     session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if not session_id:
-        logger.debug("認証エラー: cookie '%s' が存在しません。", settings.SESSION_COOKIE_NAME)
+        logger.debug(
+            "認証エラー: cookie '%s' が存在しません。", settings.SESSION_COOKIE_NAME
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
@@ -41,7 +42,8 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = UserService.read_user(db, user_id=session.user_id)
     if not user:
         logger.debug(
-            "認証エラー: セッションは存在しますが、対応するユーザーが見つかりません。セッションID: %s", session_id
+            "認証エラー: セッションは存在しますが、対応するユーザーが見つかりません。セッションID: %s",
+            session_id,
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
@@ -54,7 +56,9 @@ def get_current_admin_user(current_user: User = Depends(get_current_user)) -> Us
     管理者権限を持つユーザーのみを許可する。
     """
     if current_user.role != "admin":
-        logger.warning("認証エラー: 管理者権限が必要です。ユーザーID: %s", current_user.id)
+        logger.warning(
+            "認証エラー: 管理者権限が必要です。ユーザーID: %s", current_user.id
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )

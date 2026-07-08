@@ -12,8 +12,8 @@ from app.core.config import logger, settings
 from app.db.session import get_db
 from app.models.oidc import OidcAccessToken, OidcAuthCode
 from app.schemas.oidc_auth import (
-    JwksResponse,
     JwkKey,
+    JwksResponse,
     OpenIdConfigurationResponse,
     TokenRequest,
     TokenResponse,
@@ -22,7 +22,7 @@ from app.schemas.oidc_auth import (
 from app.services.oidc_service import OidcClaimService, OidcClientService
 from app.services.session_service import SessionService
 from app.services.user_service import UserService
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from jose import jwt
 from jwcrypto import jwk
@@ -189,7 +189,7 @@ async def token(
     redirect_uri = token_request.redirect_uri
     client_id = token_request.client_id
     client_secret = token_request.client_secret
-    
+
     if grant_type != "authorization_code":
         logger.debug("Unsupported grant_type: %s", grant_type)
         raise HTTPException(status_code=400, detail="unsupported_grant_type")

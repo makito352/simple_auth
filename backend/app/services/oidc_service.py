@@ -336,7 +336,7 @@ class OidcClaimService:
         resolved_claims = {}
 
         for mapping in mappings:
-            if mapping.value_source == Value_SOURCE_TYPE.STATIC.value:
+            if mapping.value_source == ValueSourceType.STATIC.value:
                 # 固定値の設定（例：システムの共通URLなど）
                 resolved_claims[mapping.claim_name] = mapping.static_value or ""
 

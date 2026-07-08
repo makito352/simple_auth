@@ -7,12 +7,11 @@ WebAuthn資格情報の管理に関するAPIエンドポイント。
 
 from uuid import UUID
 
-from app.core.config import logger
+from app.core.config import logger, settings
 from app.db.session import get_db
 from app.schemas.auth import CredentialCommentUpdateRequest, CredentialOut
 from app.services.session_service import SessionService
 from app.services.webauthn_service import WebAuthnService
-from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 

@@ -3,9 +3,9 @@
 プロキシ経由のIPアドレスの取得や、セッション情報からのユーザーID取得などを処理します。
 """
 
+from app.core.config import settings
 from app.db.session import SessionLocal
 from app.services.session_service import SessionService
-from app.core.config import settings
 from fastapi import Request
 
 
