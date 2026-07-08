@@ -1,3 +1,8 @@
+/**
+ * @file page.tsx
+ * @description 追加デバイス登録用ページ。
+ * URLに含まれるワンタイムトークンを検証し、有効な場合はWebAuthnによるデバイス登録フローを開始します。
+ */
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -6,8 +11,9 @@ import { verifyOneTimeLink } from "@/lib/api/ont_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 
 /**
- * @file page.tsx
- * @description 追加デバイス登録専用ページ。tokenを検証後、専用WebAuthn APIで登録する。
+ * @component DeviceAddContent
+ * @description トークンの検証状態と登録処理を管理するメインコンテンツコンポーネント。
+ * @returns 検証中、エラー時、または成功時の状態に応じたUI。
  */
 function DeviceAddContent() {
   const searchParams = useSearchParams();
@@ -18,6 +24,9 @@ function DeviceAddContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * @description コンポーネントのマウント時にURLから取得したトークンを検証する処理。
+   */
   useEffect(() => {
     async function verifyToken() {
       if (!token) {
@@ -44,6 +53,9 @@ function DeviceAddContent() {
     verifyToken();
   }, [token]);
 
+  /**
+   * @description WebAuthnによるデバイス登録を実行する処理。
+   */
   async function handleRegisterDevice() {
     if (!isVerified) {
       return;
@@ -64,6 +76,7 @@ function DeviceAddContent() {
     }
   }
 
+  // ロード中の状態（初期検証中）
   if (loading) {
     return (
       <div style={{ padding: "20px" }}>
@@ -73,6 +86,7 @@ function DeviceAddContent() {
     );
   }
 
+  // 検証失敗またはエラー発生時の状態
   if (!isVerified) {
     return (
       <div style={{ padding: "20px" }}>

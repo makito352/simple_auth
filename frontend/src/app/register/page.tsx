@@ -1,3 +1,8 @@
+/**
+ * @file page.tsx
+ * @description WebAuthnデバイス登録ページ
+ * ユーザーがパスキー（WebAuthn）を登録するためのUIを提供します。
+ */
 "use client";
 
 import { useEffect, useState, Suspense } from "react"; // Suspenseを追加
@@ -5,7 +10,11 @@ import { useSearchParams } from "next/navigation";
 import { verifyOneTimeLink } from "@/lib/api/ont_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 
-// コンテンツ部分を別コンポーネントとして定義
+/**
+ * 登録処理のメインコンテンツを管理するコンポーネント。
+ * トークンの検証と、WebAuthnデバイスの登録フローを担当します。
+ * @returns 認証状態に応じたUI要素
+ */
 function RegistrationContent() {
   const searchParams = useSearchParams();
   // URLからトークンを取得 (例: ?token=tok_xxx)
@@ -13,6 +22,9 @@ function RegistrationContent() {
   const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
+    /**
+     * @description コンポーネントのマウント時にURLから取得したトークンを検証する処理。
+     */
     async function verifyTokenAndStart() {
       const result = await verifyOneTimeLink(token);
       if (result) {
@@ -23,6 +35,9 @@ function RegistrationContent() {
     verifyTokenAndStart();
   }, [token]);
 
+  /**
+   * @description WebAuthnデバイス登録を実行する処理。
+   */
   const handleRegister = async () => {
     if (!isVerified) return;
 
@@ -37,6 +52,7 @@ function RegistrationContent() {
     }
   };
 
+  // トークン検証中の表示（ローディング状態）
   if (!isVerified) {
     return (
       <div style={{ padding: "20px" }}>
@@ -46,6 +62,7 @@ function RegistrationContent() {
     );
   }
 
+  // 検証完了後の表示
   return (
     <div style={{ padding: "20px" }}>
       <h1>デバイス登録</h1>
@@ -55,7 +72,10 @@ function RegistrationContent() {
   );
 }
 
-// メインのページコンポーネントでSuspenseを適用
+/**
+ * WebAuthn登録ページのメインエントリーポイント。
+ * useSearchParamsの利用に伴うクライアントサイドでのSuspense境界を設定します。
+ */
 export default function WebAuthnRegPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>

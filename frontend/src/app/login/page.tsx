@@ -1,19 +1,34 @@
+/**
+ * @file page.tsx
+ * @description WebAuthnを使用した生体認証ログイン画面のコンポーネント。
+ */
 "use client";
 
 import { useState } from "react";
 import { performWebAuthnLogin } from "@/lib/api/webauthn";
 
+
+/**
+ * ログインページのメインコンポーネント
+ * @returns JSX.Element ログインボタンを含むUI要素
+ */
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+
+  /**
+   * 「次へ」ボタン押下時の処理。
+   * WebAuthn認証を実行し、成功した場合はダッシュボードへ遷移します。
+   */
   async function handleNext() {
     setLoading(true);
     try {
       // WebAuthnの全工程を実行
       await performWebAuthnLogin();
       
-      // 成功したら一気にダッシュボードへ
+      // 認証成功時、ダッシュボードへ遷移
       window.location.href = "/dashboard";
     } catch (err) {
+       // エラー内容をコンソールに記録し、ユーザーにアラートを表示
       console.error("Login failed", err);
       alert("認証に失敗しました");
     } finally {
