@@ -1,4 +1,5 @@
 """
+【管理者向け】
 OIDC関連のリソースを管理するためのAPIエンドポイント。
 このモジュールは、OIDCクライアント、スコープ、およびクレームマッピングの
 作成、更新、削除、および取得の処理を提供します。
@@ -72,7 +73,10 @@ def _handle_scope_service_error(exc: ValueError) -> None:
 def list_claim_mappings(
     db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
 ):
-    """すべてのマッピングを取得する。"""
+    """
+    【管理者向け】
+    すべてのマッピングを取得する。
+    """
     mappings = OidcClaimService.get_all_claim_mappings(db)
     return mappings
 
@@ -83,7 +87,10 @@ def get_claim_mapping(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """特定のIDのマッピングを取得する。"""
+    """
+    【管理者向け】
+    特定のIDのマッピングを取得する。
+    """
     return _get_mapping_or_400(db, mapping_id)
 
 
@@ -93,7 +100,10 @@ def create_claim_mapping(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """新しいマッピングを作成する。"""
+    """
+    【管理者向け】
+    新しいマッピングを作成する。
+    """
     try:
         new_mapping = OidcClaimService.create_claim_mapping(db, data=data)
     except ValueError as exc:
@@ -108,7 +118,10 @@ def update_claim_mapping(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """既存のマッピングを更新する。"""
+    """
+    【管理者向け】
+    既存のマッピングを更新する。
+    """
     try:
         return OidcClaimService.update_claim_mapping(db, mapping_id, data)
     except ValueError as exc:
@@ -124,7 +137,10 @@ def delete_claim_mapping(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """マッピングを削除する。"""
+    """
+    【管理者向け】
+    マッピングを削除する。
+    """
     mapping = _get_mapping_or_400(db, mapping_id)
 
     db.delete(mapping)
@@ -136,7 +152,10 @@ def delete_claim_mapping(
 def list_oidc_scopes(
     db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
 ):
-    """OIDCクライアントに割り当て可能なスコープ一覧を取得する。"""
+    """
+    【管理者向け】
+    OIDCクライアントに割り当て可能なスコープ一覧を取得する。
+    """
     return OidcScopeService.list_scopes(db)
 
 
@@ -146,7 +165,10 @@ def create_oidc_scope(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """OIDCスコープを作成する。"""
+    """
+    【管理者向け】
+    OIDCスコープを作成する。
+    """
     try:
         scope = OidcScopeService.create_scope(db, data)
     except ValueError as exc:
@@ -161,7 +183,10 @@ def update_oidc_scope(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """OIDCスコープの説明を更新する。"""
+    """
+    【管理者向け】
+    OIDCスコープの説明を更新する。
+    """
     try:
         scope = OidcScopeService.update_scope(db, scope_name, data)
     except ValueError as exc:
@@ -175,7 +200,10 @@ def delete_oidc_scope(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """OIDCスコープを削除する。"""
+    """
+    【管理者向け】
+    OIDCスコープを削除する。
+    """
     try:
         OidcScopeService.delete_scope(db, scope_name)
     except ValueError as exc:
@@ -187,7 +215,10 @@ def delete_oidc_scope(
 def list_oidc_clients(
     db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
 ):
-    """OIDCクライアント一覧を取得する。"""
+    """
+    【管理者向け】
+    OIDCクライアント一覧を取得する。
+    """
     return OidcClientService.list_clients(db)
 
 
@@ -197,7 +228,10 @@ def get_oidc_client(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """OIDCクライアント詳細を取得する。"""
+    """
+    【管理者向け】
+    OIDCクライアント詳細を取得する。
+    """
     client = OidcClientService.get_client_by_client_id(db, client_id)
     if not client:
         raise HTTPException(status_code=404, detail="client not found")
@@ -210,7 +244,10 @@ def create_oidc_client(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """OIDCクライアントを作成する。"""
+    """
+    【管理者向け】
+    OIDCクライアントを作成する。
+    """
     try:
         client, plain_secret = OidcClientService.create_client(db, data)
     except ValueError as exc:
@@ -229,7 +266,10 @@ def update_oidc_client(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """OIDCクライアントを更新する。"""
+    """
+    【管理者向け】
+    OIDCクライアントを更新する。
+    """
     try:
         client = OidcClientService.update_client(db, client_id, data)
     except ValueError as exc:
@@ -245,7 +285,10 @@ def rotate_oidc_client_secret(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """OIDCクライアントのシークレットを再発行する。"""
+    """
+    【管理者向け】
+    OIDCクライアントのシークレットを再発行する。
+    """
     try:
         client, plain_secret = OidcClientService.rotate_client_secret(db, client_id)
     except ValueError as exc:
@@ -264,7 +307,10 @@ def update_oidc_client_active(
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin_user),
 ):
-    """OIDCクライアントの有効状態を変更する。"""
+    """
+    【管理者向け】
+    OIDCクライアントの有効状態を変更する。
+    """
     try:
         client = OidcClientService.set_client_active(db, client_id, data.is_active)
     except ValueError as exc:

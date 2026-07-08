@@ -1,4 +1,5 @@
 """
+【管理者向け】
 ユーザーオプション関連のAPIエンドポイントを提供するモジュール。
 このモジュールでは、ユーザーオプションの作成、取得、更新、削除の処理を行います。
 """
@@ -25,6 +26,7 @@ def list_attributes(
     db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
 ):
     """
+    【管理者向け】
     すべての属性を取得する。
     """
     return UserOptionService.get_all_attributes(db)
@@ -37,9 +39,9 @@ def create_attribute(
     _admin=Depends(get_current_admin_user),
 ):
     """
+    【管理者向け】
     新しい属性を作成する。
     """
-    # 実際にはスキーマを介する
     return UserOptionService.create_attribute(db, data)
 
 
@@ -51,6 +53,7 @@ def update_attribute(
     _admin=Depends(get_current_admin_user),
 ):
     """
+    【管理者向け】
     既存の属性を更新する。
     データが存在しない場合は 404 Not Found を返す。
     """
@@ -68,6 +71,7 @@ def delete_attribute(
     attr_id: UUID, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
 ):
     """
+    【管理者向け】
     既存の属性を削除する。
     データが存在しない場合は 404 Not Found を返す。
     """
@@ -83,9 +87,8 @@ def update_user_options(
     _admin=Depends(get_current_admin_user),
 ):
     """
-    【Bulk Update】
+    【管理者向け】
     特定ユーザーの複数のオプションを一括更新。
-    例: GET /user-options/123-abc/options に list[{"key": "imap", "value": "..."}, ...] を送る
     """
     return UserOptionService.bulk_update_user_options(db, user_id, options_in.options)
 
@@ -95,6 +98,7 @@ def get_user_options(
     user_id: UUID, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
 ):
     """
+    【管理者向け】
     特定ユーザーのすべてのオプションを取得する。
     """
     return UserOptionService.get_user_options(db, user_id)

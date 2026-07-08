@@ -1,4 +1,5 @@
 """
+【一般ユーザ向け/管理者向け 混在】
 ユーザー関連のAPIエンドポイントを提供するモジュール。
 このモジュールでは、ユーザーの作成、取得、更新、削除の処理を行います。
 """
@@ -20,7 +21,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get("/", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)):
     """
-    全ユーザーのリストを取得します（管理者のみ）。
+    【管理者向け】
+    全ユーザーのリストを取得します。
     """
     return UserService.get_all_users(db)
 
@@ -33,6 +35,7 @@ def get_user(
     current_user: User = Depends(get_current_user),
 ):
     """
+    【一般ユーザー向け】
     現在ログインしているユーザーの情報を取得します。
     """
     return current_user
@@ -46,7 +49,8 @@ def create_user(
     _admin=Depends(get_current_admin_user),
 ):
     """
-    新しくユーザーを作成します（管理者のみ実施可能）。
+    【管理者向け】
+    新しくユーザーを作成します。
     """
     return UserService.create_user(db, email=user_in.email, role=user_in.role)
 
@@ -60,7 +64,8 @@ def update_user(
     _admin=Depends(get_current_admin_user),
 ):
     """
-    ユーザー情報を更新します（管理者のみ）。
+    【管理者向け】
+    ユーザー情報を更新します。
     """
     update_data = user_in.model_dump(exclude_unset=True)
     return UserService.update_user(db, user_id, **update_data)
@@ -74,7 +79,8 @@ def delete_user(
     _admin=Depends(get_current_admin_user),
 ):
     """
-    ユーザーを削除します（管理者のみ）。
+    【管理者向け】
+    ユーザーを削除します。
     """
     UserService.delete_user(db, user_id)
     return None

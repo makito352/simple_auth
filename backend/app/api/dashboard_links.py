@@ -1,4 +1,6 @@
-"""dashboard_links API モジュール
+"""
+【管理者向け】
+dashboard_links API モジュール
 
 ダッシュボードリンクの CRUD 操作と、アイコンファイルの保存／削除処理を提供します。
 """
