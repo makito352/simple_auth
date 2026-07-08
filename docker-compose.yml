@@ -76,13 +76,13 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=${BACKEND_BASE_URI}
         - NEXT_PUBLIC_ENV=${ENV}
-        - INTERNAL_API_URL=${INTERNAL_BACKEND_API_URL}
+        - BACKEND_INTERNAL_URL=${INTERNAL_BACKEND_API_URL}
     container_name: simpleauth-frontend
     restart: always
     environment:
       NEXT_PUBLIC_API_URL: ${BACKEND_BASE_URI}
-      INTERNAL_API_URL: ${INTERNAL_BACKEND_API_URL}
       NEXT_PUBLIC_ENV: ${ENV}
+      BACKEND_INTERNAL_URL: ${INTERNAL_BACKEND_API_URL}
       NODE_ENV: ${ENV}
     depends_on:
       - backend
