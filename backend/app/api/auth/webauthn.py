@@ -11,9 +11,11 @@ WebAuthn認証用APIエンドポイント。
 """
 
 import json
+from typing import Any
 
 from app.core.config import logger, settings
 from app.db.session import get_db
+from app.schemas.auth import LoginOptionsResponse
 from app.services.auth_options_service import AuthOptionsService
 from app.services.registration_session_service import (
     get_challenge,
@@ -63,8 +65,10 @@ async def options_register_verify():
     return {}
 
 
-@router.post("/register/verify")
-def register_verify(payload: dict, request: Request, db: Session = Depends(get_db)):
+@router.post("/register/verify", status_code=status.HTTP_204_NO_CONTENT)
+def register_verify(
+    payload: dict, request: Request, db: Session = Depends(get_db)
+) -> Response:
     logger.debug("register_verify request received")
     return verify_registration_and_store(
         payload=payload,
@@ -93,10 +97,10 @@ async def options_device_register_verify():
     return {}
 
 
-@router.post("/devices/register/verify")
+@router.post("/devices/register/verify", status_code=status.HTTP_204_NO_CONTENT)
 def device_register_verify(
     payload: dict, request: Request, db: Session = Depends(get_db)
-):
+) -> Response:
     """
     追加デバイス登録専用の検証API。
     ユーザーステータスは更新しない。
@@ -145,11 +149,11 @@ def issue_registration_options(request: Request, db: Session):
 
 
 def verify_registration_and_store(
-    payload: dict,
+    payload: dict[str, Any],
     request: Request,
     db: Session,
     update_user_verification: bool,
-):
+) -> Response:
     """
     WebAuthn登録レスポンスを検証し、資格情報を保存する共通処理。
     update_user_verification が True の場合、ユーザーのメール検証ステータスを更新する。
@@ -201,7 +205,8 @@ def verify_registration_and_store(
         device_name=device_name,
     )
 
-    return {"ok": True}
+    # 検証完了のみ通知し、レスポンス本文は返さない
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # ----------------------------
@@ -212,8 +217,10 @@ async def options_login_options():
     return {}
 
 
-@router.post("/login/options")
-def login_options(request: Request, db: Session = Depends(get_db)):
+@router.post("/login/options", response_model=LoginOptionsResponse)
+def login_options(
+    request: Request, db: Session = Depends(get_db)
+) -> LoginOptionsResponse:
     # ログイン用のWebAuthn認証オプションを発行する。
     options = generate_authentication_options(
         rp_id=settings.WEB_AUTHN_RP_ID,
@@ -230,14 +237,16 @@ def login_options(request: Request, db: Session = Depends(get_db)):
         challenge=options.challenge,
     )
 
-    return {
-        "options": json.loads(options_to_json(options)),
-        "session_token": session_token,
-    }
+    return LoginOptionsResponse(
+        options=json.loads(options_to_json(options)),
+        session_token=session_token,
+    )
 
 
-@router.post("/login/verify")
-def login_verify(payload: dict, response: Response, db: Session = Depends(get_db)):
+@router.post("/login/verify", status_code=status.HTTP_204_NO_CONTENT)
+def login_verify(
+    payload: dict, response: Response, db: Session = Depends(get_db)
+) -> Response:
     # # payload["id"] は credential_id を指すと想定
     logger.debug(
         "login_verify request received for credential_id: %s", payload.get("id")
@@ -291,7 +300,9 @@ def login_verify(payload: dict, response: Response, db: Session = Depends(get_db
         path="/",
     )
 
-    return {"ok": True, "user_id": str(user_id)}
+    # Cookie を設定した同一レスポンスを 204 として返す
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response
 
 
 @router.post("/logout")
