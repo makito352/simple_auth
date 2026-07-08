@@ -1,12 +1,23 @@
-// middleware.ts
+/**
+ * @file middleware.ts
+ * 認証状態のチェックおよび、権限のないユーザーへのリダイレクトを制御するミドルウェア。
+ */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { SESSION_COOKIE_NAME } from "@/lib/config/auth";
 
+/**
+ * リクエストをインターセプトし、セッションの有無を確認します。
+ * セッションが存在しない場合はトップページへリダイレクトします。
+ * 
+ * @param {NextRequest} request - Next.jsのミドルウェア用リクエストオブジェクト
+ * @returns {NextResponse} - 次の処理への継続またはリダイレクト先
+ */
 export function middleware(request: NextRequest) {
+  // クッキーからセッション情報を取得
   const session = request.cookies.get(SESSION_COOKIE_NAME);
 
-  // セッションが無い → トップページへリダイレクト
+  // セッションがない、または値が空の場合、ログインページ（/）へリダイレクト
   if (!session?.value) {
     return NextResponse.redirect(new URL('/', request.url));
   }
@@ -15,7 +26,11 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// どのパスに middleware を適用するか
+/**
+ * ミドルウェアを適用するルートの定義
+ * 以下のパス配下すべてに認証チェックを適用します。
+ */
 export const config = {
-  matcher: ['/dashboard/:path*'], // /dashboard 配下すべてに適用
+  // /dashboard ,devices ,admin 配下すべてに適用
+  matcher: ['/dashboard/:path*', '/devices/:path*', '/admin/:path*'], 
 };

@@ -26,7 +26,7 @@ class OneTimeLinkService:
         内部的な共通ロジックとして使用します。
         """
         if link.type == "device_registration":
-            url = f"{settings.FRONTEND_BASE_URL}/devices/add?token={link.token}"
+            url = f"{settings.FRONTEND_BASE_URL}/devices_add?token={link.token}"
         else:
             url = f"{settings.FRONTEND_BASE_URL}/register?token={link.token}"
         return OneTimeLinkCreateResponse(
