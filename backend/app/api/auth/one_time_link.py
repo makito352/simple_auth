@@ -1,13 +1,24 @@
+"""
+ワンタイムリンク（単発利用用リンク）に関するエンドポイントを定義する。
+
+このモジュールは、デバイス登録や特定の操作において一時的なトークンを発行し、
+それを検証してユーザーの認証状態を更新するためのAPIを提供します。
+"""
+
+from uuid import UUID
+
+from app.core.config import logger
 from app.db.session import get_db
-from app.schemas.one_time_link import (CreateLinkRequest,
-                                       OneTimeLinkCreateResponse,
-                                       TokenVerificationResponse)
+from app.schemas.one_time_link import (
+    CreateLinkRequest,
+    OneTimeLinkCreateResponse,
+    TokenVerificationResponse,
+)
 from app.services.one_time_link_service import OneTimeLinkService
 from app.services.registration_session_service import generate_token
 from app.services.session_service import SessionService
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 router = APIRouter(prefix="/auth/one-time-link", tags=["OneTimeLink"])
 
@@ -18,6 +29,7 @@ def get_current_user_id(request: Request, db: Session) -> UUID:
     """
     session_id = request.cookies.get("simpleauth_session")
     if not session_id:
+        logger.debug("No session cookie found in request.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
@@ -25,6 +37,7 @@ def get_current_user_id(request: Request, db: Session) -> UUID:
 
     session = SessionService.validate_session(db, session_id)
     if session is None:
+        logger.debug("Invalid or expired session.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
@@ -53,6 +66,7 @@ def create_one_time_link(
             link_type=data.link_type,
         )
     except Exception as e:
+        logger.error(f"Failed to create one-time link: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create link: {str(e)}",
@@ -77,8 +91,10 @@ def create_self_device_link(
         link_type="device_registration",
     )
     if existing_link is not None:
+        logger.debug("Reusing existing one-time link for user_id=%s", user_id)
         return existing_link
 
+    logger.debug("Creating new one-time link for user_id=%s", user_id)
     return OneTimeLinkService.create_link(
         db,
         user_id=user_id,
@@ -110,6 +126,7 @@ def verify_one_time_link(
             samesite="lax",
             path="/",
         )
+        logger.debug("One-time link verified and consumed for user_id=%s", user.id)
         return TokenVerificationResponse(
             user_id=str(user.id),
             email=user.email,
@@ -117,8 +134,10 @@ def verify_one_time_link(
         )
     except ValueError as e:
         # 期限切れ、または不正なトークンの場合は400 Bad Requestを返す
+        logger.debug("One-time link verification failed: %s", str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception:
+        logger.error("Internal server error during one-time link verification.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error during link verification.",

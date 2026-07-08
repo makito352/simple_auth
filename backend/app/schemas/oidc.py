@@ -1,3 +1,8 @@
+"""
+OIDC関連のスキーマを定義するモジュール。
+このモジュールでは、OIDCクライアントやスコープ、クレームマッピングの作成、取得、更新のデータ構造を定義します。
+"""
+
 from typing import Optional
 from uuid import UUID
 
@@ -101,7 +106,9 @@ class OidcClientResponse(BaseModel):
 class OidcClientSecretResponse(OidcClientResponse):
     """作成直後または再発行時に平文シークレットを返すレスポンス。"""
 
-    client_secret: str = Field(..., description="平文のclient_secret（このレスポンスのみ）")
+    client_secret: str = Field(
+        ..., description="平文のclient_secret（このレスポンスのみ）"
+    )
 
 
 class OidcClientActivationUpdate(BaseModel):

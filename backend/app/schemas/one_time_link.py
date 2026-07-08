@@ -1,9 +1,11 @@
-from typing import Optional
+"""
+one time link（ワンタイムURL）関連のスキーマを定義するモジュール。
+このモジュールでは、ワンタイムリンクの作成、取得、検証のデータ構造を定義します。
+"""
+
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-
-# --- Request Models ---
 
 
 class CreateLinkRequest(BaseModel):

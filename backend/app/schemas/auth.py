@@ -1,3 +1,8 @@
+"""
+認証関連のスキーマを定義するモジュール。
+このモジュールでは、認証リクエストやレスポンスのデータ構造を定義します。
+"""
+
 from datetime import datetime
 from uuid import UUID
 

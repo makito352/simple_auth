@@ -1,27 +1,44 @@
+"""
+OIDC関連のデータ操作およびマッピング処理を担当するサービス。
+"""
+
 import secrets
 from datetime import datetime
 from typing import Dict, List, Optional
 from uuid import UUID
 
 from app.core.config import logger
-from app.models.oidc import (OidcClaimMapping, OidcClient, OidcClientScope,
-                             OidcScope, ValueSourceType)
-from app.schemas.oidc import (ClaimMappingCreate, OidcClientCreate,
-                              OidcClientUpdate, OidcScopeCreate,
-                              OidcScopeUpdate)
+from app.models.oidc import (
+    OidcClaimMapping,
+    OidcClient,
+    OidcClientScope,
+    OidcScope,
+    ValueSourceType,
+)
+from app.schemas.oidc import (
+    ClaimMappingCreate,
+    OidcClientCreate,
+    OidcClientUpdate,
+    OidcScopeCreate,
+    OidcScopeUpdate,
+)
 from app.services.user_option_service import UserOptionService
 from app.utils.crypto import decrypt_value, encrypt_value
 from sqlalchemy.orm import Session
 
+# OIDCの標準スコープ名のセット
 SYSTEM_SCOPE_NAMES = {"openid", "profile", "email"}
 
 
+# ... existing code ...
 class OidcScopeService:
-    """OIDCスコープのCRUDと参照整合を担当するサービス。"""
+    """OidcScopeクラスの操作と、スコープに関連するバリデーションを担当するサービス。"""
 
     @staticmethod
     def _normalize_scope_name(scope_name: str) -> str:
-        """スコープ名を正規化して空値を防ぐ。"""
+        """
+        入力されたスコープ名をトリミングし、空文字でないか確認する。
+        """
         normalized = scope_name.strip()
         if not normalized:
             raise ValueError("scope_name must not be empty")
@@ -29,26 +46,43 @@ class OidcScopeService:
 
     @staticmethod
     def is_system_scope(scope_name: str) -> bool:
-        """標準スコープかどうかを判定する。"""
+        """
+        提供されているスコープがシステム標準の（変更不可な）ものか判定する。
+        """
         return scope_name in SYSTEM_SCOPE_NAMES
 
     @staticmethod
     def get_scope_by_name(db: Session, scope_name: str) -> Optional[OidcScope]:
-        """scope_name でOIDCスコープを取得する。"""
+        """
+        指定された名前のスコープをDBから取得する。
+        """
+        # スコープ名を正規化して空値を防ぐ
         normalized = OidcScopeService._normalize_scope_name(scope_name)
+
+        # データベースからスコープを取得
         return db.query(OidcScope).filter(OidcScope.scope_name == normalized).first()
 
     @staticmethod
     def validate_scope_name_exists(db: Session, scope_name: str) -> str:
-        """単一スコープ名が存在するか検証する。"""
+        """
+        単一のスコープ名がシステムに登録されているか検証する。
+        """
+        # スコープ名を正規化して空値を防ぐ
         normalized = OidcScopeService._normalize_scope_name(scope_name)
+
+        # データベースからスコープを取得して存在を確認
         if not OidcScopeService.get_scope_by_name(db, normalized):
+            logger.debug("Scope not found: %s", normalized)
             raise ValueError(f"unknown scope: {normalized}")
+
         return normalized
 
     @staticmethod
     def validate_scope_names_exist(db: Session, scope_names: list[str]) -> list[str]:
-        """複数スコープ名が存在するか検証する。"""
+        """
+        複数のスコープ名がすべてシステムに登録されているか一括検証する。
+        """
+        # 重複を排除し、正規化したリストを作成
         normalized = sorted(
             {
                 OidcScopeService._normalize_scope_name(scope_name)
@@ -58,12 +92,14 @@ class OidcScopeService:
         if not normalized:
             raise ValueError("scope_names must not be empty")
 
+        # 実際にDBに存在するスコープの集合を取得
         valid_scope_names = {
             row.scope_name
             for row in db.query(OidcScope)
             .filter(OidcScope.scope_name.in_(normalized))
             .all()
         }
+        # 存在しないスコープを特定してエラーを投げる
         missing = [scope for scope in normalized if scope not in valid_scope_names]
         if missing:
             raise ValueError(f"unknown scopes: {', '.join(missing)}")
@@ -71,13 +107,17 @@ class OidcScopeService:
 
     @staticmethod
     def _is_scope_referenced(db: Session, scope_name: str) -> bool:
-        """関連テーブルからスコープ参照の有無を調べる。"""
+        """
+        特定のスコープが、マッピング定義やクライアント割当てで使用されているか確認する。
+        """
+        # クレームのマッピングに使用されているか
         has_mapping = (
             db.query(OidcClaimMapping)
             .filter(OidcClaimMapping.scope == scope_name)
             .first()
             is not None
         )
+        # 特定のクライアントに割り当てられているか
         has_client_scope = (
             db.query(OidcClientScope)
             .filter(OidcClientScope.scope_name == scope_name)
@@ -88,25 +128,33 @@ class OidcScopeService:
 
     @staticmethod
     def to_response_dict(db: Session, scope: OidcScope) -> dict:
-        """管理画面向けにOIDCスコープを整形する。"""
+        """
+        管理画面の表示用にOIDCスコープの情報を整形する。
+        削除可能かどうかの判定を含める。
+        """
         is_system_scope = OidcScopeService.is_system_scope(scope.scope_name)
         is_referenced = OidcScopeService._is_scope_referenced(db, scope.scope_name)
         return {
             "scope_name": scope.scope_name,
             "description": scope.description,
             "is_system_scope": is_system_scope,
+            # システム標準ではなく、かつどこにも参照されていなければ削除可能とみなす
             "is_deletable": (not is_system_scope) and (not is_referenced),
         }
 
     @staticmethod
     def list_scopes(db: Session) -> list[dict]:
-        """管理画面向けにOIDCスコープ一覧を返す。"""
+        """
+        管理画面用にすべてのOIDCスコープをリスト形式で取得する。
+        """
         scopes = db.query(OidcScope).order_by(OidcScope.scope_name.asc()).all()
         return [OidcScopeService.to_response_dict(db, scope) for scope in scopes]
 
     @staticmethod
     def create_scope(db: Session, data: OidcScopeCreate) -> OidcScope:
-        """OIDCスコープを作成する。"""
+        """
+        新しいOIDCスコープを作成する。重複チェックを含む。
+        """
         normalized = OidcScopeService._normalize_scope_name(data.scope_name)
         if OidcScopeService.get_scope_by_name(db, normalized):
             raise ValueError("scope_name already exists")
@@ -119,7 +167,9 @@ class OidcScopeService:
 
     @staticmethod
     def update_scope(db: Session, scope_name: str, data: OidcScopeUpdate) -> OidcScope:
-        """OIDCスコープの説明を更新する。"""
+        """
+        既存のOIDCスコープの説明文を更新する。
+        """
         scope = OidcScopeService.get_scope_by_name(db, scope_name)
         if not scope:
             raise ValueError("scope not found")
@@ -131,12 +181,16 @@ class OidcScopeService:
 
     @staticmethod
     def delete_scope(db: Session, scope_name: str) -> None:
-        """OIDCスコープを削除する。"""
+        """
+        OIDCスコープを削除する。システム予約や使用中の場合はエラーを返す。
+        """
         scope = OidcScopeService.get_scope_by_name(db, scope_name)
         if not scope:
             raise ValueError("scope not found")
+        # システム標準のスコープは削除不可
         if OidcScopeService.is_system_scope(scope.scope_name):
             raise ValueError("system scope cannot be deleted")
+        # 他で参照されている場合は削除不可
         if OidcScopeService._is_scope_referenced(db, scope.scope_name):
             raise ValueError("scope is in use")
 
@@ -146,21 +200,25 @@ class OidcScopeService:
 
 class OidcClaimService:
     """
-    OIDC関連のデータ操作およびマッピング処理を担当するサービス。
+    OIDCのクレーム定義（マッピング）の管理と、実行時の値の解決を担当するサービス。
     """
 
     # --- 管理者用（Admin Operations） ---
 
     @staticmethod
     def get_all_claim_mappings(db: Session) -> List[OidcClaimMapping]:
-        """管理画面などですべてのマッピングルールを表示するための取得"""
+        """
+        全マッピングルールを取得する。
+        """
         return db.query(OidcClaimMapping).all()
 
     @staticmethod
     def get_claim_mapping_by_id(
         db: Session, mapping_id: str
     ) -> Optional[OidcClaimMapping]:
-        """特定のIDでマッピングを取得する（更新・削除用）"""
+        """
+        IDを元に特定のマッピング定義を取得する。
+        """
         try:
             parsed_id = UUID(mapping_id)
         except ValueError as exc:
@@ -172,7 +230,9 @@ class OidcClaimService:
 
     @staticmethod
     def create_claim_mapping(db: Session, data: ClaimMappingCreate) -> OidcClaimMapping:
-        """新しいマッピングルールを作成する"""
+        """
+        新しいクレームのマッピングルールを作成する。
+        """
         normalized_scope = OidcScopeService.validate_scope_name_exists(db, data.scope)
         new_mapping = OidcClaimMapping(
             scope=normalized_scope,
@@ -194,7 +254,9 @@ class OidcClaimService:
     def update_claim_mapping(
         db: Session, mapping_id: str, data: ClaimMappingCreate
     ) -> OidcClaimMapping:
-        """既存のマッピングルールを更新する。"""
+        """
+        既存のマッピングルールを更新する。
+        """
         mapping = OidcClaimService.get_claim_mapping_by_id(db, mapping_id)
         if not mapping:
             raise ValueError("mapping not found")
@@ -220,20 +282,23 @@ class OidcClaimService:
         db: Session, requested_scopes: list[str], user_id: str
     ) -> Dict[str, str]:
         """
-        OIDCリクエスト時に、指定されたスコープに基づいて実際の値を解決する。
+        リクエストされたスコープに基づき、ユーザーの属性や固定値を組み合わせてクレームを解決する。
 
         Args:
-            requested_scopes: クライアントが要求した ["imap", "smtp"] 等
-            user_id: ユーザーのUUID
+            requested_scopes: クライアントが要求した ["imap", "smtp"] などの一覧。
+            user_id: 現在のログインユーザーの識別子。
 
         Returns:
-            辞書型: {"imap_server": "xxx.example.com", ...} のようなマッピングされた結果
+            解決されたクレームの辞書（例: {"imap_server": "xxx.example.com"}）。
         """
-        # マッピング定義を取得（該当するスコープに紐づくもの）
-        normalized_scopes = [scope.strip() for scope in requested_scopes if scope and scope.strip()]
+        # リクエストされたスコープを正規化
+        normalized_scopes = [
+            scope.strip() for scope in requested_scopes if scope and scope.strip()
+        ]
         if not normalized_scopes:
             return {}
 
+        # データベース内に存在する有効なスコープのみ抽出
         valid_scope_names = {
             row.scope_name
             for row in db.query(OidcScope)
@@ -243,13 +308,14 @@ class OidcClaimService:
         if not valid_scope_names:
             return {}
 
+        # 該当するスコープに紐付いているすべてのマッピング定義を取得
         mappings = (
             db.query(OidcClaimMapping)
             .filter(OidcClaimMapping.scope.in_(valid_scope_names))
             .all()
         )
 
-        # UserOptionの暗号化・復号詳細はUserOptionServiceに集約する。
+        # 値の取得元が「ユーザー属性」の場合、そのキーを抽出して一括取得する
         requested_user_option_keys = sorted(
             {
                 mapping.value_key
@@ -260,6 +326,7 @@ class OidcClaimService:
                 )
             }
         )
+        # UserOptionService経由で復号済みの値を一括取得
         user_option_values = UserOptionService.get_user_option_values_by_keys(
             db=db,
             user_id=user_id,
@@ -269,33 +336,35 @@ class OidcClaimService:
         resolved_claims = {}
 
         for mapping in mappings:
-            if mapping.value_source == ValueSourceType.STATIC.value:
-                # 固定値の場合
+            if mapping.value_source == Value_SOURCE_TYPE.STATIC.value:
+                # 固定値の設定（例：システムの共通URLなど）
                 resolved_claims[mapping.claim_name] = mapping.static_value or ""
 
             elif mapping.value_source == ValueSourceType.USERPROFILE.value:
-                # userフィールドから取得するロジック
-                # 基本情報を返すようにしているから不要かな？
+                # プロフィール情報から取得するロジック（必要に応じて拡張）
                 pass
 
             elif (
                 mapping.value_source == ValueSourceType.USER_ATTRIBUTE.value
                 and mapping.value_key
             ):
-                # ユーザー属性はサービスから復号済み値を取得する。
+                # ユーザー設定やカスタム属性から復号済みの値を取得
                 resolved_claims[mapping.claim_name] = user_option_values.get(
                     mapping.value_key
                 )
 
+        # Noneの値を排除して結果を返す
         return {k: v for k, v in resolved_claims.items() if v is not None}
 
 
 class OidcClientService:
-    """OIDCクライアント管理と認可時検証を担当するサービス。"""
+    """OidcClientモデルの管理、および認可フローにおけるクライアント情報の検証を担当するサービス。"""
 
     @staticmethod
     def _mask_secret(secret: str) -> str:
-        """client_secret の表示用マスクを生成する。"""
+        """
+        秘密鍵を画面表示用にマスクする（末尾数文字のみ公開）。
+        """
         if not secret:
             return ""
         visible = 4
@@ -305,17 +374,23 @@ class OidcClientService:
 
     @staticmethod
     def _format_datetime(value: Optional[datetime]) -> Optional[str]:
-        """datetime を ISO8601 文字列へ変換する。"""
+        """
+        DateTime型をISO8601形式の文字列に変換する。
+        """
         return value.isoformat() if value else None
 
     @staticmethod
     def get_all_scopes(db: Session) -> list[OidcScope]:
-        """定義済みOIDCスコープを一覧取得する。"""
+        """
+        定義されている全スコープを一覧取得する。
+        """
         return db.query(OidcScope).order_by(OidcScope.scope_name.asc()).all()
 
     @staticmethod
     def get_scopes_by_client_id(db: Session, client_id: str) -> list[str]:
-        """指定クライアントに許可されたスコープ一覧を返す。"""
+        """
+        特定のクライアントIDに紐付いているスコープ名のリストを取得する。
+        """
         rows = (
             db.query(OidcClientScope)
             .filter(OidcClientScope.client_id == client_id)
@@ -326,18 +401,28 @@ class OidcClientService:
 
     @staticmethod
     def get_client_by_client_id(db: Session, client_id: str) -> Optional[OidcClient]:
-        """client_id でOIDCクライアントを取得する。"""
+        """
+        クライアントIDからOidcClientエンティティを取得する。
+        """
         return db.query(OidcClient).filter(OidcClient.client_id == client_id).first()
 
     @staticmethod
     def _validate_scope_names(db: Session, scope_names: list[str]) -> list[str]:
-        """リクエストされたスコープ名が存在するか検証する。"""
+        """
+        リクエストに含まれるスコープ名がシステムに存在するか検証する。
+        """
         return OidcScopeService.validate_scope_names_exist(db, scope_names)
 
     @staticmethod
-    def _replace_client_scopes(db: Session, client_id: str, scope_names: list[str]) -> None:
-        """クライアントに割り当てるスコープを全置換する。"""
-        db.query(OidcClientScope).filter(OidcClientScope.client_id == client_id).delete()
+    def _replace_client_scopes(
+        db: Session, client_id: str, scope_names: list[str]
+    ) -> None:
+        """
+        クライアントに紐付けられた既存のスコープ設定を全削除し、新しいリストで再登録する。
+        """
+        db.query(OidcClientScope).filter(
+            OidcClientScope.client_id == client_id
+        ).delete()
         for scope_name in scope_names:
             db.add(OidcClientScope(client_id=client_id, scope_name=scope_name))
 
@@ -347,8 +432,12 @@ class OidcClientService:
         client: OidcClient,
         include_plain_secret: Optional[str] = None,
     ) -> dict:
-        """APIレスポンス用の辞書へ整形する。"""
+        """
+        APIレスポンス用にOidcClientのデータを辞書形式に変換する。
+        必要に応じて生のシークレットを含めることができる。
+        """
         try:
+            # 暗号化されたシークレットを復号
             plain_secret = decrypt_value(client.client_secret)
         except Exception:
             plain_secret = ""
@@ -360,7 +449,9 @@ class OidcClientService:
             "client_secret_masked": OidcClientService._mask_secret(plain_secret),
             "description": client.description,
             "allowed_redirect_uris": client.allowed_redirect_uris,
-            "scope_names": OidcClientService.get_scopes_by_client_id(db, client.client_id),
+            "scope_names": OidcClientService.get_scopes_by_client_id(
+                db, client.client_id
+            ),
             "is_active": client.is_active,
             "created_at": OidcClientService._format_datetime(client.created_at),
             "updated_at": OidcClientService._format_datetime(client.updated_at),
@@ -375,7 +466,10 @@ class OidcClientService:
     def list_clients(db: Session) -> list[dict]:
         """管理画面向けにOIDCクライアント一覧を取得する。"""
         clients = db.query(OidcClient).order_by(OidcClient.created_at.desc()).all()
-        return [OidcClientService.to_response_dict(db=db, client=client) for client in clients]
+        return [
+            OidcClientService.to_response_dict(db=db, client=client)
+            for client in clients
+        ]
 
     @staticmethod
     def create_client(db: Session, data: OidcClientCreate) -> tuple[OidcClient, str]:
@@ -405,7 +499,9 @@ class OidcClientService:
         return client, plain_secret
 
     @staticmethod
-    def update_client(db: Session, client_id: str, data: OidcClientUpdate) -> OidcClient:
+    def update_client(
+        db: Session, client_id: str, data: OidcClientUpdate
+    ) -> OidcClient:
         """OIDCクライアントを更新する。"""
         client = OidcClientService.get_client_by_client_id(db, client_id)
         if not client:
@@ -429,6 +525,7 @@ class OidcClientService:
         """クライアントシークレットを再発行する。"""
         client = OidcClientService.get_client_by_client_id(db, client_id)
         if not client:
+            logger.debug("Client %s is not found", client_id)
             raise ValueError("client not found")
 
         plain_secret = secrets.token_urlsafe(32)
@@ -442,6 +539,7 @@ class OidcClientService:
         """クライアントの有効/無効を切り替える。"""
         client = OidcClientService.get_client_by_client_id(db, client_id)
         if not client:
+            logger.debug("Client %s is not found", client_id)
             raise ValueError("client not found")
         client.is_active = is_active
         db.commit()
@@ -458,10 +556,10 @@ class OidcClientService:
         """/authorize で必要なクライアント検証を行う。"""
         client = OidcClientService.get_client_by_client_id(db, client_id)
         if not client:
-            logger.info("Client %s is not found", client_id)
+            logger.debug("Client %s is not found", client_id)
             raise ValueError("invalid_client")
         if not client.is_active:
-            logger.info("Client %s is inactive", client_id)
+            logger.debug("Client %s is inactive", client_id)
             raise ValueError("invalid_client")
 
         if redirect_uri not in (client.allowed_redirect_uris or []):
@@ -485,14 +583,15 @@ class OidcClientService:
     ) -> OidcClient:
         """/token の client_id/client_secret を検証する。"""
         if not client_id or not client_secret:
+            logger.debug("Client ID or secret is missing")
             raise ValueError("invalid_client")
 
         client = OidcClientService.get_client_by_client_id(db, client_id)
         if not client:
-            logger.info("Client %s is not found", client_id)
+            logger.debug("Client %s is not found", client_id)
             raise ValueError("invalid_client")
         if not client.is_active:
-            logger.info("Client %s is inactive", client_id)
+            logger.debug("Client %s is inactive", client_id)
             raise ValueError("invalid_client")
 
         try:
@@ -500,7 +599,9 @@ class OidcClientService:
         except Exception as exc:
             raise ValueError("invalid_client") from exc
 
+        # Compare the provided client_secret with the decrypted one
         if not secrets.compare_digest(decrypted_secret, client_secret):
+            logger.debug("Client %s provided an invalid secret", client_id)
             raise ValueError("invalid_client")
 
         return client

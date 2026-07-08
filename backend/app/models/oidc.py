@@ -56,7 +56,9 @@ class OidcClaimMapping(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     scope = Column(
-        String(255), ForeignKey("oidc_scopes.scope_name", ondelete="CASCADE"), nullable=False
+        String(255),
+        ForeignKey("oidc_scopes.scope_name", ondelete="CASCADE"),
+        nullable=False,
     )  # 例: "imap"
     claim_name = Column(String(255), nullable=False)  # 例: "imap_server"
     value_source = Column(

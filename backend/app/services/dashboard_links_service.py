@@ -1,10 +1,15 @@
+"""
+DashboardLinkServiceモジュールは、ダッシュボードのリンク情報を管理するためのサービスクラスを提供します。
+このサービスは、CRUD操作（作成、読み取り、更新、削除）およびデータの取得ロジックを提供し、
+データベースとのやり取りを抽象化します。
+"""
+
 from typing import List, Optional
 from uuid import UUID
 
 from app.core.config import logger
 from app.models.dashboard_links import DashboardLink
 from sqlalchemy import desc
-from sqlalchemy.dialects.postgresql import UUID as SQLUUID  # 名前衝突を避けるためのエイリアス
 from sqlalchemy.orm import Session
 
 
@@ -92,6 +97,7 @@ class DashboardLinkService:
         try:
             link = db.query(DashboardLink).filter(DashboardLink.id == link_id).first()
             if not link:
+                logger.debug("Dashboard link not found for link_id=%s", link_id)
                 return None
 
             link.title = title
@@ -117,6 +123,7 @@ class DashboardLinkService:
         try:
             link = db.query(DashboardLink).filter(DashboardLink.id == link_id).first()
             if not link:
+                logger.debug("Dashboard link not found for link_id=%s", link_id)
                 return False
 
             db.delete(link)

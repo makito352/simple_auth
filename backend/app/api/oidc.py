@@ -1,3 +1,9 @@
+"""
+OIDC関連のリソースを管理するためのAPIエンドポイント。
+このモジュールは、OIDCクライアント、スコープ、およびクレームマッピングの
+作成、更新、削除、および取得の処理を提供します。
+"""
+
 from app.db.session import get_db
 from app.schemas.oidc import (
     ClaimMappingCreate,
@@ -23,9 +29,14 @@ router = APIRouter(prefix="/admin_oidc", tags=["OIDC Management"])
 
 
 def _get_mapping_or_400(db: Session, mapping_id: str):
+    """
+    指定されたIDのマッピングを取得する。
+    見つからない場合や無効な場合は適切なHTTP例外をスローする。
+    """
     try:
         mapping = OidcClaimService.get_claim_mapping_by_id(db, mapping_id)
     except ValueError as exc:
+        # サービス層からのバリデーションエラーを400に変換
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if not mapping:
@@ -35,6 +46,9 @@ def _get_mapping_or_400(db: Session, mapping_id: str):
 
 
 def _handle_client_service_error(exc: ValueError) -> None:
+    """
+    OidcClientServiceからのエラーを適切なHTTPステータスコードに変換する。
+    """
     message = str(exc)
     if message in {"invalid_client", "client not found"}:
         raise HTTPException(status_code=404, detail=message) from exc
@@ -42,6 +56,9 @@ def _handle_client_service_error(exc: ValueError) -> None:
 
 
 def _handle_scope_service_error(exc: ValueError) -> None:
+    """
+    OidcScopeServiceからのエラーを適切なHTTPステータスコードに変換する。
+    """
     message = str(exc)
     if message == "scope not found":
         raise HTTPException(status_code=404, detail=message) from exc
@@ -52,20 +69,20 @@ def _handle_scope_service_error(exc: ValueError) -> None:
 
 @router.get("/mappings", response_model=list[ClaimMappingResponse])
 def list_claim_mappings(db: Session = Depends(get_db)):
-    """すべてのマッピングルールを取得する"""
+    """すべてのマッピングを取得する。"""
     mappings = OidcClaimService.get_all_claim_mappings(db)
     return mappings
 
 
 @router.get("/mappings/{mapping_id}", response_model=ClaimMappingResponse)
 def get_claim_mapping(mapping_id: str, db: Session = Depends(get_db)):
-    """特定のIDのマッピングを取得する"""
+    """特定のIDのマッピングを取得する。"""
     return _get_mapping_or_400(db, mapping_id)
 
 
 @router.post("/mappings", response_model=ClaimMappingResponse)
 def create_claim_mapping(data: ClaimMappingCreate, db: Session = Depends(get_db)):
-    """新しいマッピングルールを作成する"""
+    """新しいマッピングを作成する。"""
     try:
         new_mapping = OidcClaimService.create_claim_mapping(db, data=data)
     except ValueError as exc:
@@ -77,7 +94,7 @@ def create_claim_mapping(data: ClaimMappingCreate, db: Session = Depends(get_db)
 def update_claim_mapping(
     mapping_id: str, data: ClaimMappingCreate, db: Session = Depends(get_db)
 ):
-    """既存のマッピングを更新する"""
+    """既存のマッピングを更新する。"""
     try:
         return OidcClaimService.update_claim_mapping(db, mapping_id, data)
     except ValueError as exc:
@@ -89,7 +106,7 @@ def update_claim_mapping(
 
 @router.delete("/mappings/{mapping_id}", status_code=204)
 def delete_claim_mapping(mapping_id: str, db: Session = Depends(get_db)):
-    """マッピングを削除する"""
+    """マッピングを削除する。"""
     mapping = _get_mapping_or_400(db, mapping_id)
 
     db.delete(mapping)
@@ -180,7 +197,9 @@ def update_oidc_client(
     return OidcClientService.to_response_dict(db=db, client=client)
 
 
-@router.post("/clients/{client_id}/rotate-secret", response_model=OidcClientSecretResponse)
+@router.post(
+    "/clients/{client_id}/rotate-secret", response_model=OidcClientSecretResponse
+)
 def rotate_oidc_client_secret(client_id: str, db: Session = Depends(get_db)):
     """OIDCクライアントのシークレットを再発行する。"""
     try:

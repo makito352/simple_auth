@@ -1,3 +1,7 @@
+"""
+UserService: ユーザーの作成・取得・更新・削除を行うサービスクラス
+"""
+
 from datetime import datetime, timedelta, timezone
 
 from app.core.config import logger, settings
@@ -18,10 +22,14 @@ class UserService:
 
         if existing_user:
             if existing_user.email_verification_status in ["pending", "verified"]:
-                logger.error(f"User with email {email} is already pending or verified.")
+                # 既に存在する場合はエラーを返す
+                logger.error(
+                    "User with email %s is already pending or verified.", email
+                )
                 raise ValueError("Email already exists and is pending or verified.")
 
             elif existing_user.email_verification_status in ["expired", "disabled"]:
+                # 既存ユーザーのステータスが expired または disabled の場合、再度 pending に更新する
                 existing_user.email_verification_status = "pending"
                 existing_user.email_verified_at = None
                 existing_user.email_verification_expires_at = datetime.now(
@@ -56,7 +64,9 @@ class UserService:
             user = UserService.create_user(db, email=admin_email, role="admin")
             link = OneTimeLinkService.create_link(db, user.id)
             logger.info(
-                f"Created initial admin user with email: {admin_email}, onetime link:{link.url}"
+                "Created initial admin user with email: %s, onetime link: %s",
+                admin_email,
+                link.url,
             )
             return user
         return db.query(User).filter(User.email == admin_email).first()
@@ -82,16 +92,19 @@ class UserService:
             link = OneTimeLinkService.get_link_by_user_id(db, user.id)
             if link is None:
                 logger.warning(
-                    f"Warning: No active OneTimeLink found for user {user.email} (ID: {user.id})"
+                    "Warning: No active OneTimeLink found for user %s (ID: %s)",
+                    user.email,
+                    user.id,
                 )
             else:
-                logger.info(f"Admin user setup complete. Status: pending.")
+                logger.info("Admin user setup complete. Status: pending.")
                 logger.info(
-                    f"Please use the following link to verify the admin account: {link.url}"
+                    "Please use the following link to verify the admin account: %s",
+                    link.url,
                 )
         else:
             logger.debug(
-                f"Admin user setup complete. Status: {user.email_verification_status}"
+                "Admin user setup complete. Status: %s", user.email_verification_status
             )
 
     @staticmethod
@@ -113,10 +126,10 @@ class UserService:
             if user.email_verification_expires_at > datetime.now(timezone.utc):
                 return user
             else:
-                logger.error(f"User with email {user.email} has expired verification.")
+                logger.error("User with email %s has expired verification.", user.email)
                 raise ValueError("Email verification has expired.")
         elif user.email_verification_status in ["expired", "disabled"]:
-            logger.error(f"User with email {user.email} is disabled or expired.")
+            logger.error("User with email %s is disabled or expired.", user.email)
             raise ValueError("User is disabled or expired.")
 
     @staticmethod
@@ -145,10 +158,10 @@ class UserService:
             if user.email_verification_expires_at > datetime.now(timezone.utc):
                 return user
             else:
-                logger.error(f"User with email {user.email} has expired verification.")
+                logger.error("User with email %s has expired verification.", user.email)
                 return None
         elif user.email_verification_status in ["expired", "disabled"]:
-            logger.error(f"User with email {user.email} is disabled or expired.")
+            logger.error("User with email %s is disabled or expired.", user.email)
             return None
 
     @staticmethod

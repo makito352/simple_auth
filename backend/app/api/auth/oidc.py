@@ -97,7 +97,11 @@ def authorize(
         )
     except ValueError as exc:
         # ここでエラーの前に、比較対象をログに出すと原因がすぐわかります
-        logger.debug("Validation failed for client %s with redirect_uri %s", client_id, redirect_uri)
+        logger.debug(
+            "Validation failed for client %s with redirect_uri %s",
+            client_id,
+            redirect_uri,
+        )
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # SimpleAuth のセッションからユーザーを特定
@@ -155,11 +159,14 @@ async def token(
     client_secret = form.get("client_secret")
 
     if grant_type != "authorization_code":
+        logger.debug("Unsupported grant_type: %s", grant_type)
         raise HTTPException(status_code=400, detail="unsupported_grant_type")
 
     try:
+        # OIDC クライアントの client_id と client_secret を検証
         OidcClientService.validate_token_client(db, client_id, client_secret)
     except ValueError as exc:
+        logger.debug("Client validation failed for client_id %s", client_id)
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
     auth_code = (
@@ -168,13 +175,20 @@ async def token(
         .first()
     )
     if not auth_code:
+        logger.debug("Authorization code not found or does not match client_id")
         raise HTTPException(status_code=400, detail="invalid_grant")
 
     if auth_code.redirect_uri != redirect_uri:
+        logger.debug(
+            "Redirect URI mismatch: expected %s, got %s",
+            auth_code.redirect_uri,
+            redirect_uri,
+        )
         raise HTTPException(status_code=400, detail="invalid_grant")
 
     user = UserService.read_user(db=db, user_id=auth_code.user_id)
     if not user:
+        logger.debug("User %s not found", auth_code.user_id)
         raise HTTPException(status_code=400, detail="invalid_grant")
 
     # スコープ

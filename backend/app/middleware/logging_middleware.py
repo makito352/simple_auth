@@ -1,12 +1,13 @@
 """
 リクエストの処理過程をログに記録するためのミドルウェア。
 """
+
 from time import perf_counter
 
 from app.core.config import logger
 from app.utils.request_utils import resolve_client_ip, resolve_request_user_id
-
 from fastapi import Request
+
 
 async def access_log_middleware(request: Request, call_next):
     """

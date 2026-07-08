@@ -1,4 +1,8 @@
-# backend/app/core/config.py
+"""
+アプリケーションの設定を管理するモジュール。
+このモジュールでは、環境変数や設定ファイルから設定値を読み込み、アプリケーション全体で使用できるようにします。
+"""
+
 import logging
 
 from pydantic import AnyHttpUrl
@@ -8,9 +12,9 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # データベース接続情報
     DATABASE_USER: str = "simpleauth"
-    DATABASE_NAME: str ="simpleauth"
-    DATABASE_PASSWORD:str = "simpleauth"
-    DATABASE_DB_HOST:str = "db"
+    DATABASE_NAME: str = "simpleauth"
+    DATABASE_PASSWORD: str = "simpleauth"
+    DATABASE_DB_HOST: str = "db"
     # JWT 認証用のシークレットキー
     SECRET_KEY: str = "change-me"
     # OTPの有効期限（分）
@@ -34,7 +38,7 @@ class Settings(BaseSettings):
     # ファイルパスの設定（初期値として定義）
     OIDC_JWT_PRIVATE_KEY_PATH: str = "/app/keys/oidc_private.pem"
     OIDC_JWT_PUBLIC_KEY_PATH: str = "/app/keys/oidc_public.pem"
-    
+
     # ファイルから読み込んだ中身を格納するフィールド（初期値を空文字にする）
     OIDC_JWT_PRIVATE_KEY: str = ""
     OIDC_JWT_PUBLIC_KEY: str = ""

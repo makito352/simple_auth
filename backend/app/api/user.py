@@ -1,4 +1,8 @@
-# backend/app/api/user.py
+"""
+ユーザー関連のAPIエンドポイントを提供するモジュール。
+このモジュールでは、ユーザーの作成、取得、更新、削除の処理を行います。
+"""
+
 from uuid import UUID
 
 from app.core.config import logger

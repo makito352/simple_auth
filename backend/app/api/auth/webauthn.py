@@ -1,27 +1,43 @@
+"""
+WebAuthn認証用APIエンドポイント。
+
+このモジュールは、FIDO2/WebAuthnプロトコルに基づいたパスキーの登録およびログイン処理を提供します。
+具体的には以下の機能を含みます：
+- 新規デバイスの登録（オプションの発行と検証）
+- 既存デバイスによるログイン（Discoverable Credentialsを含む）
+- セッション管理との連携
+
+エンドポイントは、フロントエンドからのリクエストを受け取り、WebAuthnライブラリを用いて認証処理を行います。
+"""
+
 import json
 
 from app.core.config import logger, settings
 from app.db.session import get_db
 from app.services.auth_options_service import AuthOptionsService
-from app.services.registration_session_service import (get_challenge,
-                                                       save_challenge,
-                                                       validate_token)
+from app.services.registration_session_service import (
+    get_challenge,
+    save_challenge,
+    validate_token,
+)
 from app.services.session_service import SessionService
 from app.services.user_service import UserService
 from app.services.webauthn_service import WebAuthnService
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
-from uuid import UUID
-from webauthn import (generate_authentication_options,
-                      generate_registration_options,
-                      verify_authentication_response,
-                      verify_registration_response)
-from webauthn.helpers import (base64url_to_bytes, bytes_to_base64url,
-                              options_to_json)
+from webauthn import (
+    generate_authentication_options,
+    generate_registration_options,
+    verify_authentication_response,
+    verify_registration_response,
+)
+from webauthn.helpers import base64url_to_bytes, bytes_to_base64url, options_to_json
 from webauthn.helpers.exceptions import InvalidRegistrationResponse
-from webauthn.helpers.structs import (AuthenticatorSelectionCriteria,
-                                      ResidentKeyRequirement,
-                                      UserVerificationRequirement)
+from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
+    ResidentKeyRequirement,
+    UserVerificationRequirement,
+)
 
 router = APIRouter(prefix="/webauthn", tags=["webauthn"])
 
@@ -78,7 +94,9 @@ async def options_device_register_verify():
 
 
 @router.post("/devices/register/verify")
-def device_register_verify(payload: dict, request: Request, db: Session = Depends(get_db)):
+def device_register_verify(
+    payload: dict, request: Request, db: Session = Depends(get_db)
+):
     """
     追加デバイス登録専用の検証API。
     ユーザーステータスは更新しない。
@@ -98,13 +116,19 @@ def issue_registration_options(request: Request, db: Session):
     """
     session_token = request.cookies.get("session_token")
     if not session_token:
+        logger.error("Session token missing in request cookies")
         raise HTTPException(status_code=400, detail="Session token missing")
 
     user_id = validate_token(db, session_token)
     if not user_id:
+        logger.error("Invalid or expired session token")
         raise HTTPException(status_code=400, detail="Invalid or expired session")
 
     user = UserService.read_user(db=db, user_id=user_id)
+    if not user:
+        # ここでユーザーが見つからない場合は、セッションが不正である可能性が高い
+        logger.error("User not found for user_id=%s", user_id)
+        raise HTTPException(status_code=404, detail="User not found")
     options = generate_registration_options(
         rp_id=settings.WEB_AUTHN_RP_ID,
         rp_name=settings.WEB_AUTHN_RP_NAME,
@@ -115,7 +139,7 @@ def issue_registration_options(request: Request, db: Session):
             user_verification=UserVerificationRequirement.PREFERRED,
         ),
     )
-
+    # challenge を session_token と紐付けて保存
     save_challenge(db, session_token, options.challenge)
     return json.loads(options_to_json(options))
 
@@ -128,18 +152,23 @@ def verify_registration_and_store(
 ):
     """
     WebAuthn登録レスポンスを検証し、資格情報を保存する共通処理。
+    update_user_verification が True の場合、ユーザーのメール検証ステータスを更新する。
     """
     session_token = request.cookies.get("session_token")
     if not session_token:
+        logger.error("Session token missing in request cookies")
         raise HTTPException(status_code=400, detail="Session token missing")
 
     user_id = validate_token(db, session_token)
     if not user_id:
+        logger.error("Invalid or expired session token")
         raise HTTPException(status_code=400, detail="Invalid or expired session")
 
     challenge_data = get_challenge(db, session_token)
     device_name = payload.get("device_name")
-    credential_payload = {key: value for key, value in payload.items() if key != "device_name"}
+    credential_payload = {
+        key: value for key, value in payload.items() if key != "device_name"
+    }
 
     try:
         verification = verify_registration_response(
@@ -154,11 +183,15 @@ def verify_registration_and_store(
 
     cred_id_to_save = verification.credential_id
     if isinstance(cred_id_to_save, bytes):
+        # credential_id を base64url 形式に変換して保存する
         cred_id_to_save = bytes_to_base64url(cred_id_to_save)
 
     if update_user_verification:
+        # 新規登録時にユーザーのメール検証ステータスを更新する場合
+        # ユーザーのメール検証ステータスを更新する
         UserService.update_user_email_verification(db, user_id)
 
+    # WebAuthn資格情報をデータベースに保存する
     WebAuthnService.register_credential(
         db=db,
         user_id=user_id,
@@ -181,13 +214,15 @@ async def options_login_options():
 
 @router.post("/login/options")
 def login_options(request: Request, db: Session = Depends(get_db)):
+    # ログイン用のWebAuthn認証オプションを発行する。
     options = generate_authentication_options(
         rp_id=settings.WEB_AUTHN_RP_ID,
-        allow_credentials=[],  # ★ 空にする（Discoverable Credential）
+        allow_credentials=[],
         user_verification=UserVerificationRequirement.PREFERRED,
     )
 
     # challenge を session_token と紐付けて保存
+    #  ※ ここでは、セッションを新規に作成するため、既存のセッションがあっても無視して新しいトークンを発行する。
     session_token = SessionService.get_or_create_temp_token()
     AuthOptionsService.save_auth_challenge(
         db=db,
@@ -224,6 +259,9 @@ def login_verify(payload: dict, response: Response, db: Session = Depends(get_db
         db=db,
         session_token=session_token,
     )
+    if not challenge:
+        logger.debug("No challenge found for session_token=%s", session_token)
+        raise HTTPException(400, "No challenge found for the provided session token")
 
     # 3. 検証
     verification = verify_authentication_response(
@@ -255,6 +293,7 @@ def login_verify(payload: dict, response: Response, db: Session = Depends(get_db
 
     return {"ok": True, "user_id": str(user_id)}
 
+
 @router.post("/logout")
 def logout(response: Response):
     """
@@ -262,4 +301,3 @@ def logout(response: Response):
     """
     response.delete_cookie("simpleauth_session")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-

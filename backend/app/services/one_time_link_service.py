@@ -1,3 +1,8 @@
+"""
+ワンタイムリンクの生成と検証を行うサービスモジュール。
+"""
+
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -49,21 +54,19 @@ class OneTimeLinkService:
         """
         # 本来は security ライブラリ等を用いてランダムな文字列を生成すべきですが、
         # ここでは簡略化のためuuidの文字列などを利用する想定です。
-        import secrets
-
         token = f"tok_{secrets.token_urlsafe(32)}"
 
-        expires_at = datetime.now().replace(
-            tzinfo=None
-        )  # タイムゾーン処理はモデル側かConfigで調整
-        # もしDBがタイムゾーンを要求する場合は、ここで適切なTimezone付与を行う
-        # 以下は単純な例です。実際の実装ではdatetime.now(timezone.utc)などを使用します。
+        expires_at = datetime.now().replace(tzinfo=None)
+
+        # 期限を設定
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_in_minutes)
 
+        # 新しいOneTimeLinkを作成
         new_link = OneTimeLink(
             user_id=user_id, token=token, type=link_type, expires_at=expires_at
         )
 
+        # データベースに保存
         db.add(new_link)
         db.commit()
         db.refresh(new_link)
@@ -102,6 +105,7 @@ class OneTimeLinkService:
         # 紐付いているユーザーを取得して返す
         user = db.query(User).filter(User.id == link.user_id).first()
         if not user:
+            logger.error(f"User associated with OneTimeLink token {token} not found.")
             raise ValueError("User associated with this link no longer exists.")
 
         return user
@@ -118,6 +122,7 @@ class OneTimeLinkService:
             or link.used_at is not None
             or link.expires_at < datetime.now(timezone.utc)
         ):
+            logger.debug(f"Token {token} is invalid, used, or expired.")
             return None
 
         user = db.query(User).filter(User.id == link.user_id).first()
@@ -144,6 +149,9 @@ class OneTimeLinkService:
         )
 
         if not link:
+            logger.debug(
+                f"No valid OneTimeLink found for user_id {user_id} and type {link_type}."
+            )
             return None
 
         return OneTimeLinkService._build_response(db, link)

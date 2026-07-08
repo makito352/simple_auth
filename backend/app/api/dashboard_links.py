@@ -14,8 +14,7 @@ from app.db.session import get_db
 from app.schemas.dashboard_link import DashboardLinkCreate, DashboardLinkRead
 from app.services.dashboard_links_service import DashboardLinkService
 from app.utils.static_utils import ICON_URL_PREFIX, get_static_icons_dir
-from fastapi import (APIRouter, Depends, File, Form, HTTPException, UploadFile,
-                     status)
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
 
@@ -166,17 +165,22 @@ def update_link(
     db: Session = Depends(get_db),
 ):
     """既存のダッシュボードリンクを更新する。"""
+    icon_path = None
 
     # 対象リンクが存在するか確認する
     existing_link = DashboardLinkService.get_by_id(db, link_id)
     if not existing_link:
+        logger.debug("Dashboard link not found for link_id=%s", link_id)
         raise HTTPException(status_code=404, detail="Dashboard link not found")
 
-    icon_path = None
+    # ファイルがアップロードされている場合は、既存のアイコンを削除して新しいアイコンを保存する
     if file:
+        # 既存のアイコンがあれば削除する
         delete_icon_file(existing_link.icon_path)
+        # 新しいアイコンを保存する
         icon_path = save_icon_file(file)
 
+    # 更新処理を実行する
     updated_link = DashboardLinkService.update(
         db,
         link_id,
@@ -186,6 +190,7 @@ def update_link(
         icon_path=icon_path,
     )
     if not updated_link:
+        logger.debug("Dashboard link not found for link_id=%s", link_id)
         raise HTTPException(status_code=404, detail="Dashboard link not found")
 
     return serialize_dashboard_link(updated_link)
@@ -197,6 +202,7 @@ def get_link(link_id: UUID, db: Session = Depends(get_db)):
 
     link = DashboardLinkService.get_by_id(db, link_id)
     if not link:
+        logger.debug("Dashboard link not found for link_id=%s", link_id)
         raise HTTPException(status_code=404, detail="Dashboard link not found")
     return serialize_dashboard_link(link)
 
@@ -207,5 +213,6 @@ def delete_link(link_id: UUID, db: Session = Depends(get_db)):
 
     success = DashboardLinkService.delete(db, link_id)
     if not success:
+        logger.debug("Dashboard link not found for link_id=%s", link_id)
         raise HTTPException(status_code=404, detail="Dashboard link not found")
     return None

@@ -1,10 +1,19 @@
+"""
+UserOptionService: ユーザーオプションの取得・更新・削除を行うサービスクラス
+"""
+
 from uuid import UUID
 
+from app.core.config import logger
 from app.models.user_option import UserOption, UserOptionAttribute
-from app.schemas.user_option import OptionAttributeOut, UserOptionOut, UserOptionBulkUpdate
+from app.schemas.user_option import (
+    OptionAttributeOut,
+    UserOptionBulkUpdate,
+    UserOptionOut,
+)
 from app.utils.crypto import decrypt_value, encrypt_value
 from sqlalchemy.orm import Session
-from app.core.config import logger
+
 
 class UserOptionService:
     @staticmethod
@@ -58,9 +67,11 @@ class UserOptionService:
 
     @staticmethod
     def create_attribute(db: Session, attrs: dict) -> UserOptionAttribute:
+        """新しい属性情報を作成する"""
         new_attr = UserOptionAttribute(**attrs)
         db.add(new_attr)
         db.commit()
+        db.refresh(new_attr)
         return new_attr
 
     @staticmethod
@@ -72,7 +83,8 @@ class UserOptionService:
             .first()
         )
         if not attr:
-            # 存在しない場合はNoneを返すか、例外を投げる（API側でハンドリングするため）
+            # 存在しない場合はNoneを返す
+            logger.debug("Attribute with ID %s not found for update.", attr_id)
             return None
 
         for key, value in data.items():
@@ -85,6 +97,7 @@ class UserOptionService:
 
     @staticmethod
     def delete_attribute(db: Session, attr_id: UUID):
+        """特定の属性情報を削除する"""
         attr = (
             db.query(UserOptionAttribute)
             .filter(UserOptionAttribute.id == attr_id)
@@ -93,6 +106,8 @@ class UserOptionService:
         if attr:
             db.delete(attr)
             db.commit()
+        else:
+            logger.debug("Attribute with ID %s not found for deletion.", attr_id)
 
     @staticmethod
     def get_user_options(db: Session, user_id: UUID) -> list[UserOptionOut]:
@@ -128,16 +143,21 @@ class UserOptionService:
         【Bulk Update】
         マスタの encrypted フラグを確認し、True の場合は暗号化処理を施してから保存します。
         """
-        logger.debug("Bulk updating user options for user_id=%s optionslen=%d options=%s", user_id, len(options), options)    
+        logger.debug(
+            "Bulk updating user options for user_id=%s optionslen=%d options=%s",
+            user_id,
+            len(options),
+            options,
+        )
 
         # 効率のためマスタ情報を一括取得して辞書化
         attributes_map = {
             attr.key: attr for attr in db.query(UserOptionAttribute).all()
         }
 
-        processed_items  = []
+        processed_items = []
         for item in options:
-            key =  item.key
+            key = item.key
             raw_value = item.value  # ユーザーから送られてくる生のデータ
 
             # マスタ情報の取得
@@ -161,7 +181,7 @@ class UserOptionService:
                     # 暗号化せずに格納
                     existing.value = raw_value
                     existing.encrypted_value = None  # 暗号文をクリア
-                processed_items .append(existing)
+                processed_items.append(existing)
             else:
                 # 新規作成する場合
                 if is_encrypted:
@@ -173,13 +193,9 @@ class UserOptionService:
                     )
                 else:
                     # 暗号化せずに格納
-                    new_opt = UserOption(
-                        user_id=user_id, 
-                        key=key, 
-                        value=raw_value
-                    )
+                    new_opt = UserOption(user_id=user_id, key=key, value=raw_value)
                 db.add(new_opt)
-                processed_items .append(new_opt)
+                processed_items.append(new_opt)
 
         db.commit()
         # レスポンス用に UserOptionOut に変換
@@ -193,5 +209,7 @@ class UserOptionService:
             results.append(UserOptionOut(key=opt.key, value=final_value))
 
         # 更新後のアイテムを返す
-        logger.debug("Successfully updated/created items for user_id=%s: %s", user_id, results)
+        logger.debug(
+            "Successfully updated/created items for user_id=%s: %s", user_id, results
+        )
         return results

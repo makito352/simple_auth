@@ -2,9 +2,11 @@
 リクエストに関連する情報の解決を行うユーティリティモジュール。
 プロキシ経由のIPアドレスの取得や、セッション情報からのユーザーID取得などを処理します。
 """
+
 from app.db.session import SessionLocal
 from app.services.session_service import SessionService
 from fastapi import Request
+
 
 def resolve_client_ip(request: Request) -> str:
     """
