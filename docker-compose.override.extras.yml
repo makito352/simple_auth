@@ -11,6 +11,9 @@ services:
   # (nginxを介してRoundcubeとPhotoPrismを公開設定を追加)
   # ============================
   nginx:
+    volumes:
+      - ./infra/nginx/conf.d/photoprism.conf.base:/etc/nginx/conf.d/photoprism.conf.base:ro
+      - ./infra/nginx/conf.d/roundcube.conf.base:/etc/nginx/conf.d/roundcube.conf.base:ro
     depends_on:
       - photoprism
       - roundcubemail

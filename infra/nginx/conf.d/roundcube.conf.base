@@ -1,0 +1,27 @@
+# Roundcube (SSOのターゲット メールソフト)のアップストリーム
+upstream roundcube{
+     server roundcubemail:80;
+}
+
+# Roundcube 専用のポート（SSL） (SSOのターゲット メールソフト)
+server {
+    listen 9443 ssl;
+
+    ssl_certificate ${SSL_CERTIFICATE_PATH};
+    ssl_certificate_key ${SSL_CERTIFICATE_KEY_PATH};
+
+    # ============================
+    # roundcube (SSOのターゲット メールソフト)
+    # ============================
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+
+        # 末尾の / を指定することで、パスを置換して転送
+        proxy_pass http://roundcube/;
+    }
+}

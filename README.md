@@ -75,6 +75,7 @@ docker compose -f docker-compose.yml -f docker-compose.override.extras.yml down
    ./backend/scripts/setup_env.sh
    ```
 3. **SSL証明書の設定**: `infra/nginx/ssl/` 内に証明書を配置し、`.env` のパスを更新してください。
+※証明書の取得方法（Let's Encrypt等）は任意ですが、WebAuthnの仕様上、HTTPS接続が必須となります。
 ### 2. 管理者登録
 1. コンテナ起動後、以下のコマンドでログを確認します。
    ```bash
@@ -106,6 +107,14 @@ PhotoprismやRoundcube Mail等の外部サービスと連携する場合、`loca
 必ず **Nginxを介した固定IPまたは独自ドメイン（FQDN）** を利用してください。
 **WebAuthnの要件**
 WebAuthn（パスキー）を利用するため、**HTTPSによるSSL証明書の設定は必須**です。
+
+## 🛠️ カスタマイズと拡張性
+本プロジェクトは、コアとなる認証基盤と、外部連携サービスとの接続を分離した設計を採用しています。
+
+- **柔軟なNginx構成**: 
+  `nginx.conf` 内に定義されている `upstream` は、サンプルの外部サービス（Photoprism, Roundcube等）を想定していますが、**利用者は自身の環境に合わせてこれらの定義や `conf.d/` の内容を自由に書き換えることが可能**です。
+- **ポートによる識別**: 
+  サブドメインを用意できない環境でも動作するよう、あらかじめ特定のポート（2343, 9443等）でサービスを識別する構成を組み込んでいます。
 
 ## 💡 実装のこだわり（設計思想）
 - **パスキーへの特化**: セキュリティと利便性の両立のため、WebAuthnを核とした設計を行っています。
