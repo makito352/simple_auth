@@ -1,13 +1,18 @@
-// frontend/src/types/index.ts
+/**
+ * @file システム全体の共通型定義
+ * このファイルはアプリケーション全体で使用される基本的なデータ構造、
+ * ユーザー権限、設定項目、OIDC関連の設定などを定義します。
+ */
+
 export type UserRole = 'user' | 'admin';
 
 /**
  * ユーザーの基本情報の型定義
  */
 export interface User {
-  id: string;
-  email: string;
-  role: UserRole;
+  id: string;        // ユーザーの一意識別子 (UUID)
+  email: string;     // ユーザーのメールアドレス
+  role: UserRole;    // ユーザーの権限レベル
 }
 
 /**
@@ -27,11 +32,15 @@ export interface UserOption {
   key: string;          // 設定項目のキー（OptionAttributeと対応）
   value: string;        // 設定項目の値（文字列として保持）
 }
+
 /**
  * OIDCクレームマッピングの型定義 (backend/app/schemas/oidc.py の ClaimMappingResponse に対応)
  */
 export type ClaimMappingValueSource = "static" | "user_attribute" | "user_profile";
 
+/**
+ * クレームのマッピング定義（値の取得元と、そのためのキーや静的な値を管理）
+ */
 export interface ClaimMapping {
   id: string;           // 識別子（UUID）
   scope: string;        // スコープ（例: openid, profileなど）
@@ -41,44 +50,62 @@ export interface ClaimMapping {
   static_value?: string; // 固定値として設定する文字列
 }
 
+/**
+ * クレームマッピングの作成・更新用入力型 (IDを除外)
+ */
 export type ClaimMappingInput = Omit<ClaimMapping, "id">;
 
 /**
  * OIDCクライアント管理の型定義
  */
 export interface OidcScope {
-  scope_name: string;
-  description?: string;
-  is_system_scope: boolean;
-  is_deletable: boolean;
+  scope_name: string;         // スコープ名（例: profile）
+  description?: string;       // スコープの説明
+  is_system_scope: boolean;   // システム用スコープかどうかのフラグ
+  is_deletable: boolean;      // 削除可能かどうかのフラグ
 }
 
+/**
+ * OidcScope作成用の入力型
+ */
 export interface OidcScopeInput {
   scope_name: string;
   description?: string;
 }
 
+/**
+ * OidcScope更新用の入力型
+ */
 export interface OidcScopeUpdateInput {
   description?: string;
 }
 
+/**
+ * OIDCクライアントの基本情報の定義（シークレットはマスクされた状態で保持）
+ */
 export interface OidcClient {
-  id: string;
-  name: string;
-  client_id: string;
-  client_secret_masked: string;
-  description?: string;
-  allowed_redirect_uris: string[];
-  scope_names: string[];
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
+  id: string;                    // 内部ID (UUID)
+  name: string;                  // 表示名
+  client_id: string;             // OIDCクライアント識別子
+  client_secret_masked: string;  // マスクされたシークレット
+  description?: string;          // 説明文
+  allowed_redirect_uris: string[]; // 許可されたリダイレクトURLのリスト
+  scope_names: string[];        // 関連するスコープ名のリスト
+  is_active: boolean;            // 有効状態フラグ
+  created_at?: string;           // 作成日時
+  updated_at?: string;           // 更新日時
 }
 
+/**
+ * OIDCクライアントの詳細情報（シークレットを平文で含む）
+ */
 export interface OidcClientWithSecret extends OidcClient {
-  client_secret: string;
+  client_secret: string;        // 生のシークレット
 }
 
+/**
+ * OidcClient作成用の入力型
+ */
 export interface OidcClientInput {
   name: string;
   client_id: string;
@@ -88,6 +115,9 @@ export interface OidcClientInput {
   is_active: boolean;
 }
 
+/**
+ * OidcClient更新用の入力型
+ */
 export interface OidcClientUpdateInput {
   name: string;
   description?: string;

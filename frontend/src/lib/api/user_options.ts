@@ -3,8 +3,8 @@
  * @description ユーザーのオプション設定に関するAPI操作
  */
 import { apiGet, apiPatch, apiPost, apiPut } from "./client";
-import { logger } from "../logger";
-import { OptionAttribute, UserOption } from "../../types";
+import { logger } from "@/lib/logger";
+import { OptionAttribute, UserOption } from "@/types";
 
 /**
  * 一括更新用のデータ構造 (backend/app/schemas/user_option.py の UserOptionBulkUpdate に対応)

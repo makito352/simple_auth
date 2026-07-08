@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { performWebAuthnLogin } from "@/lib/api/webauthn";
-
+import { logger } from "@/lib/logger";
 
 /**
  * ログインページのメインコンポーネント
@@ -29,7 +29,7 @@ export default function LoginPage() {
       window.location.href = "/dashboard";
     } catch (err) {
        // エラー内容をコンソールに記録し、ユーザーにアラートを表示
-      console.error("Login failed", err);
+      logger.error(`Login failed: ${err}`);
       alert("認証に失敗しました");
     } finally {
       setLoading(false);

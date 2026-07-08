@@ -7,7 +7,7 @@
  */
 
 import { cookies } from "next/headers";
-import { isAdmin, type UserProfile } from "@/lib/api/users";
+import { type UserProfile } from "@/lib/api/users";
 import { logger } from "@/lib/logger";
 import { buildUrl } from "@/lib/api/client";
 import { SESSION_COOKIE_NAME } from "@/lib/config/auth";

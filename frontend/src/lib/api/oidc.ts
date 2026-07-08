@@ -3,7 +3,7 @@
  * @description OIDCクレームマッピングに関するAPI操作
  */
 import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from "./client";
-import { logger } from "../logger";
+import { logger } from "@/lib/logger";
 import {
   ClaimMapping,
   ClaimMappingInput,
@@ -14,7 +14,7 @@ import {
   OidcScope,
   OidcScopeInput,
   OidcScopeUpdateInput,
-} from "../../types";
+} from "@/types";
 
 /**
  * すべてのマッピングルールを取得する

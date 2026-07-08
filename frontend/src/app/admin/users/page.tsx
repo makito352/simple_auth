@@ -12,6 +12,7 @@ import {
   updateUser, 
   deleteUser 
 } from "@/lib/api/users";
+import { logger } from "@/lib/logger";
 
 /**
  * ユーザー管理メインページコンポーネント
@@ -38,7 +39,7 @@ export default function UsersPage() {
         const data = await fetchUserList();
         setUsers(data);
       } catch (error) {
-        console.error("Failed to load user list:", error);
+        logger.error(`Failed to load user list: ${error}`);
       } finally {
         setLoading(false);
       }
@@ -59,6 +60,7 @@ export default function UsersPage() {
       setUsers(prev => [...prev, { ...editFormData, id: "new-id" } as UserProfile]); // 仮のID
       setStatusMessage({ text: "ユーザーを作成しました", type: "success" });
     } catch (err) {
+      logger.error(`Failed to create user: ${err}`);
       setStatusMessage({ text: "作成に失敗しました", type: "error" });
     }
     // 3秒後にメッセージをクリア

@@ -9,6 +9,7 @@ import { useEffect, useState, Suspense } from "react"; // Suspenseを追加
 import { useSearchParams } from "next/navigation";
 import { verifyOneTimeLink } from "@/lib/api/ont_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
+import { logger } from "@/lib/logger";
 
 /**
  * 登録処理のメインコンテンツを管理するコンポーネント。
@@ -48,7 +49,7 @@ function RegistrationContent() {
       // 成功したらトップページへリダイレクト
       window.location.href = "/";
     } catch (error) {
-      console.error("WebAuthn registration failed:", error);
+      logger.error(`WebAuthn registration failed: ${error}`);
     }
   };
 

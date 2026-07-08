@@ -9,6 +9,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { verifyOneTimeLink } from "@/lib/api/ont_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
+import { logger } from "@/lib/logger";
 
 /**
  * @component DeviceAddContent
@@ -43,7 +44,7 @@ function DeviceAddContent() {
           setError("トークンの検証に失敗しました。");
         }
       } catch (e) {
-        console.error(e);
+        logger.error(`Failed to verify one-time link: ${e}`);
         setError("トークンが無効か期限切れです。");
       } finally {
         setLoading(false);
@@ -69,7 +70,7 @@ function DeviceAddContent() {
 
       window.location.href = "/devices";
     } catch (e) {
-      console.error(e);
+      logger.error(`Failed to register WebAuthn device: ${e}`);
       setError("追加デバイス登録に失敗しました。");
     } finally {
       setSubmitting(false);

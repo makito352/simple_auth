@@ -10,6 +10,7 @@ import {
   type DeviceRegistrationLink,
   updateDeviceComment,
 } from "@/lib/api/devices";
+import { logger } from "@/lib/logger";
 
 /**
  * @file page.tsx
@@ -53,7 +54,7 @@ export default function DevicesPage() {
       });
       setCommentDrafts(drafts);
     } catch (e) {
-      console.error(e);
+      logger.error(`Failed to fetch device credentials: ${e}`);
       setError("デバイス一覧の取得に失敗しました。");
     } finally {
       setLoading(false);
@@ -85,7 +86,7 @@ export default function DevicesPage() {
         ),
       );
     } catch (e) {
-      console.error(e);
+      logger.error(`Failed to update device comment: ${e}`);
       setError("コメントの更新に失敗しました。");
     } finally {
       setSavingId(null);
@@ -109,7 +110,7 @@ export default function DevicesPage() {
         return next;
       });
     } catch (e) {
-      console.error(e);
+      logger.error(`Failed to delete device credential: ${e}`);
       setError("デバイスの削除に失敗しました。");
     } finally {
       setDeletingId(null);
@@ -131,7 +132,7 @@ export default function DevicesPage() {
       });
       setQrDataUrl(generated);
     } catch (e) {
-      console.error(e);
+      logger.error(`Failed to create registration link: ${e}`);
       setError("追加デバイス登録リンクの発行に失敗しました。");
       setQrDataUrl(null);
     } finally {
@@ -147,7 +148,7 @@ export default function DevicesPage() {
       await navigator.clipboard.writeText(registrationLink.url);
       window.alert("登録リンクをコピーしました。");
     } catch (e) {
-      console.error(e);
+      logger.error(`Failed to copy registration link: ${e}`);
       setError("リンクのコピーに失敗しました。");
     }
   }

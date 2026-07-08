@@ -4,6 +4,7 @@
  * fetch APIをラップし、ベースURLの処理、クエリパラメータの付与、
  * 共通ヘッダーの設定などを行い、フロントエンドからバックエンドへの通信を簡略化します。
  */
+import { logger } from "@/lib/logger";
 
 /**
  * クエリパラメータをURLに付与し、適切なベースURLを組み合わせて完全なURLを生成する。
@@ -25,7 +26,7 @@ export function buildUrl(path: string, params?: Record<string, string | number |
   let baseUrl = isServer ? internalHost : externalHost;
 
   if (!baseUrl) {
-    console.error("Base URL is not defined");
+    logger.error("Base URL is not defined");
   }
 
   // pathが / で始まっているか確認し、適切に結合（重複するスラッシュを防止）
@@ -50,7 +51,7 @@ export function buildUrl(path: string, params?: Record<string, string | number |
  */
 async function request(url: string, options: RequestInit): Promise<any> {
   if (!process.env.NEXT_PUBLIC_API_URL) {
-    console.error("NEXT_PUBLIC_API_URL is not defined");
+    logger.error("NEXT_PUBLIC_API_URL is not defined");
   }
 
   const res = await fetch(url, options);

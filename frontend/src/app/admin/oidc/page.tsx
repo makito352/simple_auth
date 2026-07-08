@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ClaimMapping, ClaimMappingInput, OidcScope, OptionAttribute } from '@/types';
+import { logger } from '@/lib/logger';
 import {
   createClaimMapping,
   createOidcScope,
@@ -106,7 +107,7 @@ export default function OidcManagementPage() {
           }));
         }
       } catch (error) {
-        console.error('Failed to fetch OIDC admin data', error);
+        logger.error(`Failed to fetch OIDC admin data: ${error}`);
         toast.error('OIDC管理データの取得に失敗しました');
       } finally {
         setLoading(false);
@@ -144,6 +145,7 @@ export default function OidcManagementPage() {
         });
       }
     } catch (error) {
+      logger.error(`Failed to save claim mapping: ${error}`);
       toast.error("保存に失敗しました");
     }
   };

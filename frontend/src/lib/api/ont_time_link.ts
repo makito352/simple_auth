@@ -1,4 +1,9 @@
+/**
+ * @file one_time_link.ts
+ * @description ワンタイムリンク関連のAPI操作
+ */
 import { apiGet } from "./client";
+import { logger } from "@/lib/logger";
 
 /**
  * ワンタイムリンクのトークンを検証する。
@@ -7,7 +12,7 @@ import { apiGet } from "./client";
  */
 export async function verifyOneTimeLink(token: string | null): Promise<any | null> {
   if (!token) {
-    console.error("No token provided for verification");
+    logger.error("No token provided for verification");
     return null;
   }
 
@@ -16,7 +21,7 @@ export async function verifyOneTimeLink(token: string | null): Promise<any | nul
     // レスポンスにuser_idが含まれているか確認
     return response && response.user_id ? response : null;
   } catch (error) {
-    console.error("Failed to verify one-time link:", error);
+    logger.error(`Failed to verify one-time link: ${error}`);
     return null;
   }
 }
