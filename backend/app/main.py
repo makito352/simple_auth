@@ -10,10 +10,12 @@ from app.api.oidc import router as admin_oidc_router
 from app.api.proxy.auth_request import router as proxy_router
 from app.api.user import router as user_router
 from app.api.user_option import router as user_option_router
+from app.api.credentials_management import router as credentials_management_router
 from app.core.config import logger, settings
 from app.db.session import Base, SessionLocal, engine
 from app.services.user_service import UserService
 from app.utils.static_utils import ensure_static_dirs_exists
+from app.middleware.logging_middleware import access_log_middleware
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,7 +25,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # プロジェクトのルートディレクトリ（現在のファイルがある場所）を取得
 BASE_DIR = Path(__file__).resolve().parent
-
 
 @contextmanager
 def get_db_session():
@@ -41,9 +42,12 @@ def create_app() -> FastAPI:
     app = FastAPI(
         root_path=settings.BACKEND_PROXY_PREFIX,
         title="SimpleAuth",
-        description="Passwordless SSO with WebAuthn + OTP",
+        description="Passwordless SSO with WebAuthn",
         version="1.0.0",
     )
+
+    # ミドルウェアの登録をここで行う
+    app.middleware("http")(access_log_middleware)
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
@@ -100,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(user_router)
     app.include_router(user_option_router)
     app.include_router(admin_oidc_router)
+    app.include_router(credentials_management_router)
 
     # 静的ファイルのパスを絶対パスで指定する
     static_path = ensure_static_dirs_exists()
