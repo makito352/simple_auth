@@ -2,8 +2,8 @@
 
 import { useEffect, useState, Suspense } from "react"; // Suspenseを追加
 import { useSearchParams } from "next/navigation";
-import { apiPost,apiGet } from "@/lib/api/client";
-import { detectClientOs, webauthnRegister } from "@/lib/webauthn";
+import { verifyOneTimeLink } from "@/lib/api/ont_time_link";
+import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 
 // コンテンツ部分を別コンポーネントとして定義
 function RegistrationContent() {
@@ -14,20 +14,9 @@ function RegistrationContent() {
 
   useEffect(() => {
     async function verifyTokenAndStart() {
-      if (!token) {
-        console.error("No token provided in URL");
-        return;
-      }
-
-      try {
-        // バックエンドでトークンを検証し、消費する
-        const response = await apiGet(`/auth/one-time-link/verify?token=${token}`);
-        
-        if (response && response.user_id) {
-          setIsVerified(true);
-        }
-      } catch (error) {
-        console.error("Failed to verify token:", error);
+      const result = await verifyOneTimeLink(token);
+      if (result) {
+        setIsVerified(true);
       }
     }
 
@@ -38,30 +27,10 @@ function RegistrationContent() {
     if (!isVerified) return;
 
     try {
-      // 検証済みであれば、WebAuthnの登録フローを実行
-      // console.log("Step 1: Fetching WebAuthn options...");
-      const options = await apiPost("/webauthn/register/options");
-      // console.log("Options received:", options);
-
-      // console.log("Step 2: Executing webauthnRegister with provided options...");
-      const cred = await webauthnRegister(options);
-      if (!cred) {
-        console.error("Credential is null/undefined");
-        return;
-      }
-      // console.log("Credential received from device:", cred);
-
-      // 監査用途で保存するOS名をWebAuthnの検証payloadへ付与する
-      const verifyPayload = {
-        ...cred,
-        device_name: detectClientOs(),
-      };
-
-      // console.log("Step 3: Verifying credentials on server...");
-      const verifyResponse = await apiPost("/webauthn/register/verify", verifyPayload);
-      // console.log("Verification response from server:", verifyResponse);
-
-      // トップページへリダイレクト
+      // ライブラリ側で定義された登録フローを実行
+      await registerWebAuthnDevice();
+      
+      // 成功したらトップページへリダイレクト
       window.location.href = "/";
     } catch (error) {
       console.error("WebAuthn registration failed:", error);

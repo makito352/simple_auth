@@ -1,32 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { apiPost } from "@/lib/api/client";
-import { webauthnLogin } from "@/lib/webauthn"; // 認証用ヘルパー
+import { performWebAuthnLogin } from "@/lib/api/webauthn";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   async function handleNext() {
     setLoading(true);
     try {
-      // 1. サーバーからオプション（チャレンジ含む）を取得
-      // メールアドレスを伴わないリクエストに変更
-      const response = await apiPost("/webauthn/login/options");
-
-      // backendのレスポンス構造: { options: {...}, session_token: "..." }
-      const webauthnOptions = response.options; 
-      const sessionToken = response.session_token;
-
-      // 2. ブラウザの生体認証を実行
-      const cred = await webauthnLogin(webauthnOptions);
-
-      // 3. 検証APIを叩く（credentialとsession_tokenを両方送る）
-      await apiPost("/webauthn/login/verify", {
-        ...cred,
-        session_token: sessionToken,
-      });
+      // WebAuthnの全工程を実行
+      await performWebAuthnLogin();
       
-      // 4. 成功したら一気にダッシュボードへ
+      // 成功したら一気にダッシュボードへ
       window.location.href = "/dashboard";
     } catch (err) {
       console.error("Login failed", err);

@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiGet, apiPost } from "@/lib/api/client";
-import { detectClientOs, webauthnRegister } from "@/lib/webauthn";
+import { verifyOneTimeLink } from "@/lib/api/ont_time_link";
+import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 
 /**
  * @file page.tsx
@@ -27,8 +27,8 @@ function DeviceAddContent() {
       }
 
       try {
-        const response = await apiGet(`/auth/one-time-link/verify?token=${token}`);
-        if (response && response.user_id) {
+        const result = await verifyOneTimeLink(token);
+        if (result) {
           setIsVerified(true);
         } else {
           setError("トークンの検証に失敗しました。");
@@ -52,18 +52,8 @@ function DeviceAddContent() {
     setSubmitting(true);
     setError(null);
     try {
-      const options = await apiPost("/webauthn/devices/register/options");
-      const credential = await webauthnRegister(options);
-
-      if (!credential) {
-        setError("WebAuthn資格情報の取得に失敗しました。");
-        return;
-      }
-
-      await apiPost("/webauthn/devices/register/verify", {
-        ...credential,
-        device_name: detectClientOs(),
-      });
+      // 統合されたWebAuthn登録フローを呼び出す
+      await registerWebAuthnDevice();
 
       window.location.href = "/devices";
     } catch (e) {
