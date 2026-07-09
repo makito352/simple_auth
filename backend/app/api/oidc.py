@@ -27,7 +27,7 @@ from app.services.oidc_service import (
     OidcClientService,
     OidcScopeService,
 )
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/admin_oidc", tags=["OIDC Management"])
@@ -42,10 +42,10 @@ def _get_mapping_or_400(db: Session, mapping_id: str):
         mapping = OidcClaimService.get_claim_mapping_by_id(db, mapping_id)
     except ValueError as exc:
         # サービス層からのバリデーションエラーを400に変換
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     if not mapping:
-        raise HTTPException(status_code=404, detail="Mapping not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mapping not found")
 
     return mapping
 
@@ -56,8 +56,8 @@ def _handle_client_service_error(exc: ValueError) -> None:
     """
     message = str(exc)
     if message in {"invalid_client", "client not found"}:
-        raise HTTPException(status_code=404, detail=message) from exc
-    raise HTTPException(status_code=400, detail=message) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message) from exc
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message) from exc
 
 
 def _handle_scope_service_error(exc: ValueError) -> None:
@@ -66,10 +66,10 @@ def _handle_scope_service_error(exc: ValueError) -> None:
     """
     message = str(exc)
     if message == "scope not found":
-        raise HTTPException(status_code=404, detail=message) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message) from exc
     if message == "scope is in use":
-        raise HTTPException(status_code=409, detail=message) from exc
-    raise HTTPException(status_code=400, detail=message) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=message) from exc
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message) from exc
 
 
 @router.get("/mappings", response_model=list[ClaimMappingResponse])
@@ -130,11 +130,11 @@ def update_claim_mapping(
     except ValueError as exc:
         message = str(exc)
         if message == "mapping not found":
-            raise HTTPException(status_code=404, detail=message) from exc
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message) from exc
         _handle_scope_service_error(exc)
 
 
-@router.delete("/mappings/{mapping_id}", status_code=204)
+@router.delete("/mappings/{mapping_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_claim_mapping(
     mapping_id: str,
     db: Session = Depends(get_db),
@@ -197,7 +197,7 @@ def update_oidc_scope(
     return OidcScopeService.to_response_dict(db, scope)
 
 
-@router.delete("/scopes/{scope_name}", status_code=204)
+@router.delete("/scopes/{scope_name}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_oidc_scope(
     scope_name: str,
     db: Session = Depends(get_db),
@@ -237,7 +237,7 @@ def get_oidc_client(
     """
     client = OidcClientService.get_client_by_client_id(db, client_id)
     if not client:
-        raise HTTPException(status_code=404, detail="client not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="client not found")
     return OidcClientService.to_response_dict(db=db, client=client)
 
 
