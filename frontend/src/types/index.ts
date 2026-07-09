@@ -125,3 +125,13 @@ export interface OidcClientUpdateInput {
   scope_names: string[];
   is_active: boolean;
 }
+
+/**
+ * ワンタイムリンク検証レスポンスの型定義
+ * backend/app/schemas/one_time_link.py の TokenVerificationResponse に対応
+ */
+export interface OneTimeLinkVerificationResponse {
+  user_id: string;// 検証されたユーザーのID UUID
+  email: string;  // 検証されたユーザーのメールアドレス
+  status: string; // 検証結果の状態（例: success, pending）
+}

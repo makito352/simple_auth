@@ -14,7 +14,7 @@ from app.schemas.one_time_link import (
     OneTimeLinkCreateResponse,
     TokenVerificationResponse,
 )
-from app.services.one_time_link_service import OneTimeLinkService
+from app.services.one_time_link_service import OneTimeLinkService, IntegrityError, LinkValidationError
 from app.services.registration_session_service import generate_token
 from app.services.session_service import SessionService
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -132,10 +132,18 @@ def verify_one_time_link(
             email=user.email,
             status=user.email_verification_status,
         )
-    except ValueError as e:
-        # 期限切れ、または不正なトークンの場合は400 Bad Requestを返す
-        logger.debug("One-time link verification failed: %s", str(e))
+    except LinkValidationError as e:
+        # verify_and_consume_linkでwarnやerrorを出力しているため、ここではログ出力は控える
+        logger.debug("One-time link verification failed (Client Error): %s", str(e))
+        # ユーザーの操作ミスに関連するものは、そのまま400で返す
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except IntegrityError:
+        # システム側の不備や想定外のデータ状態は、500として汎用メッセージを出す
+        logger.error("One-time link verification failed (System/Integrity Error)")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="システムエラーが発生しました。再度お試しください。",
+        )
     except Exception:
         logger.error("Internal server error during one-time link verification.")
         raise HTTPException(

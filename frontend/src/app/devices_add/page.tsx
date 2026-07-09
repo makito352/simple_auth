@@ -7,7 +7,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { verifyOneTimeLink } from "@/lib/api/ont_time_link";
+import { verifyOneTimeLink } from "@/lib/api/one_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
 

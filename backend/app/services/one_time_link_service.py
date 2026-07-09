@@ -13,6 +13,13 @@ from app.schemas.one_time_link import OneTimeLinkCreateResponse
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session
 
+class LinkValidationError(ValueError):
+    """トークンに関するクライアントエラー（期限切れ、無効など）"""
+    pass
+
+class IntegrityError(Exception):
+    """データの不整合や予期せぬ状態によるエラー"""
+    pass
 
 class OneTimeLinkService:
     """
@@ -85,17 +92,17 @@ class OneTimeLinkService:
 
         if not link:
             logger.error(f"Invalid OneTimeLink token: {token}")
-            raise ValueError("Invalid or non-existent link.")
+            raise LinkValidationError("無効なまたは存在しないリンクです。(Invalid or non-existent link.)")
 
         # 使用済み、または期限切れのチェック
         now = datetime.now(timezone.utc)
         if link.used_at is not None:
             logger.warning(f"Already used OneTimeLink token: {token}")
-            raise ValueError("This link has already been used.")
+            raise LinkValidationError("このリンクは既に使用されています。(This link has already been used.)")
 
         if link.expires_at < now:
             logger.warning(f"Expired OneTimeLink token: {token}")
-            raise ValueError("This link has expired.")
+            raise LinkValidationError("このリンクは期限切れです。(This link has expired.)")
 
         # トークンを消費（使用済みにする）
         link.used_at = now
@@ -106,7 +113,7 @@ class OneTimeLinkService:
         user = db.query(User).filter(User.id == link.user_id).first()
         if not user:
             logger.error(f"User associated with OneTimeLink token {token} not found.")
-            raise ValueError("User associated with this link no longer exists.")
+            raise IntegrityError("このリンクに関連付けられたユーザーは存在しません。(User associated with this link no longer exists.)")
 
         return user
 

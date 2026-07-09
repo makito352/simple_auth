@@ -58,7 +58,10 @@ async function request(url: string, options: RequestInit): Promise<any> {
 
   // 成功ステータス（200-299）以外の場合はエラーを投げる
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    // エラーオブジェクトにステータスコードを付与して投げる
+    const error = new Error(`API error: ${res.status}`);
+    (error as any).status = res.status; // ステータスをプロパティとして付与
+    throw error; 
   }
 
   // ステータスが204の場合は中身がないためnullを返す
