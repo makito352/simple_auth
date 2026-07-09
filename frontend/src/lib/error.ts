@@ -5,6 +5,7 @@
  */
 "use client";
 import { logger } from "@/lib/logger";
+import type { ApiError } from "@/lib/api/client";
 
 /**
  * APIエラーの内容に基づいて表示用メッセージを生成する
@@ -12,7 +13,7 @@ import { logger } from "@/lib/logger";
  * @param defaultMessage - エラー内容が取得できない場合のデフォルトメッセージ
  * @returns 表示用のエラーメッセージ
  */
-export const getErrorMessage = (err: any, defaultMessage: string): string => {
+export const getErrorMessage = (err: ApiError, defaultMessage: string): string => {
     if (err.status >= 400 && err.status < 500) {
         // クライアントエラー(400-499)の場合、詳細情報を優先的に表示
         logger.debug(`Client Error (${err.status}): ${err}`);

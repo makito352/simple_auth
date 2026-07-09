@@ -10,7 +10,7 @@ import { logger } from "@/lib/logger";
 /**
  * APIエラーの構造を定義するインターフェース
  */
-interface ApiError extends Error {
+export interface ApiError extends Error {
   status?: number;
   detail?: string;
 }
