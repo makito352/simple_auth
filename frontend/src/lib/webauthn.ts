@@ -3,10 +3,32 @@
  */
 import { logger } from "@/lib/logger";
 
-export const isWebAuthnJsonSupported = !!(
-  globalThis.PublicKeyCredential &&
-  (PublicKeyCredential as any).parseCreationOptionsFromJSON
-);
+type WebAuthnJsonPublicKeyCredentialConstructor = {
+  parseCreationOptionsFromJSON: (options: unknown) => PublicKeyCredentialCreationOptions;
+  parseRequestOptionsFromJSON: (options: unknown) => PublicKeyCredentialRequestOptions;
+};
+
+/**
+ * PublicKeyCredential の JSON 変換 API を安全に取得する
+ */
+function getWebAuthnJsonConstructor(): WebAuthnJsonPublicKeyCredentialConstructor | null {
+  if (!globalThis.PublicKeyCredential) {
+    return null;
+  }
+
+  const maybeWebAuthnJsonApi = globalThis.PublicKeyCredential as unknown as Partial<WebAuthnJsonPublicKeyCredentialConstructor>;
+  if (typeof maybeWebAuthnJsonApi.parseCreationOptionsFromJSON !== "function") {
+    return null;
+  }
+
+  if (typeof maybeWebAuthnJsonApi.parseRequestOptionsFromJSON !== "function") {
+    return null;
+  }
+
+  return maybeWebAuthnJsonApi as WebAuthnJsonPublicKeyCredentialConstructor;
+}
+
+export const isWebAuthnJsonSupported = getWebAuthnJsonConstructor() !== null;
 
 type NavigatorWithUserAgentData = Navigator & {
   userAgentData?: {
@@ -64,15 +86,16 @@ export function detectClientOs(): string {
   return OS_NAME_MAP.unknown;
 }
 
-export async function webauthnRegister(options: any) {
-  if (!isWebAuthnJsonSupported) {
+export async function webauthnRegister(options: unknown) {
+  const webAuthnJsonApi = getWebAuthnJsonConstructor();
+  if (!webAuthnJsonApi) {
     throw new Error("Your browser does not support the latest WebAuthn JSON API.");
   }
 
   try {
     // 1. サーバーから来たJSON（文字列）を、ブラウザが理解できる形式（バイナリ含む）に変換
     logger.debug("WebAuthn: Parsing Creation Options from JSON");
-    const publicKey = (PublicKeyCredential as any).parseCreationOptionsFromJSON(options);
+    const publicKey = webAuthnJsonApi.parseCreationOptionsFromJSON(options);
     
     if (!publicKey) {
       throw new Error("Failed to parse creation options from JSON.");
@@ -80,11 +103,11 @@ export async function webauthnRegister(options: any) {
 
     // 2. 認証器（指紋、顔認証等）を起動
     logger.debug("WebAuthn: Calling navigator.credentials.create");
-    const credential = (await navigator.credentials.create({
+    const credential = await navigator.credentials.create({
       publicKey,
-    })) as PublicKeyCredential;
+    });
 
-    if (!credential) {
+    if (!(credential instanceof PublicKeyCredential)) {
       throw new Error("No credential was returned from the device.");
     }
 
@@ -97,15 +120,16 @@ export async function webauthnRegister(options: any) {
   }
 }
 
-export async function webauthnLogin(options: any) {
-  if (!isWebAuthnJsonSupported) {
+export async function webauthnLogin(options: unknown) {
+  const webAuthnJsonApi = getWebAuthnJsonConstructor();
+  if (!webAuthnJsonApi) {
     throw new Error("Your browser does not support the latest WebAuthn JSON API.");
   }
 
   try {
     // 1. JSON を内部形式に変換
     logger.debug("WebAuthn: Parsing Request Options from JSON");
-    const publicKey = (PublicKeyCredential as any).parseRequestOptionsFromJSON(options);
+    const publicKey = webAuthnJsonApi.parseRequestOptionsFromJSON(options);
     
     if (!publicKey) {
       throw new Error("Failed to parse request options from JSON.");
@@ -113,11 +137,11 @@ export async function webauthnLogin(options: any) {
 
     // 2. 認証実行
     logger.debug("WebAuthn: Calling navigator.credentials.get");
-    const credential = (await navigator.credentials.get({
+    const credential = await navigator.credentials.get({
       publicKey,
-    })) as PublicKeyCredential;
+    });
 
-    if (!credential) {
+    if (!(credential instanceof PublicKeyCredential)) {
       throw new Error("No credential was retrieved from the device.");
     }
 
