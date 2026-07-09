@@ -18,6 +18,10 @@ class UserService:
         """
         新しいユーザーを作成します。
         """
+        actual_role = role
+        if hasattr(role, "value"):
+            actual_role = role.value
+        
         existing_user = db.query(User).filter(User.email == email).first()
 
         if existing_user:
@@ -47,7 +51,7 @@ class UserService:
 
         new_user = User(
             email=email,
-            role=role,
+            role=actual_role,
             email_verification_status=UserStatus.PENDING.value,
             email_verified_at=None,
             email_verification_expires_at=datetime.now(timezone.utc)
@@ -68,7 +72,7 @@ class UserService:
         admin_email = settings.INITIAL_ADMIN_USER_EMAIL
         if count == 0:
             user = UserService.create_user(
-                db, email=admin_email, role=UserRole.ADMIN.value
+                db, email=admin_email, role=UserRole.ADMIN
             )
             link = OneTimeLinkService.create_link(db, user.id)
             logger.info(
