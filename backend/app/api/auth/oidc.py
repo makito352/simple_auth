@@ -113,7 +113,10 @@ def authorize(
 
     # リクエストパラメータの検証
     if response_type != "code":
-        raise HTTPException(status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST, detail="unsupported_response_type")
+        raise HTTPException(
+            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            detail="unsupported_response_type",
+        )
 
     # scope をスペース区切りで分割してリスト化
     requested_scopes = scope.split(" ") if isinstance(scope, str) else []
@@ -132,7 +135,9 @@ def authorize(
             client_id,
             redirect_uri,
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
 
     try:
         user = get_current_user(request, db)
@@ -189,7 +194,9 @@ async def token(
         )
     except ValidationError as exc:
         logger.debug("Token request validation failed")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_request") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_request"
+        ) from exc
 
     grant_type = token_request.grant_type
     code = token_request.code
@@ -199,14 +206,19 @@ async def token(
 
     if grant_type != "authorization_code":
         logger.debug("Unsupported grant_type: %s", grant_type)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported_grant_type")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported_grant_type"
+        )
 
     try:
         # OIDC クライアントの client_id と client_secret を検証
         OidcClientService.validate_token_client(db, client_id, client_secret)
     except ValueError as exc:
         logger.debug("Client validation failed for client_id %s", client_id)
-        raise HTTPException(status_code=status.HTTP_status.HTTP_401_UNAUTHORIZED_UNAUTHORIZED, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_status.HTTP_401_UNAUTHORIZED_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
 
     # 認可コードを取得し、クライアントとの組み合わせを検証する
     auth_code = OidcAuthFlowService.find_auth_code_for_token_exchange(
@@ -216,7 +228,9 @@ async def token(
     )
     if not auth_code:
         logger.debug("Authorization code not found or does not match client_id")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant"
+        )
 
     if not OidcAuthFlowService.is_redirect_uri_match(auth_code, redirect_uri):
         logger.debug(
@@ -224,12 +238,16 @@ async def token(
             auth_code.redirect_uri,
             redirect_uri,
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant"
+        )
 
     user = UserService.read_user(db=db, user_id=auth_code.user_id)
     if not user:
         logger.debug("User %s not found", auth_code.user_id)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant"
+        )
 
     # スコープ
     requested_scopes = auth_code.scope
@@ -300,7 +318,9 @@ def userinfo(request: Request, db: Session = Depends(get_db)) -> UserInfoRespons
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
         logger.debug("No Authorization header")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+        )
 
     token = auth.split(" ")[1]
 
@@ -309,17 +329,23 @@ def userinfo(request: Request, db: Session = Depends(get_db)) -> UserInfoRespons
 
     if not token_row:
         logger.debug("Access token not found")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+        )
 
     # 有効期限チェック
     if OidcAuthFlowService.is_access_token_expired(token_row):
         logger.debug("Access token expired")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired"
+        )
 
     user = UserService.read_user(db=db, user_id=token_row.user_id)
     if not user:
         logger.debug("User not found")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+        )
 
     # tokenからクレームを取得し、不正トークンは認証失敗として扱う
     try:
@@ -330,10 +356,14 @@ def userinfo(request: Request, db: Session = Depends(get_db)) -> UserInfoRespons
         )
     except ExpiredSignatureError as exc:
         logger.debug("Access token JWT expired")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired"
+        ) from exc
     except JWTError as exc:
         logger.debug("Access token JWT validation failed: %s", str(exc))
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+        ) from exc
 
     scope = payload.get("scope", "")
     scopes = scope.split(" ") if isinstance(scope, str) else []

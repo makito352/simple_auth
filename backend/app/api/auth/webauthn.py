@@ -129,7 +129,6 @@ def _verify_registration_and_store(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-
 def _issue_registration_options(request: Request, db: Session):
     """
     セッショントークンからユーザーを特定し、WebAuthn登録用オプションを作成・返却します。
