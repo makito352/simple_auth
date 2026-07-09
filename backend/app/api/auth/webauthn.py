@@ -47,146 +47,7 @@ router = APIRouter(prefix="/webauthn", tags=["webauthn"])
 # ----------------------------
 # Registration
 # ----------------------------
-@router.options("/register/options")
-async def options_register_options():
-    """
-    登録オプション取得用のOPTIONSメソッド。
-    CORS設定などのために必要です。
-    """
-    return {}
-
-
-@router.post(
-    "/register/options",
-)
-def register_options(request: Request, db: Session = Depends(get_db)):
-    """
-    新規ユーザーまたは既存ユーザーのWebAuthn登録用オプションを生成します。
-    セッションクッキーからユーザーを特定し、チャレンジを含む登録情報を返します。
-    """
-    logger.debug("register_options request received")
-    return issue_registration_options(request, db)
-
-
-@router.options("/register/verify")
-async def options_register_verify():
-    """
-    登録検証用OPTIONSメソッド。
-    """
-    return {}
-
-
-@router.post("/register/verify", status_code=status.HTTP_204_NO_CONTENT)
-def register_verify(
-    payload: dict, request: Request, db: Session = Depends(get_db)
-) -> Response:
-    """
-    WebAuthnの登録プロセスにおける検証レスポンスを受け取り、
-    正当性を確認した上で新しいデバイスをユーザーに紐付けます。
-    成功時には204 No Contentを返します。
-    """
-    logger.debug("register_verify request received")
-    return verify_registration_and_store(
-        payload=payload,
-        request=request,
-        db=db,
-        update_user_verification=True,
-    )
-
-
-@router.options("/devices/register/options")
-async def options_device_register_options():
-    """
-    追加デバイス登録用のOPTIONSメソッド。
-    """
-    return {}
-
-
-@router.post("/devices/register/options")
-def device_register_options(request: Request, db: Session = Depends(get_db)):
-    """
-    追加デバイス登録専用のオプション発行API。
-    """
-    logger.debug("device_register_options request received")
-    return issue_registration_options(request, db)
-
-
-@router.options("/devices/register/verify")
-async def options_device_register_verify():
-    """
-    追加デバイス登録用の検証用OPTIONSメソッド。
-    """
-    return {}
-
-
-@router.post("/devices/register/verify", status_code=status.HTTP_204_NO_CONTENT)
-def device_register_verify(
-    payload: dict, request: Request, db: Session = Depends(get_db)
-) -> Response:
-    """
-    追加デバイス登録専用の検証API。
-    ユーザーステータスは更新しない。
-    """
-    logger.debug("device_register_verify request received")
-    return verify_registration_and_store(
-        payload=payload,
-        request=request,
-        db=db,
-        update_user_verification=False,
-    )
-
-
-def issue_registration_options(request: Request, db: Session):
-    """
-    セッショントークンからユーザーを特定し、WebAuthn登録用オプションを作成・返却します。
-
-    Args:
-        request (Request): クライアントからのリクエスト
-        db (Session): データベースセッション
-
-    Returns:
-        dict: WebAuthnの `generate_registration_options` を処理した結果
-    """
-    session_token = request.cookies.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
-    if not session_token:
-        logger.error("Session token missing in request cookies")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Session token missing"
-        )
-
-    user_id = validate_token(db, session_token)
-    if not user_id:
-        logger.error("Invalid or expired session token")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired session",
-        )
-
-    user = UserService.read_user(db=db, user_id=user_id)
-    if not user:
-        # ここでユーザーが見つからない場合は、セッションが不正である可能性が高い
-        logger.error("User not found for user_id=%s", user_id)
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-
-    # WebAuthn登録オプションを生成
-    options = generate_registration_options(
-        rp_id=settings.WEB_AUTHN_RP_ID,
-        rp_name=settings.WEB_AUTHN_RP_NAME,
-        user_id=str(user.id).encode("utf-8"),
-        user_name=user.email,
-        authenticator_selection=AuthenticatorSelectionCriteria(
-            resident_key=ResidentKeyRequirement.REQUIRED,
-            user_verification=UserVerificationRequirement.PREFERRED,
-        ),
-    )
-    # challenge を session_token と紐付けて保存
-    save_challenge(db, session_token, options.challenge)
-    return json.loads(options_to_json(options))
-
-
-def verify_registration_and_store(
+def _verify_registration_and_store(
     payload: dict[str, Any],
     request: Request,
     db: Session,
@@ -266,6 +127,146 @@ def verify_registration_and_store(
 
     # 検証完了のみ通知し、レスポンス本文は返さない
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+
+def _issue_registration_options(request: Request, db: Session):
+    """
+    セッショントークンからユーザーを特定し、WebAuthn登録用オプションを作成・返却します。
+
+    Args:
+        request (Request): クライアントからのリクエスト
+        db (Session): データベースセッション
+
+    Returns:
+        dict: WebAuthnの `generate_registration_options` を処理した結果
+    """
+    session_token = request.cookies.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
+    if not session_token:
+        logger.error("Session token missing in request cookies")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Session token missing"
+        )
+
+    user_id = validate_token(db, session_token)
+    if not user_id:
+        logger.error("Invalid or expired session token")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired session",
+        )
+
+    user = UserService.read_user(db=db, user_id=user_id)
+    if not user:
+        # ここでユーザーが見つからない場合は、セッションが不正である可能性が高い
+        logger.error("User not found for user_id=%s", user_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    # WebAuthn登録オプションを生成
+    options = generate_registration_options(
+        rp_id=settings.WEB_AUTHN_RP_ID,
+        rp_name=settings.WEB_AUTHN_RP_NAME,
+        user_id=str(user.id).encode("utf-8"),
+        user_name=user.email,
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            resident_key=ResidentKeyRequirement.REQUIRED,
+            user_verification=UserVerificationRequirement.PREFERRED,
+        ),
+    )
+    # challenge を session_token と紐付けて保存
+    save_challenge(db, session_token, options.challenge)
+    return json.loads(options_to_json(options))
+
+
+@router.options("/register/options")
+async def options_register_options():
+    """
+    登録オプション取得用のOPTIONSメソッド。
+    CORS設定などのために必要です。
+    """
+    return {}
+
+
+@router.post(
+    "/register/options",
+)
+def register_options(request: Request, db: Session = Depends(get_db)):
+    """
+    新規ユーザーまたは既存ユーザーのWebAuthn登録用オプションを生成します。
+    セッションクッキーからユーザーを特定し、チャレンジを含む登録情報を返します。
+    """
+    logger.debug("register_options request received")
+    return _issue_registration_options(request, db)
+
+
+@router.options("/register/verify")
+async def options_register_verify():
+    """
+    登録検証用OPTIONSメソッド。
+    """
+    return {}
+
+
+@router.post("/register/verify", status_code=status.HTTP_204_NO_CONTENT)
+def register_verify(
+    payload: dict, request: Request, db: Session = Depends(get_db)
+) -> Response:
+    """
+    WebAuthnの登録プロセスにおける検証レスポンスを受け取り、
+    正当性を確認した上で新しいデバイスをユーザーに紐付けます。
+    成功時には204 No Contentを返します。
+    """
+    logger.debug("register_verify request received")
+    return _verify_registration_and_store(
+        payload=payload,
+        request=request,
+        db=db,
+        update_user_verification=True,
+    )
+
+
+@router.options("/devices/register/options")
+async def options_device_register_options():
+    """
+    追加デバイス登録用のOPTIONSメソッド。
+    """
+    return {}
+
+
+@router.post("/devices/register/options")
+def device_register_options(request: Request, db: Session = Depends(get_db)):
+    """
+    追加デバイス登録専用のオプション発行API。
+    """
+    logger.debug("device_register_options request received")
+    return _issue_registration_options(request, db)
+
+
+@router.options("/devices/register/verify")
+async def options_device_register_verify():
+    """
+    追加デバイス登録用の検証用OPTIONSメソッド。
+    """
+    return {}
+
+
+@router.post("/devices/register/verify", status_code=status.HTTP_204_NO_CONTENT)
+def device_register_verify(
+    payload: dict, request: Request, db: Session = Depends(get_db)
+) -> Response:
+    """
+    追加デバイス登録専用の検証API。
+    ユーザーステータスは更新しない。
+    """
+    logger.debug("device_register_verify request received")
+    return _verify_registration_and_store(
+        payload=payload,
+        request=request,
+        db=db,
+        update_user_verification=False,
+    )
 
 
 # ----------------------------
