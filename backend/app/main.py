@@ -17,12 +17,13 @@ from app.api.auth.one_time_link import router as one_time_link_router
 from app.api.auth.webauthn import router as webauthn_router
 from app.api.admin.oidc_management import router as admin_oidc_router
 from app.api.admin.admin_dashboard_links import router as admin_dashboard_links_router
+from app.api.admin.user_option import router as user_option_router
+from app.api.admin.admin_user import router as admin_user_router
 from app.api.credentials_management import router as credentials_management_router
 from app.api.dashboard_links import router as dashboard_links_router
 from app.api.health import router as health_router
 from app.api.proxy.auth_request import router as proxy_router
 from app.api.user import router as user_router
-from app.api.user_option import router as user_option_router
 from app.core.config import logger, settings
 from app.core.exceptions import (
     internal_server_error_handler,
@@ -33,10 +34,9 @@ from app.db.session import Base, SessionLocal, engine
 from app.middleware.logging_middleware import access_log_middleware
 from app.services.user_service import UserService
 from app.utils.static_utils import ensure_static_dirs_exists
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -120,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(one_time_link_router)
     app.include_router(dashboard_links_router)
     app.include_router(user_router)
+    app.include_router(admin_user_router)
     app.include_router(user_option_router)
     app.include_router(admin_oidc_router)
     app.include_router(admin_dashboard_links_router)

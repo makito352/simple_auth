@@ -52,11 +52,12 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
 }
 
 /**
+ * 【管理者向け】
  * ユーザー一覧を取得する（管理者権限が必要な操作）
  */
 export async function fetchUserList(): Promise<UserProfile[]> {
   try {
-    const data = await apiGet("/users/");
+    const data = await apiGet("/admin/users/");
     return data as UserProfile[];
   } catch (error) {
     logger.error(`Failed to fetch user list: ${error}`);
@@ -65,29 +66,32 @@ export async function fetchUserList(): Promise<UserProfile[]> {
 }
 
 /**
+ * 【管理者向け】
  * ユーザーを作成する（管理者権限が必要な操作）
  */
 export async function createUser(data: CreateUserRequest): Promise<UserProfile> {
-  const response = await apiPost("/users/", data);
+  const response = await apiPost("/admin/users/", data);
   return response as UserProfile;
 }
 
 /**
+ * 【管理者向け】
  * ユーザー情報を更新する（管理者権限が必要な操作）
  * @param id 更新対象のユーザーID
  * @param data 更新データ
  */
 export async function updateUser(id: string, data: UpdateUserRequest): Promise<UserProfile> {
-  const response = await apiPut(`/users/${id}`, data);
+  const response = await apiPut(`/admin/users/${id}`, data);
   return response as UserProfile;
 }
 
 /**
+ * 【管理者向け】
  * ユーザーを削除する（管理者権限が必要な操作）
  * @param id 削除対象のユーザーID
  */
 export async function deleteUser(id: string): Promise<void> {
-  await apiDelete(`/users/${id}`);
+  await apiDelete(`/admin/users/${id}`);
 }
 
 /**
