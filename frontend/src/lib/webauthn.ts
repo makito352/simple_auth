@@ -6,14 +6,20 @@
  */
 
 import { logger } from "@/lib/logger";
+import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+} from "@simplewebauthn/browser";
 
 /**
  * 最新の WebAuthn JSON 変換メソッド（parseCreationOptionsFromJSON, parseRequestOptionsFromJSON）
  * の存在を確認するための型定義。
  */
 type WebAuthnJsonPublicKeyCredentialConstructor = {
-  parseCreationOptionsFromJSON: (options: unknown) => PublicKeyCredentialCreationOptions;
-  parseRequestOptionsFromJSON: (options: unknown) => PublicKeyCredentialRequestOptions;
+  parseCreationOptionsFromJSON: (options: PublicKeyCredentialCreationOptionsJSON) => PublicKeyCredentialCreationOptions;
+  parseRequestOptionsFromJSON: (options: PublicKeyCredentialRequestOptionsJSON) => PublicKeyCredentialRequestOptions;
 };
 
 /**
@@ -113,7 +119,7 @@ export function detectClientOs(): string {
  * @param options - サーバーから提供された「Registration Options」のJSONオブジェクト
  * @throws エラーの場合はログを記録し、上位へ再送出します。
  */
-export async function webauthnRegister(options: unknown) {
+export async function webauthnRegister(options: PublicKeyCredentialCreationOptionsJSON): Promise<RegistrationResponseJSON> {
   const webAuthnJsonApi = getWebAuthnJsonConstructor();
   if (!webAuthnJsonApi) {
     throw new Error("Your browser does not support the latest WebAuthn JSON API.");
@@ -140,7 +146,7 @@ export async function webauthnRegister(options: unknown) {
 
     // 3. ブラウザが生成したバイナリ情報を、再度JSON（Base64等）に変換して返却
     logger.debug("WebAuthn: Converting successful credential to JSON");
-    return credential.toJSON();
+    return credential.toJSON() as RegistrationResponseJSON;
   } catch (error) {
     logger.error(`WebAuthn Registration Internal Error: ${error}`);
     throw error;
@@ -153,7 +159,7 @@ export async function webauthnRegister(options: unknown) {
  * @param options - サーバーから提供された「Authentication Request」のJSONオブジェクト
  * @throws エラーの場合はログを記録し、上位へ再送出します。
  */
-export async function webauthnLogin(options: unknown) {
+export async function webauthnLogin(options: PublicKeyCredentialRequestOptionsJSON): Promise<AuthenticationResponseJSON> {
   const webAuthnJsonApi = getWebAuthnJsonConstructor();
   if (!webAuthnJsonApi) {
     throw new Error("Your browser does not support the latest WebAuthn JSON API.");
@@ -180,7 +186,7 @@ export async function webauthnLogin(options: unknown) {
 
     // 3. 結果をJSON形式に変換してサーバーへ送信可能な状態にする
     logger.debug("WebAuthn: Converting valid login credential to JSON");
-    return credential.toJSON();
+    return credential.toJSON() as AuthenticationResponseJSON;
   } catch (error) {
     logger.error(`WebAuthn Login Internal Error: ${error}`);
     throw error;

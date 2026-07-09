@@ -5,6 +5,18 @@
 "use client";
 import { apiPost } from "./client";
 import { webauthnLogin, webauthnRegister, detectClientOs } from "@/lib/webauthn";
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+} from "@simplewebauthn/browser";
+
+/**
+ * ログインオプション取得APIのレスポンス型。
+ */
+type LoginOptionsResponse = {
+  options: PublicKeyCredentialRequestOptionsJSON;
+};
 
 /**
  * WebAuthnを使用したデバイス登録フローを実行します。
@@ -17,10 +29,10 @@ import { webauthnLogin, webauthnRegister, detectClientOs } from "@/lib/webauthn"
  */
 export async function registerWebAuthnDevice() {
   // 1. サーバーからオプションを取得
-  const options = await apiPost("/webauthn/register/options");
+  const options = (await apiPost("/webauthn/register/options")) as PublicKeyCredentialCreationOptionsJSON;
 
   // 2. ブラウザの生体認証を実行（この時、ユーザーは指紋や顔認証を行う）
-  const cred = await webauthnRegister(options);
+  const cred = (await webauthnRegister(options)) as RegistrationResponseJSON;
   if (!cred) {
     throw new Error("Credential is null or undefined");
   }
@@ -45,7 +57,7 @@ export async function registerWebAuthnDevice() {
  */
 export async function performWebAuthnLogin() {
   // 1. サーバーからオプション（チャレンジ含む）を取得
-  const response = await apiPost("/webauthn/login/options");
+  const response = (await apiPost("/webauthn/login/options")) as LoginOptionsResponse;
   const webauthnOptions = response.options;
 
   // 2. ブラウザの生体認証を実行
