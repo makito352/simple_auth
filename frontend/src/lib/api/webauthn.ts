@@ -1,5 +1,6 @@
+"use client";
 import { apiPost } from "./client";
-import { webauthnLogin, webauthnRegister, detectClientOs  } from "@/lib/webauthn"; // 認証用ヘルパー
+import { webauthnLogin, webauthnRegister, detectClientOs } from "@/lib/webauthn";
 
 /**
  * WebAuthnを使用したデバイス登録フローを実行する。
@@ -37,16 +38,12 @@ export async function performWebAuthnLogin() {
   // 1. サーバーからオプション（チャレンジ含む）を取得
   const response = await apiPost("/webauthn/login/options");
   const webauthnOptions = response.options;
-  const sessionToken = response.session_token;
 
   // 2. ブラウザの生体認証を実行
   const cred = await webauthnLogin(webauthnOptions);
 
-  // 3. 検証APIを叩く
-  await apiPost("/webauthn/login/verify", {
-    ...cred,
-    session_token: sessionToken,
-  });
+  // 3. 検証APIを叩く（session_tokenはHttpOnly Cookieで送信される）
+  await apiPost("/webauthn/login/verify", cred);
 }
 
 /**

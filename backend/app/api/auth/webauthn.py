@@ -281,17 +281,17 @@ async def options_login_options():
 
 @router.post("/login/options", response_model=LoginOptionsResponse)
 def login_options(
-    request: Request, db: Session = Depends(get_db)
+    response: Response, db: Session = Depends(get_db)
 ) -> LoginOptionsResponse:
     """
     ログイン用のWebAuthnオプションを生成し、クライアントに返します。
 
     Args:
-        request (Request): クライアントからのリクエスト
+        response (Response): クライアントへCookieを返すレスポンス
         db (Session): データベースセッション
 
     Returns:
-        LoginOptionsResponse: WebAuthnの認証オプションとセッショントークン
+        LoginOptionsResponse: WebAuthnの認証オプション
     """
     # ログイン用のWebAuthn認証オプションを発行する。
     options = generate_authentication_options(
@@ -307,17 +307,31 @@ def login_options(
         db=db,
         session_token=session_token,
         challenge=options.challenge,
+        expires_in_minutes=settings.WEBAUTHN_OPTIONS_EXP_MINUTES,
+    )
+
+    # login/verify では payload 折り返しを使わず、HttpOnly Cookie から参照する
+    response.set_cookie(
+        key=settings.WEB_AUTHN_TEMP_TOKEN_NAME,
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+        max_age=settings.WEBAUTHN_OPTIONS_EXP_MINUTES * 60,
     )
 
     return LoginOptionsResponse(
         options=json.loads(options_to_json(options)),
-        session_token=session_token,
     )
 
 
 @router.post("/login/verify", status_code=status.HTTP_204_NO_CONTENT)
 def login_verify(
-    payload: dict, response: Response, db: Session = Depends(get_db)
+    payload: dict,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
 ) -> Response:
     """
     WebAuthnのログイン検証レスポンスを受け取り、正当性を確認した上でユーザーを認証します。
@@ -325,6 +339,7 @@ def login_verify(
 
     Args:
         payload (dict): フロントエンドから送信されたWebAuthnの応答データ
+        request (Request): クライアントからのリクエスト（Cookie参照用）
         response (Response): レスポンスオブジェクト
         db (Session): データベースセッション
 
@@ -335,12 +350,25 @@ def login_verify(
     logger.debug(
         "login_verify request received for credential_id: %s", payload.get("id")
     )
-    session_token = payload.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
+    session_token = request.cookies.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
     credential_id = payload.get(
         "id"
-    )  # frontから送られてくるのは "id" フィールドであること
+    )  # frontendから送られてくるのは "id" フィールドであること
 
-    # 1. credential_id から credential を逆引き
+    if not session_token:
+        logger.error("Missing session token in request cookies")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing session token",
+        )
+    if not credential_id:
+        logger.error("Missing credential_id in payload")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing credential_id",
+        )
+
+    # credential_id から credential を逆引き
     cred = WebAuthnService.get_by_credential_id(db, credential_id)
     if not cred:
         logger.debug("Unknown credential id=%s", credential_id)
@@ -348,36 +376,46 @@ def login_verify(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown credential"
         )
 
-    # 2. session_token から challenge を取得
+    # session_token から challenge を取得
     challenge = AuthOptionsService.get_auth_challenge(
         db=db,
         session_token=session_token,
     )
     if not challenge:
-        logger.debug("No challenge found for session_token=%s", session_token)
+        logger.debug("No challenge found for provided session token")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No challenge found for the provided session token",
         )
 
-    # 3. 検証
-    verification = verify_authentication_response(
-        credential=payload,
-        expected_challenge=challenge,
-        expected_rp_id=settings.WEB_AUTHN_RP_ID,
-        expected_origin=settings.WEB_AUTHN_ORIGIN,
-        credential_public_key=base64url_to_bytes(cred.public_key).strip(),
-        credential_current_sign_count=cred.sign_count,
-    )
+    # 認証チャレンジはワンタイム利用とし、検証前に消費する
+    AuthOptionsService.consume_auth_challenge(db, session_token)
 
-    # 4. sign_count 更新
+    try:
+        # WebAuthnプロトコルに基づいた署名の検証
+        verification = verify_authentication_response(
+            credential=payload,
+            expected_challenge=challenge,
+            expected_rp_id=settings.WEB_AUTHN_RP_ID,
+            expected_origin=settings.WEB_AUTHN_ORIGIN,
+            credential_public_key=base64url_to_bytes(cred.public_key).strip(),
+            credential_current_sign_count=cred.sign_count,
+        )
+    except Exception as e:
+        logger.error("WebAuthn login verification failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authentication verification failed.",
+        )
+
+    # sign_count 更新
     cred.sign_count = verification.new_sign_count
     db.commit()
 
-    # 5. ユーザー特定（ここで初めて user_id が確定）
+    # ユーザー特定（ここで初めて user_id が確定）
     user_id = cred.user_id
 
-    # 6. セッション発行
+    # セッション発行
     session = SessionService.create_session(db, user_id)
     response.set_cookie(
         key=settings.SESSION_COOKIE_NAME,
@@ -387,6 +425,7 @@ def login_verify(
         samesite="lax",
         path="/",
     )
+    response.delete_cookie(settings.WEB_AUTHN_TEMP_TOKEN_NAME, path="/")
 
     # Cookie を設定した同一レスポンスを 204 として返す
     response.status_code = status.HTTP_204_NO_CONTENT

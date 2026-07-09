@@ -9,7 +9,6 @@ from uuid import UUID
 
 from app.core.config import logger
 from app.models.dashboard_links import DashboardLink
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 

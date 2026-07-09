@@ -62,6 +62,3 @@ class LoginOptionsResponse(BaseModel):
     """WebAuthnログインオプション取得レスポンス。"""
 
     options: dict[str, Any] = Field(..., description="WebAuthn認証オプション")
-    session_token: str = Field(
-        ..., description="認証チャレンジと紐づく一時セッショントークン"
-    )

@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     ONE_TIME_LINK_EXPIRE_MINUTES: int = 60
     # ワンタイムリンク（デバイス登録用）の有効期限（分）
     DEVICE_REGISTRATION_LINK_EXPIRE_MINUTES: int = 5
+    # WebAuthn 認証オプションの有効期限（分）
+    WEBAUTHN_OPTIONS_EXP_MINUTES: int = 5
     # 一時的なセッショントークンの名前（WebAuthn登録用など）
     WEB_AUTHN_TEMP_TOKEN_NAME: str = "simpleauth_temp_session_token"
     # ログイン後の通常のセッションクッキーの名前
