@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
+# --- Request Models ---
 class CreateLinkRequest(BaseModel):
     """新規トークン生成リクエスト用モデル"""
 
@@ -19,8 +20,6 @@ class CreateLinkRequest(BaseModel):
 
 
 # --- Response Models ---
-
-
 class OneTimeLinkCreateResponse(BaseModel):
     """
     トークン作成成功時のレスポンス。
