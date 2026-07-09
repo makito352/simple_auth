@@ -176,7 +176,7 @@ def update_link(
     existing_link = DashboardLinkService.get_by_id(db, link_id)
     if not existing_link:
         logger.debug("Dashboard link not found for link_id=%s", link_id)
-        raise HTTPException(status_code=404, detail="Dashboard link not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dashboard link not found")
 
     # ファイルがアップロードされている場合は、既存のアイコンを削除して新しいアイコンを保存する
     if file:
@@ -196,7 +196,7 @@ def update_link(
     )
     if not updated_link:
         logger.debug("Dashboard link not found for link_id=%s", link_id)
-        raise HTTPException(status_code=404, detail="Dashboard link not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dashboard link not found")
 
     return _serialize_dashboard_link(updated_link)
 
@@ -210,7 +210,7 @@ def get_link(
     link = DashboardLinkService.get_by_id(db, link_id)
     if not link:
         logger.debug("Dashboard link not found for link_id=%s", link_id)
-        raise HTTPException(status_code=404, detail="Dashboard link not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dashboard link not found")
     return _serialize_dashboard_link(link)
 
 
@@ -223,5 +223,5 @@ def delete_link(
     success = DashboardLinkService.delete(db, link_id)
     if not success:
         logger.debug("Dashboard link not found for link_id=%s", link_id)
-        raise HTTPException(status_code=404, detail="Dashboard link not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dashboard link not found")
     return None
