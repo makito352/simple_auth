@@ -3,13 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  createDeviceRegistrationLink,
   deleteDeviceCredential,
   fetchDeviceCredentials,
-  type DeviceCredential,
-  type DeviceRegistrationLink,
   updateDeviceComment,
 } from "@/lib/api/devices";
+import { createDeviceRegistrationLink } from "@/lib/api/one_time_link";
+import type { DeviceCredential, OneTimeLinkCreateResponse } from "@/types";
 import { logger } from "@/lib/logger";
 
 /**
@@ -38,7 +37,7 @@ export default function DevicesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
-  const [registrationLink, setRegistrationLink] = useState<DeviceRegistrationLink | null>(null);
+  const [registrationLink, setRegistrationLink] = useState<OneTimeLinkCreateResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   async function loadDevices() {

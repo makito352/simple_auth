@@ -2,9 +2,17 @@
  * @file one_time_link.ts
  * @description ワンタイムリンク関連のAPI操作
  */
-import { apiGet } from "./client";
+import { apiGet, apiPost } from "./client";
 import { logger } from "@/lib/logger";
-import { OneTimeLinkVerificationResponse } from "@/types";
+import type { OneTimeLinkCreateResponse, OneTimeLinkVerificationResponse } from "@/types";
+
+/**
+ * ログイン中ユーザー向けの追加デバイス登録リンクを発行する。
+ */
+export async function createDeviceRegistrationLink(): Promise<OneTimeLinkCreateResponse> {
+  const response = await apiPost("/auth/one-time-link/create/self");
+  return response as OneTimeLinkCreateResponse;
+}
 
 /**
  * ワンタイムリンクのトークンを検証する。

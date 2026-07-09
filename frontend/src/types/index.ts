@@ -127,6 +127,26 @@ export interface OidcClientUpdateInput {
 }
 
 /**
+ * WebAuthn資格情報の一覧表示用モデル。
+ */
+export interface DeviceCredential {
+  id: string;
+  credential_id: string;
+  device_name: string | null;
+  user_comment: string | null;
+  created_at: string;
+}
+/**
+ * 追加デバイス登録用ワンタイムリンクのレスポンスモデル。
+ */
+export interface OneTimeLinkCreateResponse {
+  token: string;      // ワンタイムリンクのトークン
+  url: string;        // ワンタイムリンクのURL
+  expires_at: string; // リンクの有効期限（ISO 8601形式）
+  message: string;    // リンク発行時のメッセージ（ユーザー向け）
+}
+
+/**
  * ワンタイムリンク検証レスポンスの型定義
  * backend/app/schemas/one_time_link.py の TokenVerificationResponse に対応
  */
