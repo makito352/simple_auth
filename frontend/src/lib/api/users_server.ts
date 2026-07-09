@@ -15,32 +15,40 @@ import { SESSION_COOKIE_NAME } from "@/lib/config/auth";
 /**
  * サーバーサイドで実行されるユーザープロフィール取得関数
  * @description cookieからセッションを取得し、バックエンドAPIから現在のユーザー情報を取得します。
- * @returns プロフィール情報のオブジェクトまたはnull
+ * @returns プロフィール情報のオブジェクトまたはnull（セッションがない場合やエラー時にnullを返す）
  */
 export async function fetchUserProfileForServer(): Promise<UserProfile | null> {
   const cookieStore = await cookies();
+  // セッション識別用のCookieを取得
   const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const targetUrl = buildUrl("/users/me");
 
-  if (!targetUrl) { // buildUrl内のロジックに合わせるため、または単純な存在チェックとして
+  // URL構築に失敗した場合はエラーを記録して中断
+  if (!targetUrl) {
     logger.error(`fetchUserProfileForServer - URL construction failed.`);
     return null;
   }
+
+  // セッションクッキーが存在しない場合は認証されていないと判断
   if (!sessionCookie) {
     logger.warn("fetchUserProfileForServer - session cookie not found");
     return null;
   }
+
   logger.debug(`fetchUserProfileForServer - Attempting to fetch from URL: ${targetUrl}`);
 
   try {
+    // バックエンドへのリクエストを実行
     const response = await fetch(targetUrl, {
       headers: {
+        // サーバーサイドからのリクエストのため、Cookieヘッダーを明示的に含める
         Cookie: `${SESSION_COOKIE_NAME}=${sessionCookie}`,
       },
       credentials: "include",
-      cache: "no-store",
+      cache: "no-store", // 動的なユーザー情報を取得するためキャッシュを無効化
     });
 
+    // レスポンスが正常（200系）でない場合はエラーとして処理
     if (!response.ok) {
       logger.warn(`fetchUserProfileForServer - API returned ${response.status}`);
       return null;
@@ -50,7 +58,9 @@ export async function fetchUserProfileForServer(): Promise<UserProfile | null> {
     logger.debug(`fetchUserProfileForServer - loaded user: ${JSON.stringify(data)}`);
     return data;
   } catch (error) {
+    // 通信エラーやパースエラーをキャッチ
     logger.error(`fetchUserProfileForServer - failed: ${error}`);
     return null;
   }
 }
+
