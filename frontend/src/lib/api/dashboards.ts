@@ -40,12 +40,12 @@ export async function fetchDashboardLinks(): Promise<DashboardLink[]> {
 }
 
 /**
- * 特定のダッシュボードリンクを取得します。
+ * 【管理者向け】特定のダッシュボードリンクを取得します。
  * @param id リンクの識別子(UUID)
  */
 export async function fetchDashboardLink(id: string): Promise<DashboardLink | null> {
   try {
-    const data = await apiGet(`/dashboards/${id}`);
+    const data = await apiGet(`/admin/dashboards/${id}`);
     return data as DashboardLink;
   } catch (error) {
     logger.error(`Failed to fetch dashboard link ${id}: ${error}`);
@@ -54,43 +54,43 @@ export async function fetchDashboardLink(id: string): Promise<DashboardLink | nu
 }
 
 /**
- * 新しいダッシュボードリンクを作成します。
+ * 【管理者向け】新しいダッシュボードリンクを作成します。
  */
 export async function createDashboardLink(data: CreateDashboardLinkRequest): Promise<DashboardLink> {
-  const response = await apiPost("/dashboards/", data);
+  const response = await apiPost("/admin/dashboards/", data);
   return response as DashboardLink;
 }
 
 /**
- * ファイルアップロード付きでダッシュボードリンクを作成します。
+ * 【管理者向け】ファイルアップロード付きでダッシュボードリンクを作成します。
  */
 export async function createDashboardLinkForm(formData: FormData): Promise<DashboardLink> {
-  const response = await apiPostForm("/dashboards/", formData);
+  const response = await apiPostForm("/admin/dashboards/", formData);
   return response as DashboardLink;
 }
 
 /**
- * ダッシュボードリンクを更新します。
+ * 【管理者向け】ダッシュボードリンクを更新します。
  * @param id 更新対象のID
  * @param data 更新データ
  */
 export async function updateDashboardLink(id: string, data: Partial<CreateDashboardLinkRequest>): Promise<DashboardLink> {
-  const response = await apiPut(`/dashboards/${id}`, data);
+  const response = await apiPut(`/admin/dashboards/${id}`, data);
   return response as DashboardLink;
 }
 
 /**
- * ファイルアップロード付きでダッシュボードリンクを更新します。
+ * 【管理者向け】ファイルアップロード付きでダッシュボードリンクを更新します。
  */
 export async function updateDashboardLinkForm(id: string, formData: FormData): Promise<DashboardLink> {
-  const response = await apiPutForm(`/dashboards/${id}`, formData);
+  const response = await apiPutForm(`/admin/dashboards/${id}`, formData);
   return response as DashboardLink;
 }
 
 /**
- * ダッシュボードリンクを削除します。
+ * 【管理者向け】ダッシュボードリンクを削除します。
  * @param id 削除対象のID
  */
 export async function deleteDashboardLink(id: string): Promise<void> {
-  await apiDelete(`/dashboards/${id}`);
+  await apiDelete(`/admin/dashboards/${id}`);
 }

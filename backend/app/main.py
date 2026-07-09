@@ -16,6 +16,7 @@ from app.api.auth.oidc import router as oidc_router
 from app.api.auth.one_time_link import router as one_time_link_router
 from app.api.auth.webauthn import router as webauthn_router
 from app.api.admin.oidc_management import router as admin_oidc_router
+from app.api.admin.admin_dashboard_links import router as admin_dashboard_links_router
 from app.api.credentials_management import router as credentials_management_router
 from app.api.dashboard_links import router as dashboard_links_router
 from app.api.health import router as health_router
@@ -121,6 +122,7 @@ def create_app() -> FastAPI:
     app.include_router(user_router)
     app.include_router(user_option_router)
     app.include_router(admin_oidc_router)
+    app.include_router(admin_dashboard_links_router)
     app.include_router(credentials_management_router)
 
     # 静的ファイルのパスを絶対パスで指定する
