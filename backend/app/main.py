@@ -23,6 +23,11 @@ from app.api.proxy.auth_request import router as proxy_router
 from app.api.user import router as user_router
 from app.api.user_option import router as user_option_router
 from app.core.config import logger, settings
+from app.core.exceptions import (
+    internal_server_error_handler,
+    sqlalchemy_exception_handler,
+    validation_exception_handler,
+)
 from app.db.session import Base, SessionLocal, engine
 from app.middleware.logging_middleware import access_log_middleware
 from app.services.user_service import UserService
@@ -70,29 +75,17 @@ def create_app() -> FastAPI:
         openapi_url=openapi_url,
     )
 
-    # ミドルウェアの登録をここで行う
+    # ----------------------------
+    # ミドルウェアの登録
+    # ----------------------------
     app.middleware("http")(access_log_middleware)
 
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
-        logger.warning("Validation error: %s", exc)
-        return JSONResponse(status_code=422, content={"detail": exc.errors()})
-
-    @app.exception_handler(SQLAlchemyError)
-    async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
-        logger.exception("Database error occurred")
-        return JSONResponse(
-            status_code=500, content={"detail": "Database operation failed"}
-        )
-
-    @app.exception_handler(Exception)
-    async def unhandled_exception_handler(request: Request, exc: Exception):
-        logger.exception("Unhandled exception occurred")
-        return JSONResponse(
-            status_code=500, content={"detail": "Internal server error"}
-        )
+    # ----------------------------
+    # 例外ハンドラの登録
+    # ----------------------------
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+    app.add_exception_handler(Exception, internal_server_error_handler)
 
     # ----------------------------
     # CORS

@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 router = APIRouter(prefix="/dashboards", tags=["dashboards"])
 
 
-def save_icon_file(file: UploadFile) -> str:
+def _save_icon_file(file: UploadFile) -> str:
     """アップロードされたアイコンファイルを保存して、URL パスを返す。"""
 
     # アイコン保存先のディレクトリを準備する
@@ -80,7 +80,7 @@ def save_icon_file(file: UploadFile) -> str:
     return f"{ICON_URL_PREFIX}/{unique_filename}"
 
 
-def build_icon_url(icon_path: Optional[str]) -> Optional[str]:
+def _build_icon_url(icon_path: Optional[str]) -> Optional[str]:
     """保存済みアイコンの相対パスを絶対 URL に変換する。"""
 
     if not icon_path:
@@ -97,18 +97,18 @@ def build_icon_url(icon_path: Optional[str]) -> Optional[str]:
     return f"{base_uri}/{relative_path}"
 
 
-def serialize_dashboard_link(link) -> DashboardLinkRead:
+def _serialize_dashboard_link(link) -> DashboardLinkRead:
     """データベースモデルから API レスポンス用のスキーマに変換する。"""
     return DashboardLinkRead(
         id=link.id,
         title=link.title,
         url=link.url,
-        icon_path=build_icon_url(link.icon_path),
+        icon_path=_build_icon_url(link.icon_path),
         order_index=link.order_index,
     )
 
 
-def delete_icon_file(icon_path: str) -> None:
+def _delete_icon_file(icon_path: str) -> None:
     """指定されたアイコンパスが存在する場合、そのファイルを削除する。"""
 
     if not icon_path:
@@ -131,7 +131,7 @@ def list_links(db: Session = Depends(get_db), _admin=Depends(get_current_admin_u
 
     # DB からすべてのリンクを取得し、レスポンス用にシリアライズする
     links = DashboardLinkService.list_all(db)
-    return [serialize_dashboard_link(link) for link in links]
+    return [_serialize_dashboard_link(link) for link in links]
 
 
 @router.post("/", response_model=DashboardLinkRead, status_code=status.HTTP_201_CREATED)
@@ -147,7 +147,7 @@ def create_link(
 
     # フォームから受け取った値をスキーマで検証する
     payload = DashboardLinkCreate(title=title, url=url, order_index=order_index)
-    icon_path = save_icon_file(file) if file else None
+    icon_path = _save_icon_file(file) if file else None
 
     new_link = DashboardLinkService.create(
         db,
@@ -156,7 +156,7 @@ def create_link(
         order_index=payload.order_index,
         icon_path=icon_path,
     )
-    return serialize_dashboard_link(new_link)
+    return _serialize_dashboard_link(new_link)
 
 
 @router.put("/{link_id}", response_model=DashboardLinkRead)
@@ -181,9 +181,9 @@ def update_link(
     # ファイルがアップロードされている場合は、既存のアイコンを削除して新しいアイコンを保存する
     if file:
         # 既存のアイコンがあれば削除する
-        delete_icon_file(existing_link.icon_path)
+        _delete_icon_file(existing_link.icon_path)
         # 新しいアイコンを保存する
-        icon_path = save_icon_file(file)
+        icon_path = _save_icon_file(file)
 
     # 更新処理を実行する
     updated_link = DashboardLinkService.update(
@@ -198,7 +198,7 @@ def update_link(
         logger.debug("Dashboard link not found for link_id=%s", link_id)
         raise HTTPException(status_code=404, detail="Dashboard link not found")
 
-    return serialize_dashboard_link(updated_link)
+    return _serialize_dashboard_link(updated_link)
 
 
 @router.get("/{link_id}", response_model=DashboardLinkRead)
@@ -211,7 +211,7 @@ def get_link(
     if not link:
         logger.debug("Dashboard link not found for link_id=%s", link_id)
         raise HTTPException(status_code=404, detail="Dashboard link not found")
-    return serialize_dashboard_link(link)
+    return _serialize_dashboard_link(link)
 
 
 @router.delete("/{link_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -154,45 +154,36 @@ def issue_registration_options(request: Request, db: Session):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Session token missing"
         )
 
-    try:
-        user_id = validate_token(db, session_token)
-        if not user_id:
-            logger.error("Invalid or expired session token")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired session",
-            )
-
-        user = UserService.read_user(db=db, user_id=user_id)
-        if not user:
-            # ここでユーザーが見つからない場合は、セッションが不正である可能性が高い
-            logger.error("User not found for user_id=%s", user_id)
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
-
-        # WebAuthn登録オプションを生成
-        options = generate_registration_options(
-            rp_id=settings.WEB_AUTHN_RP_ID,
-            rp_name=settings.WEB_AUTHN_RP_NAME,
-            user_id=str(user.id).encode("utf-8"),
-            user_name=user.email,
-            authenticator_selection=AuthenticatorSelectionCriteria(
-                resident_key=ResidentKeyRequirement.REQUIRED,
-                user_verification=UserVerificationRequirement.PREFERRED,
-            ),
-        )
-        # challenge を session_token と紐付けて保存
-        save_challenge(db, session_token, options.challenge)
-        return json.loads(options_to_json(options))
-    except Exception as e:
-        logger.error(
-            f"Error during registration options generation: {e}", exc_info=True
-        )
+    user_id = validate_token(db, session_token)
+    if not user_id:
+        logger.error("Invalid or expired session token")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired session",
         )
+
+    user = UserService.read_user(db=db, user_id=user_id)
+    if not user:
+        # ここでユーザーが見つからない場合は、セッションが不正である可能性が高い
+        logger.error("User not found for user_id=%s", user_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    # WebAuthn登録オプションを生成
+    options = generate_registration_options(
+        rp_id=settings.WEB_AUTHN_RP_ID,
+        rp_name=settings.WEB_AUTHN_RP_NAME,
+        user_id=str(user.id).encode("utf-8"),
+        user_name=user.email,
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            resident_key=ResidentKeyRequirement.REQUIRED,
+            user_verification=UserVerificationRequirement.PREFERRED,
+        ),
+    )
+    # challenge を session_token と紐付けて保存
+    save_challenge(db, session_token, options.challenge)
+    return json.loads(options_to_json(options))
 
 
 def verify_registration_and_store(
@@ -213,77 +204,68 @@ def verify_registration_and_store(
     Returns:
         Response: 成功時に204 No Contentを返すレスポンス
     """
-    try:
-        session_token = request.cookies.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
-        if not session_token:
-            logger.error("Session token missing in request cookies")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Session token missing"
-            )
-
-        user_id = validate_token(db, session_token)
-        if not user_id:
-            logger.error("Invalid or expired session token")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired session",
-            )
-
-        # 保存されているチャレンジを取得
-        challenge_data = get_challenge(db, session_token)
-        device_name = payload.get("device_name")
-        # 非WebAuthn関連のフィールド（device_name等）を除外して検証に渡す
-        credential_payload = {
-            key: value for key, value in payload.items() if key != "device_name"
-        }
-
-        try:
-            # WebAuthnプロトコルに基づいた署名の検証
-            verification = verify_registration_response(
-                credential=credential_payload,
-                expected_challenge=challenge_data,
-                expected_rp_id=settings.WEB_AUTHN_RP_ID,
-                expected_origin=settings.WEB_AUTHN_ORIGIN,
-            )
-        except InvalidRegistrationResponse as e:
-            logger.error(f"WebAuthn registration verification failed: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Registration verification failed.",
-            )
-
-        # credential_idをデータベース保存用にBase64URL形式に変換
-        cred_id_to_save = verification.credential_id
-        if isinstance(cred_id_to_save, bytes):
-            # credential_id を base64url 形式に変換して保存する
-            cred_id_to_save = bytes_to_base64url(cred_id_to_save)
-
-        # 新規登録時にユーザーの認証済みステータスを更新するフラグがある場合のみ処理
-        if update_user_verification:
-            # 新規登録時にユーザーのメール検証ステータスを更新する場合
-            # ユーザーのメール検証ステータスを更新する
-            UserService.update_user_email_verification(db, user_id)
-
-        # WebAuthn資格情報をデータベースに保存する
-        WebAuthnService.register_credential(
-            db=db,
-            user_id=user_id,
-            credential_id_str=cred_id_to_save,
-            public_key=verification.credential_public_key,
-            sign_count=verification.sign_count,
-            device_name=device_name,
-        )
-
-        # 検証完了のみ通知し、レスポンス本文は返さない
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    except Exception as e:
-        logger.error(
-            f"Error during registration options generation: {e}", exc_info=True
-        )
+    session_token = request.cookies.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
+    if not session_token:
+        logger.error("Session token missing in request cookies")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error",
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Session token missing"
         )
+
+    user_id = validate_token(db, session_token)
+    if not user_id:
+        logger.error("Invalid or expired session token")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired session",
+        )
+
+    # 保存されているチャレンジを取得
+    challenge_data = get_challenge(db, session_token)
+    device_name = payload.get("device_name")
+    # 非WebAuthn関連のフィールド（device_name等）を除外して検証に渡す
+    credential_payload = {
+        key: value for key, value in payload.items() if key != "device_name"
+    }
+
+    try:
+        # WebAuthnプロトコルに基づいた署名の検証
+        verification = verify_registration_response(
+            credential=credential_payload,
+            expected_challenge=challenge_data,
+            expected_rp_id=settings.WEB_AUTHN_RP_ID,
+            expected_origin=settings.WEB_AUTHN_ORIGIN,
+        )
+    except InvalidRegistrationResponse as e:
+        logger.error(f"WebAuthn registration verification failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration verification failed.",
+        )
+
+    # credential_idをデータベース保存用にBase64URL形式に変換
+    cred_id_to_save = verification.credential_id
+    if isinstance(cred_id_to_save, bytes):
+        # credential_id を base64url 形式に変換して保存する
+        cred_id_to_save = bytes_to_base64url(cred_id_to_save)
+
+    # 新規登録時にユーザーの認証済みステータスを更新するフラグがある場合のみ処理
+    if update_user_verification:
+        # 新規登録時にユーザーのメール検証ステータスを更新する場合
+        # ユーザーのメール検証ステータスを更新する
+        UserService.update_user_email_verification(db, user_id)
+
+    # WebAuthn資格情報をデータベースに保存する
+    WebAuthnService.register_credential(
+        db=db,
+        user_id=user_id,
+        credential_id_str=cred_id_to_save,
+        public_key=verification.credential_public_key,
+        sign_count=verification.sign_count,
+        device_name=device_name,
+    )
+
+    # 検証完了のみ通知し、レスポンス本文は返さない
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # ----------------------------
@@ -311,33 +293,26 @@ def login_options(
     Returns:
         LoginOptionsResponse: WebAuthnの認証オプションとセッショントークン
     """
-    try:
-        # ログイン用のWebAuthn認証オプションを発行する。
-        options = generate_authentication_options(
-            rp_id=settings.WEB_AUTHN_RP_ID,
-            allow_credentials=[],
-            user_verification=UserVerificationRequirement.PREFERRED,
-        )
+    # ログイン用のWebAuthn認証オプションを発行する。
+    options = generate_authentication_options(
+        rp_id=settings.WEB_AUTHN_RP_ID,
+        allow_credentials=[],
+        user_verification=UserVerificationRequirement.PREFERRED,
+    )
 
-        # challenge を session_token と紐付けて保存
-        #  ※ ここでは、セッションを新規に作成するため、既存のセッションがあっても無視して新しいトークンを発行する。
-        session_token = SessionService.get_or_create_temp_token()
-        AuthOptionsService.save_auth_challenge(
-            db=db,
-            session_token=session_token,
-            challenge=options.challenge,
-        )
+    # challenge を session_token と紐付けて保存
+    #  ※ ここでは、セッションを新規に作成するため、既存のセッションがあっても無視して新しいトークンを発行する。
+    session_token = SessionService.get_or_create_temp_token()
+    AuthOptionsService.save_auth_challenge(
+        db=db,
+        session_token=session_token,
+        challenge=options.challenge,
+    )
 
-        return LoginOptionsResponse(
-            options=json.loads(options_to_json(options)),
-            session_token=session_token,
-        )
-    except Exception as e:
-        logger.error(f"Error during login options generation: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error",
-        )
+    return LoginOptionsResponse(
+        options=json.loads(options_to_json(options)),
+        session_token=session_token,
+    )
 
 
 @router.post("/login/verify", status_code=status.HTTP_204_NO_CONTENT)
@@ -360,71 +335,62 @@ def login_verify(
     logger.debug(
         "login_verify request received for credential_id: %s", payload.get("id")
     )
-    try:
-        session_token = payload.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
-        credential_id = payload.get(
-            "id"
-        )  # frontから送られてくるのは "id" フィールドであること
+    session_token = payload.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
+    credential_id = payload.get(
+        "id"
+    )  # frontから送られてくるのは "id" フィールドであること
 
-        # 1. credential_id から credential を逆引き
-        cred = WebAuthnService.get_by_credential_id(db, credential_id)
-        if not cred:
-            logger.debug("Unknown credential id=%s", credential_id)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown credential"
-            )
-
-        # 2. session_token から challenge を取得
-        challenge = AuthOptionsService.get_auth_challenge(
-            db=db,
-            session_token=session_token,
-        )
-        if not challenge:
-            logger.debug("No challenge found for session_token=%s", session_token)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No challenge found for the provided session token",
-            )
-
-        # 3. 検証
-        verification = verify_authentication_response(
-            credential=payload,
-            expected_challenge=challenge,
-            expected_rp_id=settings.WEB_AUTHN_RP_ID,
-            expected_origin=settings.WEB_AUTHN_ORIGIN,
-            credential_public_key=base64url_to_bytes(cred.public_key).strip(),
-            credential_current_sign_count=cred.sign_count,
-        )
-
-        # 4. sign_count 更新
-        cred.sign_count = verification.new_sign_count
-        db.commit()
-
-        # 5. ユーザー特定（ここで初めて user_id が確定）
-        user_id = cred.user_id
-
-        # 6. セッション発行
-        session = SessionService.create_session(db, user_id)
-        response.set_cookie(
-            key=settings.SESSION_COOKIE_NAME,
-            value=str(session.id),
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            path="/",
-        )
-
-        # Cookie を設定した同一レスポンスを 204 として返す
-        response.status_code = status.HTTP_204_NO_CONTENT
-        return response
-    except Exception as e:
-        logger.error(
-            f"Error during registration options generation: {e}", exc_info=True
-        )
+    # 1. credential_id から credential を逆引き
+    cred = WebAuthnService.get_by_credential_id(db, credential_id)
+    if not cred:
+        logger.debug("Unknown credential id=%s", credential_id)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error",
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown credential"
         )
+
+    # 2. session_token から challenge を取得
+    challenge = AuthOptionsService.get_auth_challenge(
+        db=db,
+        session_token=session_token,
+    )
+    if not challenge:
+        logger.debug("No challenge found for session_token=%s", session_token)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No challenge found for the provided session token",
+        )
+
+    # 3. 検証
+    verification = verify_authentication_response(
+        credential=payload,
+        expected_challenge=challenge,
+        expected_rp_id=settings.WEB_AUTHN_RP_ID,
+        expected_origin=settings.WEB_AUTHN_ORIGIN,
+        credential_public_key=base64url_to_bytes(cred.public_key).strip(),
+        credential_current_sign_count=cred.sign_count,
+    )
+
+    # 4. sign_count 更新
+    cred.sign_count = verification.new_sign_count
+    db.commit()
+
+    # 5. ユーザー特定（ここで初めて user_id が確定）
+    user_id = cred.user_id
+
+    # 6. セッション発行
+    session = SessionService.create_session(db, user_id)
+    response.set_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        value=str(session.id),
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+
+    # Cookie を設定した同一レスポンスを 204 として返す
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response
 
 
 @router.post("/logout")
