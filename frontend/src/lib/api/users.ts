@@ -4,30 +4,7 @@
  */
 import { apiGet, apiPost, apiPut, apiDelete } from "./client";
 import { logger } from "@/lib/logger";
-
-/**
- * ユーザーの基本情報の型定義 (backend/app/schemas/user.py の UserOut に対応)
- */
-export interface UserProfile {
-  id: string; // UUID
-  email: string;
-  role: "admin" | "user";
-  status: string;
-}
-
-/**
- * ユーザー作成時の入力データ (backend/app/schemas/user.py の UserCreate に対応)
- */
-export interface CreateUserRequest {
-  email: string;
-  role: "admin" | "user";
-}
-
-/**
- * ユーザー更新時の入力データ (backend/app/schemas/user.py の UserUpdate に対応)
- * 更新は任意項目のみを許容するため、Partialな性質を持たせます。
- */
-export type UpdateUserRequest = Partial<CreateUserRequest>;
+import { UserProfile, CreateUserRequest, UpdateUserRequest } from "@/types";
 
 /**
  * ユーザー情報を取得する共通関数

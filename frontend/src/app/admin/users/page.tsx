@@ -7,11 +7,11 @@
 import { useState, useEffect } from "react";
 import { 
   fetchUserList,
-  type UserProfile, 
   createUser, 
   updateUser, 
   deleteUser 
 } from "@/lib/api/users";
+import type { UserProfile } from "@/types";
 import { getErrorMessage } from "@/lib/error";
 
 /**
@@ -28,7 +28,8 @@ export default function UsersPage() {
   // ユーザー操作時のフィードバックメッセージ用（成功/失敗）
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  const messageTimeout = 20000; // メッセージ表示時間（20秒）
+  // メッセージ表示時間（20秒）
+  const messageTimeout = 20000;
   /**
    * 初期データの読み込み
    * コンポーネントのマウント時に実行されます。

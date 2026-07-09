@@ -4,6 +4,10 @@
  * ユーザー権限、設定項目、OIDC関連の設定などを定義します。
  */
 
+
+/**
+ * ユーザーの権限レベルを表す列挙型
+ */
 export type UserRole = 'user' | 'admin';
 
 /**
@@ -155,3 +159,28 @@ export interface OneTimeLinkVerificationResponse {
   email: string;  // 検証されたユーザーのメールアドレス
   status: string; // 検証結果の状態（例: success, pending）
 }
+
+/**
+ * ユーザーの基本情報の型定義 (backend/app/schemas/user.py の UserOut に対応)
+ */
+export interface UserProfile {
+  id: string; // UUID
+  email: string;
+  role: "admin" | "user";
+  status: string;
+}
+
+/**
+ * ユーザー作成時の入力データ (backend/app/schemas/user.py の UserCreate に対応)
+ */
+export interface CreateUserRequest {
+  email: string;
+  role: "admin" | "user";
+}
+
+/**
+ * ユーザー更新時の入力データ (backend/app/schemas/user.py の UserUpdate に対応)
+ * 更新は任意項目のみを許容するため、Partialな性質を持たせます。
+ */
+export type UpdateUserRequest = Partial<CreateUserRequest>;
+
