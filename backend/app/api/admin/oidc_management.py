@@ -30,7 +30,7 @@ from app.services.oidc_service import (
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/admin_oidc", tags=["OIDC Management"])
+router = APIRouter(prefix="/admin/oidc", tags=["OIDC Management"])
 
 
 def _get_mapping_or_400(db: Session, mapping_id: str):

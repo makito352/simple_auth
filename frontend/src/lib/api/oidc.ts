@@ -21,7 +21,7 @@ import {
  */
 export async function fetchClaimMappings(): Promise<ClaimMapping[]> {
   try {
-    const data = await apiGet("/admin_oidc/mappings");
+    const data = await apiGet("/admin/oidc/mappings");
     return data;
   } catch (error) {
     logger.error(`Failed to fetch claim mappings: ${error}`);
@@ -35,7 +35,7 @@ export async function fetchClaimMappings(): Promise<ClaimMapping[]> {
  */
 export async function fetchClaimMappingById(mappingId: string): Promise<ClaimMapping> {
   try {
-    const data = await apiGet(`/admin_oidc/mappings/${mappingId}`);
+    const data = await apiGet(`/admin/oidc/mappings/${mappingId}`);
     return data;
   } catch (error) {
     logger.error(`Failed to fetch claim mapping ${mappingId}: ${error}`);
@@ -49,7 +49,7 @@ export async function fetchClaimMappingById(mappingId: string): Promise<ClaimMap
  */
 export async function createClaimMapping(data: ClaimMappingInput): Promise<ClaimMapping> {
   try {
-    const response = await apiPost("/admin_oidc/mappings", data);
+    const response = await apiPost("/admin/oidc/mappings", data);
     return response;
   } catch (error) {
     logger.error(`Failed to create claim mapping: ${error}`);
@@ -67,7 +67,7 @@ export async function updateClaimMapping(
   data: ClaimMappingInput
 ): Promise<ClaimMapping> {
   try {
-    const response = await apiPut(`/admin_oidc/mappings/${mappingId}`, data);
+    const response = await apiPut(`/admin/oidc/mappings/${mappingId}`, data);
     return response;
   } catch (error) {
     logger.error(`Failed to update claim mapping ${mappingId}: ${error}`);
@@ -81,7 +81,7 @@ export async function updateClaimMapping(
  */
 export async function deleteClaimMapping(mappingId: string): Promise<void> {
   try {
-    await apiDelete(`/admin_oidc/mappings/${mappingId}`);
+    await apiDelete(`/admin/oidc/mappings/${mappingId}`);
   } catch (error) {
     logger.error(`Failed to delete claim mapping ${mappingId}: ${error}`);
     throw error;
@@ -93,7 +93,7 @@ export async function deleteClaimMapping(mappingId: string): Promise<void> {
  */
 export async function fetchOidcScopes(): Promise<OidcScope[]> {
   try {
-    const data = await apiGet("/admin_oidc/scopes");
+    const data = await apiGet("/admin/oidc/scopes");
     return data;
   } catch (error) {
     logger.error(`Failed to fetch OIDC scopes: ${error}`);
@@ -106,7 +106,7 @@ export async function fetchOidcScopes(): Promise<OidcScope[]> {
  */
 export async function createOidcScope(input: OidcScopeInput): Promise<OidcScope> {
   try {
-    const data = await apiPost("/admin_oidc/scopes", input);
+    const data = await apiPost("/admin/oidc/scopes", input);
     return data;
   } catch (error) {
     logger.error(`Failed to create OIDC scope: ${error}`);
@@ -122,7 +122,7 @@ export async function updateOidcScope(
   input: OidcScopeUpdateInput,
 ): Promise<OidcScope> {
   try {
-    const data = await apiPut(`/admin_oidc/scopes/${scopeName}`, input);
+    const data = await apiPut(`/admin/oidc/scopes/${scopeName}`, input);
     return data;
   } catch (error) {
     logger.error(`Failed to update OIDC scope ${scopeName}: ${error}`);
@@ -135,7 +135,7 @@ export async function updateOidcScope(
  */
 export async function deleteOidcScope(scopeName: string): Promise<void> {
   try {
-    await apiDelete(`/admin_oidc/scopes/${scopeName}`);
+    await apiDelete(`/admin/oidc/scopes/${scopeName}`);
   } catch (error) {
     logger.error(`Failed to delete OIDC scope ${scopeName}: ${error}`);
     throw error;
@@ -147,7 +147,7 @@ export async function deleteOidcScope(scopeName: string): Promise<void> {
  */
 export async function fetchOidcClients(): Promise<OidcClient[]> {
   try {
-    const data = await apiGet("/admin_oidc/clients");
+    const data = await apiGet("/admin/oidc/clients");
     return data;
   } catch (error) {
     logger.error(`Failed to fetch OIDC clients: ${error}`);
@@ -162,7 +162,7 @@ export async function createOidcClient(
   input: OidcClientInput,
 ): Promise<OidcClientWithSecret> {
   try {
-    const data = await apiPost("/admin_oidc/clients", input);
+    const data = await apiPost("/admin/oidc/clients", input);
     return data;
   } catch (error) {
     logger.error(`Failed to create OIDC client: ${error}`);
@@ -178,7 +178,7 @@ export async function updateOidcClient(
   input: OidcClientUpdateInput,
 ): Promise<OidcClient> {
   try {
-    const data = await apiPut(`/admin_oidc/clients/${clientId}`, input);
+    const data = await apiPut(`/admin/oidc/clients/${clientId}`, input);
     return data;
   } catch (error) {
     logger.error(`Failed to update OIDC client ${clientId}: ${error}`);
@@ -193,7 +193,7 @@ export async function rotateOidcClientSecret(
   clientId: string,
 ): Promise<OidcClientWithSecret> {
   try {
-    const data = await apiPost(`/admin_oidc/clients/${clientId}/rotate-secret`);
+    const data = await apiPost(`/admin/oidc/clients/${clientId}/rotate-secret`);
     return data;
   } catch (error) {
     logger.error(`Failed to rotate OIDC client secret ${clientId}: ${error}`);
@@ -209,7 +209,7 @@ export async function setOidcClientActive(
   isActive: boolean,
 ): Promise<OidcClient> {
   try {
-    const data = await apiPatch(`/admin_oidc/clients/${clientId}/active`, {
+    const data = await apiPatch(`/admin/oidc/clients/${clientId}/active`, {
       is_active: isActive,
     });
     return data;

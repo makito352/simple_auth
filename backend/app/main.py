@@ -15,10 +15,10 @@ from pathlib import Path
 from app.api.auth.oidc import router as oidc_router
 from app.api.auth.one_time_link import router as one_time_link_router
 from app.api.auth.webauthn import router as webauthn_router
+from app.api.admin.oidc_management import router as admin_oidc_router
 from app.api.credentials_management import router as credentials_management_router
 from app.api.dashboard_links import router as dashboard_links_router
 from app.api.health import router as health_router
-from app.api.oidc_management import router as admin_oidc_router
 from app.api.proxy.auth_request import router as proxy_router
 from app.api.user import router as user_router
 from app.api.user_option import router as user_option_router
