@@ -10,6 +10,13 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    """
+    アプリケーションの設定を管理するクラス。
+    このクラスは Pydantic の BaseSettings を継承しており、環境変数や設定ファイルから設定値を読み込むことができます。
+    """
+
+    # アプリケーションのバージョン
+    APP_VERSION: str = "1.0.0"
     # データベース接続情報
     DATABASE_USER: str = "simpleauth"
     DATABASE_NAME: str = "simpleauth"

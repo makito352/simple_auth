@@ -69,7 +69,7 @@ def create_app() -> FastAPI:
         root_path=settings.BACKEND_PROXY_PREFIX,
         title="SimpleAuth",
         description="Passwordless SSO with WebAuthn",
-        version="1.0.0",
+        version=settings.APP_VERSION,
         docs_url=docs_url,
         redoc_url=redoc_url,
         openapi_url=openapi_url,
