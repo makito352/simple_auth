@@ -33,7 +33,9 @@ class UserService:
                 logger.error(
                     "User with email %s is already pending or verified.", email
                 )
-                raise ValueError("メールアドレスが既に登録されています。(Email already exists.)")
+                raise ValueError(
+                    "メールアドレスが既に登録されています。(Email already exists.)"
+                )
 
             elif existing_user.email_verification_status in [
                 UserStatus.EXPIRED.value,
