@@ -17,10 +17,12 @@ class Settings(BaseSettings):
     DATABASE_DB_HOST: str = "db"
     # JWT 認証用のシークレットキー
     SECRET_KEY: str = "change-me"
-    # OTPの有効期限（分）
-    OTP_EXPIRE_MINUTES: int = 5
     # セッションの有効期限（日）
     SESSION_EXPIRE_DAYS: int = 14
+    # ワンタイムリンク（新規登録用）の有効期限（分）
+    ONE_TIME_LINK_EXPIRE_MINUTES: int = 60
+    # ワンタイムリンク（デバイス登録用）の有効期限（分）
+    DEVICE_REGISTRATION_LINK_EXPIRE_MINUTES: int = 5
     # セッショントークン用のシークレットキー
     SESSION_TOKEN_SECRET: str = "session-secret"
     # セッションクッキーの名前

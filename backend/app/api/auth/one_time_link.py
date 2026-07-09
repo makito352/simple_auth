@@ -58,14 +58,14 @@ def create_one_time_link(
     """
     【管理用】新しいワンタイムリンクを作成し、トークンを返します。
     例: 管理画面から特定のユーザーに対して「登録用URL」を発行する際に使用。
-    有効期限は60分、用途は registration に固定する。
+    有効期限は設定値（通常60分）、用途は registration に固定する。
     """
     try:
         return OneTimeLinkService.create_link(
             db,
             user_id=data.user_id,
             link_type=data.link_type,
-            expires_in_minutes=60
+            expires_in_minutes=settings.ONE_TIME_LINK_EXPIRE_MINUTES
         )
     except Exception as e:
         logger.error(f"Failed to create one-time link: {str(e)}")
@@ -82,7 +82,7 @@ def create_self_device_link(
 ) -> OneTimeLinkCreateResponse:
     """
     ログイン中ユーザー自身の追加デバイス登録用リンクを発行する。
-    有効期限は5分、用途は device_registration に固定する。
+    有効期限は設定値（通常5分）、用途は device_registration に固定する。
     """
     try:
         user_id = get_current_user_id(request, db)
@@ -102,7 +102,7 @@ def create_self_device_link(
             db,
             user_id=user_id,
             link_type="device_registration",
-            expires_in_minutes=5,
+            expires_in_minutes=settings.DEVICE_REGISTRATION_LINK_EXPIRE_MINUTES,
         )
     except Exception as e:
         logger.error(f"Failed to create self device link for user {request.scope.get('user', 'unknown')}: {str(e)}")
