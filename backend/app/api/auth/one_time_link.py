@@ -14,7 +14,11 @@ from app.schemas.one_time_link import (
     OneTimeLinkCreateResponse,
     TokenVerificationResponse,
 )
-from app.services.one_time_link_service import OneTimeLinkService, IntegrityError, LinkValidationError
+from app.services.one_time_link_service import (
+    IntegrityError,
+    LinkValidationError,
+    OneTimeLinkService,
+)
 from app.services.registration_session_service import generate_token
 from app.services.session_service import SessionService
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -65,7 +69,7 @@ def create_one_time_link(
             db,
             user_id=data.user_id,
             link_type=data.link_type,
-            expires_in_minutes=settings.ONE_TIME_LINK_EXPIRE_MINUTES
+            expires_in_minutes=settings.ONE_TIME_LINK_EXPIRE_MINUTES,
         )
     except Exception as e:
         logger.error(f"Failed to create one-time link: {str(e)}")
@@ -105,7 +109,9 @@ def create_self_device_link(
             expires_in_minutes=settings.DEVICE_REGISTRATION_LINK_EXPIRE_MINUTES,
         )
     except Exception as e:
-        logger.error(f"Failed to create self device link for user {request.scope.get('user', 'unknown')}: {str(e)}")
+        logger.error(
+            f"Failed to create self device link for user {request.scope.get('user', 'unknown')}: {str(e)}"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="システムエラーが発生しました。再度お試しください。",
