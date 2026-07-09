@@ -74,7 +74,9 @@ class AuthOptionsService:
 
         # 認証オプションが存在しない場合はNoneを返す
         result = auth_option.challenge if auth_option else None
-        logger.debug("Retrieved authentication challenge: exists=%s", result is not None)
+        logger.debug(
+            "Retrieved authentication challenge: exists=%s", result is not None
+        )
 
         return result
 
