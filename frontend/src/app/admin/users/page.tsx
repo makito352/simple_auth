@@ -12,7 +12,7 @@ import {
   updateUser, 
   deleteUser 
 } from "@/lib/api/users";
-import { logger } from "@/lib/logger";
+import { getErrorMessage } from "@/lib/error";
 
 /**
  * ユーザー管理メインページコンポーネント
@@ -28,6 +28,7 @@ export default function UsersPage() {
   // ユーザー操作時のフィードバックメッセージ用（成功/失敗）
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
+  const messageTimeout = 20000; // メッセージ表示時間（20秒）
   /**
    * 初期データの読み込み
    * コンポーネントのマウント時に実行されます。
@@ -39,7 +40,8 @@ export default function UsersPage() {
         const data = await fetchUserList();
         setUsers(data);
       } catch (error) {
-        logger.error(`Failed to load user list: ${error}`);
+        const errorMessage = getErrorMessage(error, "ユーザー一覧の取得に失敗しました");
+        setStatusMessage({ text: errorMessage, type: "error" });
       } finally {
         setLoading(false);
       }
@@ -55,16 +57,16 @@ export default function UsersPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createUser(editFormData);
-      // 作成成功時、ステートを更新（実際の実装ではAPIから返却されたIDを使用）
-      setUsers(prev => [...prev, { ...editFormData, id: "new-id" } as UserProfile]); // 仮のID
+      const newUser = await createUser(editFormData);
+      // 作成成功時、ステートを更新
+      setUsers(prev => [...prev, newUser]); 
       setStatusMessage({ text: "ユーザーを作成しました", type: "success" });
     } catch (err) {
-      logger.error(`Failed to create user: ${err}`);
-      setStatusMessage({ text: "作成に失敗しました", type: "error" });
+      const errorMessage = getErrorMessage(err, "ユーザー作成に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
     }
-    // 3秒後にメッセージをクリア
-    setTimeout(() => setStatusMessage(null), 3000);
+    // 20秒後にメッセージをクリア
+    setTimeout(() => setStatusMessage(null), messageTimeout);
   };
 
   /**
@@ -79,9 +81,11 @@ export default function UsersPage() {
       setEditingId(null); // 編集モードを終了
       setStatusMessage({ text: "更新しました", type: "success" });
     } catch (err) {
-      setStatusMessage({ text: "更新に失敗しました", type: "error" });
+      const errorMessage = getErrorMessage(err, "ユーザー更新に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
     }
-    setTimeout(() => setStatusMessage(null), 3000);
+    // 20秒後にメッセージをクリア
+    setTimeout(() => setStatusMessage(null), messageTimeout);
   };
 
   /**
@@ -95,9 +99,11 @@ export default function UsersPage() {
       setUsers(prev => prev.filter(u => u.id !== id));
       setStatusMessage({ text: "削除しました", type: "success" });
     } catch (err) {
-      setStatusMessage({ text: "削除に失敗しました", type: "error" });
+      const errorMessage = getErrorMessage(err, "ユーザー削除に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
     }
-    setTimeout(() => setStatusMessage(null), 3000);
+    // 20秒後にメッセージをクリア
+    setTimeout(() => setStatusMessage(null), messageTimeout);
   };
 
   // ロード中の表示処理

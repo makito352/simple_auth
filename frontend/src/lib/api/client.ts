@@ -6,6 +6,16 @@
  */
 import { logger } from "@/lib/logger";
 
+
+/**
+ * APIエラーの構造を定義するインターフェース
+ */
+interface ApiError extends Error {
+  status?: number;
+  data?: any;
+  detail?: string;
+}
+
 /**
  * クエリパラメータをURLに付与し、適切なベースURLを組み合わせて完全なURLを生成する。
  * サーバーサイド実行時とクライアントサイド実行時で異なる接続先（内部ネットワーク vs 外部公開用）を判別します。
@@ -58,9 +68,22 @@ async function request(url: string, options: RequestInit): Promise<any> {
 
   // 成功ステータス（200-299）以外の場合はエラーを投げる
   if (!res.ok) {
+    let errorData: any;
+    try {
+      const text = await res.text();
+      errorData = text ? JSON.parse(text) : null;
+    } catch (e) {
+      errorData = null;
+    }
     // エラーオブジェクトにステータスコードを付与して投げる
     const error = new Error(`API error: ${res.status}`);
-    (error as any).status = res.status; // ステータスをプロパティとして付与
+    (error as ApiError).status = res.status; // ステータスをプロパティとして付与
+    (error as ApiError).data = errorData;
+
+    // データ内に detail が存在する場合はエラーオブジェクトに直接付与
+    if (errorData && typeof errorData === 'object' && errorData.detail) {
+      (error as ApiError).detail = errorData.detail;
+    }
     throw error; 
   }
 
