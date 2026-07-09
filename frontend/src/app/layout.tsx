@@ -4,6 +4,7 @@
  */
 
 import { Toaster } from 'sonner';
+import "./globals.css";
 
 /**
  * アプリケーションのメタデータ設定（アイコン等）

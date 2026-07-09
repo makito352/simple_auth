@@ -9,14 +9,17 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@simplewebauthn/browser": "^10.0.0",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@tailwindcss/postcss": "^4.3.2",
     "axios": "^1.6.0",
     "lucide-react": "^1.22.0",
     "next": "^16.2.2",
+    "postcss": "^8.5.16",
     "qrcode": "^1.5.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "sonner": "^2.0.7"
+    "sonner": "^2.0.7",
+    "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
@@ -26,5 +29,9 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.2.2",
     "typescript": "^5.3.3"
+  },
+  "allowScripts": {
+    "sharp@0.34.5": true,
+    "unrs-resolver@1.12.2": true
   }
 }
