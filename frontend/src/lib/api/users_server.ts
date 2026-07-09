@@ -7,7 +7,7 @@
  */
 
 import { cookies } from "next/headers";
-import { type UserProfile } from "@/lib/api/users";
+import { type UserProfile } from "@/types";
 import { logger } from "@/lib/logger";
 import { buildUrl } from "@/lib/api/client";
 import { SESSION_COOKIE_NAME } from "@/lib/config/auth";
@@ -46,12 +46,9 @@ export async function fetchUserProfileForServer(): Promise<UserProfile | null> {
       return null;
     }
 
-    const data = await response.json();
-    logger.debug(`fetchUserProfileForServer - Raw response body: ${JSON.stringify(data)}`);
-
-    const user = data as UserProfile;
-    logger.debug(`fetchUserProfileForServer - loaded user: ${JSON.stringify(user)}`);
-    return user;
+    const data = (await response.json()) as UserProfile;
+    logger.debug(`fetchUserProfileForServer - loaded user: ${JSON.stringify(data)}`);
+    return data;
   } catch (error) {
     logger.error(`fetchUserProfileForServer - failed: ${error}`);
     return null;
