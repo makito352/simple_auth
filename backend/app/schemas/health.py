@@ -2,7 +2,7 @@
 ヘルスチェックのレスポンス構造を定義するスキーマモジュール。
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
@@ -10,4 +10,4 @@ class HealthResponse(BaseModel):
     ヘルスチェックのレスポンス構造を定義。
     """
 
-    status: str
+    status: str = Field(..., description="サービスの稼働状態")
