@@ -4,11 +4,7 @@ dashboard_links API モジュール
 ダッシュボードリンクの CRUD 操作と、アイコンファイルの保存／削除処理を提供します。
 """
 
-import os
-import uuid
-from pathlib import Path
 from typing import Optional
-from uuid import UUID
 
 from app.api.current_user import get_current_user
 from app.core.config import settings
