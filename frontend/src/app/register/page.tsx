@@ -84,29 +84,38 @@ function RegistrationContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: "24px", maxWidth: "560px", margin: "0 auto" }}>
-        <h1>デバイス登録</h1>
-        <p>登録用リンクを確認しています。少々お待ちください。</p>
+      <div className="flex flex-col items-center justify-center min-h-[400px] px-6 py-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">デバイス登録</h1>
+        <p className="text-gray-600">登録用リンクを確認しています。少々お待ちください。</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "24px", maxWidth: "560px", margin: "0 auto" }}>
-      <h1>デバイス登録</h1>
+    <div className="max-w-[560px] mx-auto px-6 py-12">
+      <h1 className="text-2xl font-bold mb-8 border-b pb-2">デバイス登録</h1>
       {isVerified ? (
-        <>
-          <p>リンクの確認が完了しました。次へ進むには、この端末でパスキーを登録してください。</p>
-          {error && <p style={{ color: "#b00020" }}>{error}</p>}
-          <button onClick={handleRegister} disabled={submitting}>
+        <div className="space-y-4">
+          <p className="text-gray-700">リンクの確認が完了しました。次へ進むには、この端末でパスキーを登録してください。</p>
+          {error && <p className="text-red-600 font-medium">{error}</p>}
+          <button 
+            onClick={handleRegister} 
+            disabled={submitting}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md transition-colors"
+          >
             {submitting ? "登録中..." : "パスキーを登録する"}
           </button>
-        </>
+        </div>
       ) : (
-        <>
-          <p>{error ?? "登録用リンクを確認できませんでした。"}</p>
-          <button onClick={handleRetry}>再読み込み</button>
-        </>
+        <div className="space-y-4">
+          <p className="text-red-600 font-medium">{error ?? "登録用リンクを確認できませんでした。"}</p>
+          <button 
+            onClick={handleRetry} 
+            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition-colors"
+          >
+            再読み込み
+          </button>
+        </div>
       )}
     </div>
   );
