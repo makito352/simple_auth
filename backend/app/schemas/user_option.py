@@ -3,7 +3,6 @@
 このモジュールでは、ユーザーオプションの作成、取得、更新のデータ構造を定義します。
 """
 
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
