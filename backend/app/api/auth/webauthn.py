@@ -49,6 +49,10 @@ router = APIRouter(prefix="/webauthn", tags=["webauthn"])
 # ----------------------------
 @router.options("/register/options")
 async def options_register_options():
+    """
+    登録オプション取得用のOPTIONSメソッド。
+    CORS設定などのために必要です。
+    """
     return {}
 
 
@@ -56,12 +60,19 @@ async def options_register_options():
     "/register/options",
 )
 def register_options(request: Request, db: Session = Depends(get_db)):
+    """
+    新規ユーザーまたは既存ユーザーのWebAuthn登録用オプションを生成します。
+    セッションクッキーからユーザーを特定し、チャレンジを含む登録情報を返します。
+    """
     logger.debug("register_options request received")
     return issue_registration_options(request, db)
 
 
 @router.options("/register/verify")
 async def options_register_verify():
+    """
+    登録検証用OPTIONSメソッド。
+    """
     return {}
 
 
@@ -69,6 +80,11 @@ async def options_register_verify():
 def register_verify(
     payload: dict, request: Request, db: Session = Depends(get_db)
 ) -> Response:
+    """
+    WebAuthnの登録プロセスにおける検証レスポンスを受け取り、
+    正当性を確認した上で新しいデバイスをユーザーに紐付けます。
+    成功時には204 No Contentを返します。
+    """
     logger.debug("register_verify request received")
     return verify_registration_and_store(
         payload=payload,
@@ -80,6 +96,9 @@ def register_verify(
 
 @router.options("/devices/register/options")
 async def options_device_register_options():
+    """
+    追加デバイス登録用のOPTIONSメソッド。
+    """
     return {}
 
 
@@ -94,6 +113,9 @@ def device_register_options(request: Request, db: Session = Depends(get_db)):
 
 @router.options("/devices/register/verify")
 async def options_device_register_verify():
+    """
+    追加デバイス登録用の検証用OPTIONSメソッド。
+    """
     return {}
 
 
@@ -116,7 +138,14 @@ def device_register_verify(
 
 def issue_registration_options(request: Request, db: Session):
     """
-    セッショントークンからユーザーを解決し、WebAuthn登録オプションを発行する。
+    セッショントークンからユーザーを特定し、WebAuthn登録用オプションを作成・返却します。
+
+    Args:
+        request (Request): クライアントからのリクエスト
+        db (Session): データベースセッション
+
+    Returns:
+        dict: WebAuthnの `generate_registration_options` を処理した結果
     """
     session_token = request.cookies.get("session_token")
     if not session_token:
@@ -155,8 +184,16 @@ def verify_registration_and_store(
     update_user_verification: bool,
 ) -> Response:
     """
-    WebAuthn登録レスポンスを検証し、資格情報を保存する共通処理。
-    update_user_verification が True の場合、ユーザーのメール検証ステータスを更新する。
+    WebAuthnの登録レスポンスを検証し、有効な場合はデータベースに保存します。
+
+    Args:
+        payload (dict): フロントエンドから送信されたWebAuthnの応答データ
+        request (Request): クライアントからのリクエスト（Cookie等を含む）
+        db (Session): データベースセッション
+        update_user_verification (bool): 成功時にユーザーのメール検証済みフラグを更新するかどうか
+
+    Returns:
+        Response: 成功時に204 No Contentを返すレスポンス
     """
     session_token = request.cookies.get("session_token")
     if not session_token:
@@ -168,13 +205,16 @@ def verify_registration_and_store(
         logger.error("Invalid or expired session token")
         raise HTTPException(status_code=400, detail="Invalid or expired session")
 
+    # 保存されているチャレンジを取得
     challenge_data = get_challenge(db, session_token)
     device_name = payload.get("device_name")
+    # 非WebAuthn関連のフィールド（device_name等）を除外して検証に渡す
     credential_payload = {
         key: value for key, value in payload.items() if key != "device_name"
     }
 
     try:
+        # WebAuthnプロトコルに基づいた署名の検証
         verification = verify_registration_response(
             credential=credential_payload,
             expected_challenge=challenge_data,
@@ -185,11 +225,13 @@ def verify_registration_and_store(
         logger.error(f"WebAuthn registration verification failed: {e}")
         raise HTTPException(status_code=400, detail="Registration verification failed.")
 
+    # credential_idをデータベース保存用にBase64URL形式に変換
     cred_id_to_save = verification.credential_id
     if isinstance(cred_id_to_save, bytes):
         # credential_id を base64url 形式に変換して保存する
         cred_id_to_save = bytes_to_base64url(cred_id_to_save)
 
+    # 新規登録時にユーザーの認証済みステータスを更新するフラグがある場合のみ処理
     if update_user_verification:
         # 新規登録時にユーザーのメール検証ステータスを更新する場合
         # ユーザーのメール検証ステータスを更新する
@@ -214,6 +256,9 @@ def verify_registration_and_store(
 # ----------------------------
 @router.options("/login/options")
 async def options_login_options():
+    """
+    ログイン用のWebAuthnオプション取得用OPTIONSメソッド。
+    """
     return {}
 
 
@@ -221,6 +266,16 @@ async def options_login_options():
 def login_options(
     request: Request, db: Session = Depends(get_db)
 ) -> LoginOptionsResponse:
+    """
+    ログイン用のWebAuthnオプションを生成し、クライアントに返します。
+
+    Args:
+        request (Request): クライアントからのリクエスト
+        db (Session): データベースセッション
+
+    Returns:
+        LoginOptionsResponse: WebAuthnの認証オプションとセッショントークン
+    """
     # ログイン用のWebAuthn認証オプションを発行する。
     options = generate_authentication_options(
         rp_id=settings.WEB_AUTHN_RP_ID,
@@ -247,6 +302,18 @@ def login_options(
 def login_verify(
     payload: dict, response: Response, db: Session = Depends(get_db)
 ) -> Response:
+    """
+    WebAuthnのログイン検証レスポンスを受け取り、正当性を確認した上でユーザーを認証します。
+    成功時には204 No Contentを返します。
+
+    Args:
+        payload (dict): フロントエンドから送信されたWebAuthnの応答データ
+        response (Response): レスポンスオブジェクト
+        db (Session): データベースセッション
+
+    Returns:
+        Response: 成功時に204 No Contentを返すレスポンス
+    """
     # # payload["id"] は credential_id を指すと想定
     logger.debug(
         "login_verify request received for credential_id: %s", payload.get("id")
