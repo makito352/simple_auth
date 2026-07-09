@@ -12,7 +12,6 @@ import { logger } from "@/lib/logger";
  */
 interface ApiError extends Error {
   status?: number;
-  data?: any;
   detail?: string;
 }
 
@@ -33,7 +32,7 @@ export function buildUrl(path: string, params?: Record<string, string | number |
   // 外部公開用またはクライアントからのリクエスト用
   const externalHost = process.env.NEXT_PUBLIC_API_URL;
 
-  let baseUrl = isServer ? internalHost : externalHost;
+  const baseUrl = isServer ? internalHost : externalHost;
 
   if (!baseUrl) {
     logger.error("Base URL is not defined");
@@ -59,7 +58,7 @@ export function buildUrl(path: string, params?: Record<string, string | number |
  * @param options - fetchオプション（メソッド、ヘッダー等）
  * @returns 解析済みのJSONデータまたはnull
  */
-async function request(url: string, options: RequestInit): Promise<any> {
+async function request(url: string, options: RequestInit): Promise<unknown> {
   if (!process.env.NEXT_PUBLIC_API_URL) {
     logger.error("NEXT_PUBLIC_API_URL is not defined");
   }
@@ -68,21 +67,23 @@ async function request(url: string, options: RequestInit): Promise<any> {
 
   // 成功ステータス（200-299）以外の場合はエラーを投げる
   if (!res.ok) {
-    let errorData: any;
+    let errorData: unknown;
     try {
       const text = await res.text();
       errorData = text ? JSON.parse(text) : null;
-    } catch (e) {
+    } catch {
       errorData = null;
     }
     // エラーオブジェクトにステータスコードを付与して投げる
     const error = new Error(`API error: ${res.status}`);
     (error as ApiError).status = res.status; // ステータスをプロパティとして付与
-    (error as ApiError).data = errorData;
 
-    // データ内に detail が存在する場合はエラーオブジェクトに直接付与
-    if (errorData && typeof errorData === 'object' && errorData.detail) {
-      (error as ApiError).detail = errorData.detail;
+    // データ内に detail が存在する場合はエラーオブジェクトに付与
+    if (errorData && typeof errorData === 'object' && errorData !== null) {
+      const dataObj = errorData as Record<string, unknown>;
+      if (dataObj.detail !== undefined) {
+        (error as ApiError).detail = String(dataObj.detail);
+      }
     }
     throw error; 
   }
@@ -103,7 +104,7 @@ async function request(url: string, options: RequestInit): Promise<any> {
  * @param path - リクエストパス
  * @param body - JSONとして送信するデータ（任意）
  */
-export async function apiPost(path: string, body?: any) {
+export async function apiPost(path: string, body?: unknown) {
   const url = buildUrl(path);
   const options: RequestInit = {
     method: "POST",
@@ -120,7 +121,7 @@ export async function apiPost(path: string, body?: any) {
  * @param path - リクエストパス
  * @param body - 更新用データ（任意）
  */
-export async function apiPut(path: string, body?: any) {
+export async function apiPut(path: string, body?: unknown) {
   const url = buildUrl(path);
   const options: RequestInit = {
     method: "PUT",
@@ -169,7 +170,7 @@ export async function apiPutForm(path: string, formData: FormData) {
  * @param path - リクエストパス
  * @param body - 更新用データ（任意）
  */
-export async function apiPatch(path: string, body?: any) {
+export async function apiPatch(path: string, body?: unknown) {
   const url = buildUrl(path);
   const options: RequestInit = {
     method: "PATCH",
