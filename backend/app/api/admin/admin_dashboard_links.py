@@ -12,6 +12,7 @@ from typing import Optional
 from uuid import UUID
 
 from app.api.current_user import get_current_admin_user
+from app.api.dashboard_links import serialize_dashboard_link
 from app.core.config import logger
 from app.db.session import get_db
 from app.schemas.dashboard_link import DashboardLinkCreate, DashboardLinkRead
@@ -20,7 +21,6 @@ from app.utils.static_utils import ICON_URL_PREFIX, get_static_icons_dir
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
-from app.api.dashboard_links import serialize_dashboard_link
 
 router = APIRouter(prefix="/admin/dashboards", tags=["dashboards"])
 
@@ -79,6 +79,7 @@ def _save_icon_file(file: UploadFile) -> str:
 
     # フロントエンドからアクセスできる相対 URL パスを返す
     return f"{ICON_URL_PREFIX}/{unique_filename}"
+
 
 def _delete_icon_file(icon_path: str) -> None:
     """指定されたアイコンパスが存在する場合、そのファイルを削除する。"""

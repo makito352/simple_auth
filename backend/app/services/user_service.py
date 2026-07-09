@@ -21,7 +21,7 @@ class UserService:
         actual_role = role
         if hasattr(role, "value"):
             actual_role = role.value
-        
+
         existing_user = db.query(User).filter(User.email == email).first()
 
         if existing_user:
@@ -33,7 +33,7 @@ class UserService:
                 logger.error(
                     "User with email %s is already pending or verified.", email
                 )
-                raise ValueError("Email already exists and is pending or verified.")
+                raise ValueError("メールアドレスが既に登録されています。(Email already exists.)")
 
             elif existing_user.email_verification_status in [
                 UserStatus.EXPIRED.value,
@@ -71,9 +71,7 @@ class UserService:
         count = db.query(User).count()
         admin_email = settings.INITIAL_ADMIN_USER_EMAIL
         if count == 0:
-            user = UserService.create_user(
-                db, email=admin_email, role=UserRole.ADMIN
-            )
+            user = UserService.create_user(db, email=admin_email, role=UserRole.ADMIN)
             link = OneTimeLinkService.create_link(db, user.id)
             logger.info(
                 "Created initial admin user with email: %s, onetime link: %s",

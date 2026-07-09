@@ -46,7 +46,9 @@ def serialize_dashboard_link(link) -> DashboardLinkRead:
 
 
 @router.get("/", response_model=list[DashboardLinkRead])
-def list_links(db: Session = Depends(get_db), _get_current_user=Depends(get_current_user)):
+def list_links(
+    db: Session = Depends(get_db), _get_current_user=Depends(get_current_user)
+):
     """登録済みのダッシュボードリンク一覧を取得する。"""
 
     # DB からすべてのリンクを取得し、レスポンス用にシリアライズする
