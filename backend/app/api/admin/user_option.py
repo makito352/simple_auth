@@ -18,7 +18,7 @@ from app.services.user_option_service import UserOptionService
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/user-options", tags=["user-options"])
+router = APIRouter(prefix="/admin//user-options", tags=["user-options"])
 
 
 @router.get("/attributes", response_model=list[OptionAttributeOut])

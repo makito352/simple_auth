@@ -19,7 +19,7 @@ export interface UserOptionBulkUpdateRequest {
  */
 export async function fetchOptionAttributes(): Promise<OptionAttribute[]> {
   try {
-    const data = await apiGet("/user-options/attributes");
+    const data = await apiGet("/admin//user-options/attributes");
     return data;
   } catch (error) {
     logger.error(`Failed to fetch option attributes: ${error}`);
@@ -31,7 +31,7 @@ export async function createOptionAttribute(
   body: Pick<OptionAttribute, 'key' | 'encrypted'>
 ): Promise<OptionAttribute> {
   try {
-    const data = await apiPost("/user-options/attributes", body);
+    const data = await apiPost("/admin//user-options/attributes", body);
     return data;
   } catch (error) {
     logger.error(`Failed to create option attribute: ${error}`);
@@ -44,7 +44,7 @@ export async function updateOptionAttribute(
   body: Pick<OptionAttribute, 'key' | 'encrypted'>
 ): Promise<OptionAttribute> {
   try {
-    const data = await apiPut(`/user-options/attributes/${id}`, body);
+    const data = await apiPut(`/admin//user-options/attributes/${id}`, body);
     return data;
   } catch (error) {
     logger.error(`Failed to update option attribute: ${error}`);
@@ -58,7 +58,7 @@ export async function updateOptionAttribute(
  */
 export async function fetchUserOptions(userId: string): Promise<UserOption[]> {
   try {
-    const data = await apiGet(`/user-options/${userId}/options`);
+    const data = await apiGet(`/admin//user-options/${userId}/options`);
     return data;
   } catch (error) {
     logger.error(`Failed to fetch user options for ${userId}: ${error}`);
@@ -76,7 +76,7 @@ export async function updateUserOptions(
   options: UserOption[]
 ): Promise<UserOption[]> {
   try {
-    const data = await apiPatch(`/user-options/${userId}/options`, {
+    const data = await apiPatch(`/admin//user-options/${userId}/options`, {
       options: options,
     });
     return data;
