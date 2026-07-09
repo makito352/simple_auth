@@ -2,6 +2,7 @@
 このモジュールはデータベース内の認証オプションを表す AuthenticationOption モデルを定義します。
 AuthenticationOption モデルは、セッショントークン、チャレンジ、期限切れ時間、作成時間などのフィールドを含みます。
 """
+
 import uuid
 
 from app.db.session import Base
@@ -15,8 +16,8 @@ class AuthenticationOption(Base):
     認証オプションのデータベースモデル。
     ユーザーの認証プロセスに関連するセッション情報やチャレンジ応答を管理します。
     """
-    __tablename__ = "authentication_options"
 
+    __tablename__ = "authentication_options"
 
     # 一意の識別子 (UUID)
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -32,4 +33,4 @@ class AuthenticationOption(Base):
     )
 
     def __repr__(self):
-         return f"<AuthenticationOption(id={self.id}, session_token={self.session_token}, expires_at={self.expires_at})>"
+        return f"<AuthenticationOption(id={self.id}, session_token={self.session_token}, expires_at={self.expires_at})>"

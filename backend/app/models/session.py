@@ -2,6 +2,7 @@
 セッション管理に関するモデル定義。
 ユーザーのログインセッションをデータベースに保存するためのテーブル構造を定義します。
 """
+
 import uuid
 
 from app.db.session import Base
@@ -15,6 +16,7 @@ class Session(Base):
     セッション情報のエンティティ。
     各ユーザーの現在のセッション状態、有効期限、および無効化時間を管理します。
     """
+
     __tablename__ = "sessions"
 
     # 一意の識別子（UUID形式）

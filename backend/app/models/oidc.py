@@ -13,7 +13,7 @@ class OidcAuthCode(Base):
     __tablename__ = "oidc_auth_codes"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    code = Column(String(255), unique=True, index=True, nullable=False) # 認証コード
+    code = Column(String(255), unique=True, index=True, nullable=False)  # 認証コード
     client_id = Column(String(255), nullable=False)
     redirect_uri = Column(String(1024), nullable=False)
     scope = Column(String(1024), nullable=False)
@@ -70,9 +70,7 @@ class OidcClaimMapping(Base):
     # クレーム名（例: "imap_server"）
     claim_name = Column(String(255), nullable=False)
     # 値の取得元定義 ("user_attribute", "static", "user_profile")
-    value_source = Column(
-        String(64), nullable=False
-    )
+    value_source = Column(String(64), nullable=False)
     # value_source="user_attribute" の場合のキー名
     value_key = Column(String(255))
     # value_source="static" の場合に使用する固定値

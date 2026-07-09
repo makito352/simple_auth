@@ -2,6 +2,7 @@
 資格情報（Credential）モデルの定義
 ユーザーに関連付けられた公開鍵やデバイス情報を管理します。
 """
+
 import uuid
 
 from app.db.session import Base
@@ -15,6 +16,7 @@ class Credential(Base):
     認証情報のエンティティ。
     ユーザーごとに紐づくデバイス情報や公開鍵を保持します。
     """
+
     __tablename__ = "credentials"
 
     # 識別子（UUID）
