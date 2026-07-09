@@ -9,6 +9,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { verifyOneTimeLink } from "@/lib/api/one_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
+import type { ApiError } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/error";
 import { logger } from "@/lib/logger";
 
 /**
@@ -41,12 +43,13 @@ function RegistrationContent() {
           setIsVerified(true);
           setError(null);
         }
-      } catch (e: any) {
-        // トークン検証に失敗した場合のエラーハンドリング
-        logger.debug(`Failed to verify one-time link for registration: ${e}`);
-        // 400系エラー（期限切れなど）は、fetchした際のメッセージをそのままセットする。
-        // それ以外の汎用的なエラーの場合も、API層で適切に処理されていれば here での判断は不要。
-        setError(e.message || "認証中に問題が発生しました。"); 
+      } catch (error) {
+        const isApiError = (error && typeof error === 'object' && 'status' in error);
+        // ApiError型の場合、共通のメッセージから取得。それ以外（通常のError等）の場合は「URL不正です」を表示
+        const errorMessage = (isApiError) 
+          ? getErrorMessage(error as ApiError, "認証中に問題が発生しました。")
+          : "URLが正しくありません。";
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
