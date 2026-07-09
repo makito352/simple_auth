@@ -51,7 +51,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   },
   { 
     title: "ユーザーデータ管理", 
-    href: "/admin/useroption/uservalues", 
+    href: "/admin/uservalues", 
     desc: "各ユーザー固有の属性値の設定",
     icon: User
   },
