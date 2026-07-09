@@ -147,7 +147,7 @@ def issue_registration_options(request: Request, db: Session):
     Returns:
         dict: WebAuthnの `generate_registration_options` を処理した結果
     """
-    session_token = request.cookies.get("session_token")
+    session_token = request.cookies.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
     if not session_token:
         logger.error("Session token missing in request cookies")
         raise HTTPException(status_code=400, detail="Session token missing")
@@ -195,7 +195,7 @@ def verify_registration_and_store(
     Returns:
         Response: 成功時に204 No Contentを返すレスポンス
     """
-    session_token = request.cookies.get("session_token")
+    session_token = request.cookies.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
     if not session_token:
         logger.error("Session token missing in request cookies")
         raise HTTPException(status_code=400, detail="Session token missing")
@@ -319,7 +319,7 @@ def login_verify(
         "login_verify request received for credential_id: %s", payload.get("id")
     )
 
-    session_token = payload.get("session_token")
+    session_token = payload.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
     credential_id = payload.get(
         "id"
     )  # frontから送られてくるのは "id" フィールドであること

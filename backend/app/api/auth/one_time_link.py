@@ -128,7 +128,7 @@ def verify_one_time_link(
         # これにより、次の /webauthn/ ステップでこのユーザーを識別できるようになります。
         registration_token = generate_token(db, user.id)
         response.set_cookie(
-            key="session_token",
+            key=settings.WEB_AUTHN_TEMP_TOKEN_NAME,
             value=registration_token,
             httponly=True,
             secure=True,

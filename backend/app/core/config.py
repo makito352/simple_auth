@@ -23,10 +23,12 @@ class Settings(BaseSettings):
     ONE_TIME_LINK_EXPIRE_MINUTES: int = 60
     # ワンタイムリンク（デバイス登録用）の有効期限（分）
     DEVICE_REGISTRATION_LINK_EXPIRE_MINUTES: int = 5
+    # 一時的なセッショントークンの名前（WebAuthn登録用など）
+    WEB_AUTHN_TEMP_TOKEN_NAME: str = "simpleauth_temp_session_token"
+    # ログイン後の通常のセッションクッキーの名前
+    SESSION_COOKIE_NAME: str = "simpleauth_session"
     # セッショントークン用のシークレットキー
     SESSION_TOKEN_SECRET: str = "session-secret"
-    # セッションクッキーの名前
-    SESSION_COOKIE_NAME: str = "simpleauth_session"
     # 暗号化用（UserOptionなどの暗号化に使用）
     ENCRYPTION_KEY: str = "your-base64-encoded-key"
 
