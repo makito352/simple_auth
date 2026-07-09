@@ -1,3 +1,7 @@
+/**
+ * @file page.tsx
+ * @description ユーザー設定値の一覧表示、作成、編集、削除を行う。
+ */
 "use client";
 
 import React, { useState, useEffect } from 'react';
