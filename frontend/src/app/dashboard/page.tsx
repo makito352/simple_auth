@@ -6,6 +6,7 @@ import { fetchUserProfile, isAdmin } from "@/lib/api/users";
 import { logout } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
 import { type UserProfile } from "@/types";
+import { LoadingSpinner } from "@/app/components/loading-spinner";
 import Image from "next/image";
 
 export default function Dashboard() {
@@ -48,14 +49,7 @@ export default function Dashboard() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[100vh] bg-gray-50">
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600 font-medium">読み込み中...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   // 管理者かどうかを判定（共通ロジックを使用）
