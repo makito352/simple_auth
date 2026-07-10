@@ -99,11 +99,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger("app")
 
+# ログ出力時にマスクする項目を定義
+SENSITIVE_FIELDS = [
+    "SECRET_KEY",
+    "SESSION_TOKEN_SECRET",
+    "ENCRYPTION_KEY",
+    "OIDC_JWT_PRIVATE_KEY",
+    "OIDC_JWT_PUBLIC_KEY",
+]
+
 # settings の全属性をデバッグログとして出力
 logger.debug("--- 読み込んだ設定値 (Settings) ---")
 for key, value in settings.__dict__.items():
-    # ログに出力したくない機密情報（例：パスワードやシークレットキー）はスキップまたはマスク推奨ですが、
-    # 今回は全てのフィールドを表示するというご要望に基づき、全て出力します。
-    if key not in ["Config", "logger"]:  # Pydanticの内部属性など不要なものを除外
-        logger.debug(f"  {key}: {value}")
+    if key == "Config" or key == "logger":
+        continue
+    
+    # 機密情報の場合はマスクする
+    if key in SENSITIVE_FIELDS:
+        logger.debug("  %s: [MASKED]", key)
+    else:
+        logger.debug("  %s: %s", key, value)
 logger.debug("----------------------------------")
