@@ -13,10 +13,6 @@ class CreateLinkRequest(BaseModel):
     """新規トークン生成リクエスト用モデル"""
 
     user_id: UUID = Field(description="ユーザーのユニークID")
-    link_type: str = Field(
-        default="registration",
-        description="リンクの種類（例: registration, verification）",
-    )
 
 
 # --- Response Models ---
@@ -41,4 +37,4 @@ class TokenVerificationResponse(BaseModel):
 
     user_id: str = Field(description="検証されたユーザーのID")
     email: str = Field(description="検証されたユーザーのメールアドレス")
-    status: str = Field(description="検証結果の状態（例: success, pending）")
+    status: str = Field(description="ユーザーの状態（例: success:認証済み, pending:登録中）")

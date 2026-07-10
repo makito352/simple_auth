@@ -67,7 +67,7 @@ def create_one_time_link(
     return OneTimeLinkService.create_link(
         db,
         user_id=data.user_id,
-        link_type=data.link_type,
+        link_type="registration",
         expires_in_minutes=settings.ONE_TIME_LINK_EXPIRE_MINUTES,
     )
 
