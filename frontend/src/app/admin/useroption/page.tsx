@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchOptionAttributes, createOptionAttribute, updateOptionAttribute } from '@/lib/api/user_options';
 import { OptionAttribute } from '@/types';
+import { getErrorMessage } from "@/lib/error";
 import { toast } from 'sonner';
 
 /**
@@ -23,7 +24,8 @@ export default function OptionAttributePage() {
         const data = await fetchOptionAttributes();
         setAttributes(data);
       } catch (error) {
-        toast.error("属性データの読み込みに失敗しました。");
+        const errorMessage = getErrorMessage(error, "属性データの読み込みに失敗しました。");
+        toast.error(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -62,7 +64,8 @@ export default function OptionAttributePage() {
       setIsEditing(null);
       setFormData({ id: '', key: '', encrypted: false });
     } catch (error) {
-      toast.error("保存に失敗しました。");
+      const errorMessage = getErrorMessage(error, "属性の保存に失敗しました。");
+      toast.error(errorMessage);
     }
   };
 
