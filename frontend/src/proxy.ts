@@ -13,7 +13,7 @@ import { SESSION_COOKIE_NAME } from "@/lib/config/auth";
  * @param {NextRequest} request - Next.jsのミドルウェア用リクエストオブジェクト
  * @returns {NextResponse} - 次の処理への継続またはリダイレクト先
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // クッキーからセッション情報を取得
   const session = request.cookies.get(SESSION_COOKIE_NAME);
 
