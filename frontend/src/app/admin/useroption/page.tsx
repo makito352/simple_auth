@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchOptionAttributes, createOptionAttribute, updateOptionAttribute } from '@/lib/api/user_options';
 import { OptionAttribute } from '@/types';
 import { getErrorMessage } from "@/lib/error";
+import { LoadingSpinner } from "@/app/components/loading-spinner";
 import { toast } from 'sonner';
 
 /**
@@ -93,7 +94,7 @@ export default function OptionAttributePage() {
   };
 
   // 読み込み中の状態表示
-  if (loading) return <div className="p-8">読み込み中...</div>;
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="max-w-6xl mx-auto">
