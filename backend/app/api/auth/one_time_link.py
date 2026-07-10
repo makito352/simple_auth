@@ -11,7 +11,9 @@ from app.core.config import logger, settings
 from app.db.session import get_db
 from app.schemas.one_time_link import (
     CreateLinkRequest,
+    GetLinkRequest,
     OneTimeLinkCreateResponse,
+    OneTimeLinkGetResponse,
     TokenVerificationResponse,
 )
 from app.services.one_time_link_service import (
@@ -21,6 +23,7 @@ from app.services.one_time_link_service import (
 )
 from app.services.registration_session_service import generate_token
 from app.services.session_service import SessionService
+from app.api.current_user import get_current_admin_user
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
@@ -57,13 +60,23 @@ async def options_create_one_time_link():
 
 @router.post("/create", response_model=OneTimeLinkCreateResponse)
 def create_one_time_link(
-    data: CreateLinkRequest, db: Session = Depends(get_db)
+    data: CreateLinkRequest, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
 ) -> OneTimeLinkCreateResponse:
     """
     【管理用】新しいワンタイムリンクを作成し、トークンを返します。
     例: 管理画面から特定のユーザーに対して「登録用URL」を発行する際に使用。
     有効期限は設定値（通常60分）、用途は registration に固定する。
     """
+    # 同用途の未使用リンクが残っていれば再利用し、同時多発行を避ける。
+    existing_link = OneTimeLinkService.get_link_by_user_id(
+        db,
+        user_id=data.user_id,
+        link_type="registration",
+    )
+    if existing_link is not None:
+        logger.debug("Reusing existing one-time link for user_id=%s", data.user_id)
+        return existing_link
+
     return OneTimeLinkService.create_link(
         db,
         user_id=data.user_id,
@@ -71,6 +84,59 @@ def create_one_time_link(
         expires_in_minutes=settings.ONE_TIME_LINK_EXPIRE_MINUTES,
     )
 
+@router.post("/create/rereg", response_model=OneTimeLinkCreateResponse)
+def create_rereg_one_time_link(
+    data: CreateLinkRequest, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+) -> OneTimeLinkCreateResponse:
+    """
+    【管理用】新しいワンタイムリンクを作成し、トークンを返します。
+    例: 管理画面から特定のユーザーに対して「ディバイス追加用URL」を発行する際に使用。
+    有効期限は設定値（通常60分）、用途は device_registration に固定する。
+    """
+    # 同用途の未使用リンクが残っていれば再利用し、同時多発行を避ける。
+    existing_link = OneTimeLinkService.get_link_by_user_id(
+        db,
+        user_id=data.user_id,
+        link_type="device_registration",
+    )
+    if existing_link is not None:
+        logger.debug("Reusing existing one-time link for user_id=%s", data.user_id)
+        return existing_link
+
+    return OneTimeLinkService.create_link(
+        db,
+        user_id=data.user_id,
+        link_type="device_registration",
+        expires_in_minutes=settings.ONE_TIME_LINK_EXPIRE_MINUTES,
+    )
+
+@router.get("/get-by-user-id", response_model=OneTimeLinkGetResponse)
+def get_one_time_link_by_user_id(
+    data: GetLinkRequest = Depends(),
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
+) -> OneTimeLinkGetResponse:
+    """
+    【管理用】指定されたユーザーIDに関連付けられたワンタイムリンクを取得します。
+    既存の有効なリンクがある場合はそれを返し、ない場合はNone（または404）を扱うためのエンドポイントです。
+    """
+    link_data = OneTimeLinkService.get_link_by_user_id(
+        db,
+        user_id=data.user_id,
+        link_type=data.link_type,
+    )
+    if link_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="該当する有効なワンタイムリンクが見つかりません。",
+        )
+    return OneTimeLinkGetResponse(
+        token=link_data.token,
+        url=link_data.url,
+        expires_at=link_data.expires_at,
+        message=link_data.message,
+        link_type=data.link_type,
+    )
 
 @router.post("/create/self", response_model=OneTimeLinkCreateResponse)
 def create_self_device_link(
@@ -107,7 +173,7 @@ def verify_one_time_link(
     token: str, db: Session = Depends(get_db), response: Response = None
 ) -> TokenVerificationResponse:
     """
-    【フロントエンド用】トークンを検証し、消費します。
+    トークンを検証し、消費します。
     ユーザーがメール等のリンクをクリックした際に呼び出されます。
     成功した場合、そのユーザーの情報を返します。
     """

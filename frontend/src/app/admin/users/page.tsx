@@ -11,9 +11,99 @@ import {
   updateUser, 
   deleteUser 
 } from "@/lib/api/users";
-import type { UserProfile } from "@/types";
+import {
+  createRegistrationLinkForAdmin,
+  createReregistrationLinkForAdmin,
+  getOneTimeLinkByUserIdForAdmin,
+} from "@/lib/api/one_time_link";
+import type {
+  LinkType,
+  OneTimeLinkCreateResponse,
+  OneTimeLinkGetResponse,
+  UserProfile,
+} from "@/types";
 import { getErrorMessage } from "@/lib/error";
 import { LoadingSpinner } from "@/app/components/loading-spinner";
+
+type UserStatusValue = "pending" | "verified";
+
+type DisplayOneTimeLink = OneTimeLinkCreateResponse & {
+  link_type: LinkType;
+};
+
+const STATUS_LABELS: Record<UserStatusValue, string> = {
+  pending: "パスキー登録待ち",
+  verified: "パスキー登録済み",
+};
+
+const getOneTimeLinkByUserIdForAdminTyped: (
+  userId: string,
+  linkType: LinkType,
+) => Promise<OneTimeLinkGetResponse | null> = getOneTimeLinkByUserIdForAdmin as unknown as (
+  userId: string,
+  linkType: LinkType,
+) => Promise<OneTimeLinkGetResponse | null>;
+
+const createRegistrationLinkForAdminTyped: (
+  userId: string,
+) => Promise<OneTimeLinkCreateResponse> = createRegistrationLinkForAdmin as unknown as (
+  userId: string,
+) => Promise<OneTimeLinkCreateResponse>;
+
+const createReregistrationLinkForAdminTyped: (
+  userId: string,
+) => Promise<OneTimeLinkCreateResponse> = createReregistrationLinkForAdmin as unknown as (
+  userId: string,
+) => Promise<OneTimeLinkCreateResponse>;
+
+/**
+ * 日時文字列を日本向け形式へ整形する。
+ * @param iso - ISO 8601形式の日時文字列
+ * @returns 整形済み文字列。変換失敗時は"-"を返す。
+ */
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return date.toLocaleString("ja-JP");
+}
+
+/**
+ * APIレスポンスの状態値を画面表示用に正規化する。
+ * @param user - 生のユーザー情報
+ * @returns 正規化済みユーザー情報
+ */
+function normalizeUser(user: UserProfile): UserProfile {
+  if (typeof user.status === "string" && user.status.length > 0) {
+    return user;
+  }
+  if (typeof user.email_verification_status === "string") {
+    return {
+      ...user,
+      status: user.email_verification_status,
+    };
+  }
+  return {
+    ...user,
+    status: "pending",
+  };
+}
+
+/**
+ * 状態値を表示文言へ変換する。
+ * @param status - ユーザー状態
+ * @returns 画面表示用文言
+ */
+function getStatusLabel(status: string): string {
+  if (status === "pending") {
+    return STATUS_LABELS.pending;
+  }
+  if (status === "verified") {
+    return STATUS_LABELS.verified;
+  }
+  return `不明な状態 (${status})`;
+}
 
 /**
  * ユーザー管理メインページコンポーネント
@@ -25,6 +115,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({ email: "", role: "user" as "admin" | "user" });
+  const [rowLoadingByUserId, setRowLoadingByUserId] = useState<Record<string, boolean>>({});
+  const [linkByUserId, setLinkByUserId] = useState<Record<string, DisplayOneTimeLink>>({});
+  const [linkUsageByUserId, setLinkUsageByUserId] = useState<Record<string, string>>({});
   
   // ユーザー操作時のフィードバックメッセージ用（成功/失敗）
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -40,7 +133,7 @@ export default function UsersPage() {
       setLoading(true);
       try {
         const data = await fetchUserList();
-        setUsers(data);
+        setUsers(data.map(normalizeUser));
       } catch (error) {
         const errorMessage = getErrorMessage(error, "ユーザー一覧の取得に失敗しました");
         setStatusMessage({ text: errorMessage, type: "error" });
@@ -61,7 +154,7 @@ export default function UsersPage() {
     try {
       const newUser = await createUser(editFormData);
       // 作成成功時、ステートを更新
-      setUsers(prev => [...prev, newUser]); 
+      setUsers(prev => [...prev, normalizeUser(newUser)]); 
       setStatusMessage({ text: "ユーザーを作成しました", type: "success" });
     } catch (err) {
       const errorMessage = getErrorMessage(err, "ユーザー作成に失敗しました");
@@ -106,6 +199,131 @@ export default function UsersPage() {
     }
     // 20秒後にメッセージをクリア
     setTimeout(() => setStatusMessage(null), messageTimeout);
+  };
+
+  /**
+   * 対象ユーザー行のローディング状態を更新する。
+   * @param userId - 対象ユーザーID
+   * @param loadingValue - 設定するローディング状態
+   */
+  const setRowLoading = (userId: string, loadingValue: boolean) => {
+    setRowLoadingByUserId((prev) => ({
+      ...prev,
+      [userId]: loadingValue,
+    }));
+  };
+
+  /**
+   * pendingユーザー向けに登録リンクを取得し、未発行なら作成して表示する。
+   * @param userId - 対象ユーザーID
+   */
+  const handleFetchOrCreatePendingLink = async (userId: string) => {
+    setRowLoading(userId, true);
+    try {
+      const existing: OneTimeLinkGetResponse | null = await getOneTimeLinkByUserIdForAdminTyped(userId, "registration");
+      if (existing !== null) {
+        setLinkByUserId((prev) => ({
+          ...prev,
+          [userId]: {
+            ...existing,
+            link_type: "registration",
+          },
+        }));
+        setLinkUsageByUserId((prev) => ({
+          ...prev,
+          [userId]: "未使用リンクあり",
+        }));
+        setStatusMessage({ text: "取得済みの登録リンクを表示しました", type: "success" });
+        setTimeout(() => setStatusMessage(null), messageTimeout);
+        return;
+      }
+
+      const created: OneTimeLinkCreateResponse = await createRegistrationLinkForAdminTyped(userId);
+      setLinkByUserId((prev) => ({
+        ...prev,
+        [userId]: {
+          ...created,
+          link_type: "registration",
+        },
+      }));
+      setLinkUsageByUserId((prev) => ({
+        ...prev,
+        [userId]: "未使用リンクあり",
+      }));
+      setStatusMessage({ text: "登録用ワンタイムリンクを発行しました", type: "success" });
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "登録用ワンタイムリンクの取得/発行に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
+    } finally {
+      setRowLoading(userId, false);
+      setTimeout(() => setStatusMessage(null), messageTimeout);
+    }
+  };
+
+  /**
+   * verifiedユーザー向けに機器追加用リンクを発行する。
+   * @param userId - 対象ユーザーID
+   */
+  const handleCreateReregLink = async (userId: string) => {
+    setRowLoading(userId, true);
+    try {
+      const created: OneTimeLinkCreateResponse = await createReregistrationLinkForAdminTyped(userId);
+      setLinkByUserId((prev) => ({
+        ...prev,
+        [userId]: {
+          ...created,
+          link_type: "device_registration",
+        },
+      }));
+      setLinkUsageByUserId((prev) => ({
+        ...prev,
+        [userId]: "未使用リンクあり",
+      }));
+      setStatusMessage({ text: "機器追加用ワンタイムリンクを発行しました", type: "success" });
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "機器追加用ワンタイムリンクの発行に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
+    } finally {
+      setRowLoading(userId, false);
+      setTimeout(() => setStatusMessage(null), messageTimeout);
+    }
+  };
+
+  /**
+   * verifiedユーザー向けに機器追加リンクの未使用有効状態を確認する。
+   * @param userId - 対象ユーザーID
+   */
+  const handleCheckVerifiedUsage = async (userId: string) => {
+    setRowLoading(userId, true);
+    try {
+      const existing: OneTimeLinkGetResponse | null = await getOneTimeLinkByUserIdForAdminTyped(userId, "device_registration");
+      if (existing === null) {
+        setLinkUsageByUserId((prev) => ({
+          ...prev,
+          [userId]: "未使用リンクなし（未発行・使用済み・期限切れ）",
+        }));
+        setStatusMessage({ text: "未使用リンクは見つかりませんでした", type: "success" });
+      } else {
+        setLinkByUserId((prev) => ({
+          ...prev,
+          [userId]: {
+            ...existing,
+            link_type: "device_registration",
+          },
+        }));
+        setLinkUsageByUserId((prev) => ({
+          ...prev,
+          [userId]: "未使用リンクあり",
+        }));
+        setStatusMessage({ text: "機器追加用リンクの使用状況を更新しました", type: "success" });
+      }
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "機器追加用リンクの使用状況確認に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
+    } finally {
+      setRowLoading(userId, false);
+      setTimeout(() => setStatusMessage(null), messageTimeout);
+    }
   };
 
   // ロード中の表示処理
@@ -162,6 +380,8 @@ export default function UsersPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">subject id</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メールアドレス</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">役割</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状態</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ワンタイムリンク</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
             </tr>
           </thead>
@@ -196,6 +416,61 @@ export default function UsersPage() {
                        {user.role}
                      </span>
                    )}
+                </td>
+                <td className="px-6 py-4 text-left">
+                  <span className={`font-medium ${user.status === 'verified' ? 'text-green-600' : 'text-yellow-600'}`}>
+                    {getStatusLabel(user.status)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-left">
+                  <div className="space-y-2 min-w-[280px]">
+                    {user.status === "pending" && (
+                      <button
+                        onClick={() => handleFetchOrCreatePendingLink(user.id)}
+                        disabled={rowLoadingByUserId[user.id] === true}
+                        className="text-indigo-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+                      >
+                        {rowLoadingByUserId[user.id] ? "処理中..." : "登録リンクを取得/発行"}
+                      </button>
+                    )}
+                    {user.status === "verified" && (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => handleCreateReregLink(user.id)}
+                          disabled={rowLoadingByUserId[user.id] === true}
+                          className="text-indigo-600 hover:underline text-left disabled:text-gray-400 disabled:no-underline"
+                        >
+                          {rowLoadingByUserId[user.id] ? "処理中..." : "機器追加リンクを発行"}
+                        </button>
+                        <button
+                          onClick={() => handleCheckVerifiedUsage(user.id)}
+                          disabled={rowLoadingByUserId[user.id] === true}
+                          className="text-teal-600 hover:underline text-left disabled:text-gray-400 disabled:no-underline"
+                        >
+                          使用状況をチェック
+                        </button>
+                      </div>
+                    )}
+
+                    {linkUsageByUserId[user.id] && (
+                      <p className="text-xs text-gray-700">{linkUsageByUserId[user.id]}</p>
+                    )}
+
+                    {linkByUserId[user.id] && (
+                      <div className="rounded border border-gray-200 bg-gray-50 p-2 text-xs space-y-1">
+                        <p>
+                          種別: {linkByUserId[user.id].link_type === "registration" ? "登録用" : "機器追加用"}
+                        </p>
+                        <p>有効期限: {formatDate(linkByUserId[user.id].expires_at)}</p>
+                        <input
+                          type="text"
+                          readOnly
+                          value={linkByUserId[user.id].url}
+                          className="w-full border rounded px-2 py-1 bg-white"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end space-x-4">

@@ -3,7 +3,13 @@
  * @description ワンタイムリンク関連のAPI操作
  */
 import { apiGet, apiPost } from "./client";
-import type { OneTimeLinkCreateResponse, OneTimeLinkVerificationResponse } from "@/types";
+import type {
+  LinkType,
+  OneTimeLinkCreateResponse,
+  OneTimeLinkGetResponse,
+  OneTimeLinkVerificationResponse,
+} from "@/types";
+import type { ApiError } from "./client";
 
 /**
  * ログイン中ユーザー向けの追加デバイス登録リンクを発行する。
@@ -28,4 +34,47 @@ export async function verifyOneTimeLink(token: string | null): Promise<OneTimeLi
   }
   const response = await apiGet(`/auth/one-time-link/verify?token=${token}`);
   return response as OneTimeLinkVerificationResponse;
+}
+
+/**
+ * 【管理者向け】登録用ワンタイムリンクを発行する。
+ * @param userId - 発行対象ユーザーID
+ */
+export async function createRegistrationLinkForAdmin(userId: string): Promise<OneTimeLinkCreateResponse> {
+  const response = await apiPost("/auth/one-time-link/create", { user_id: userId });
+  return response as OneTimeLinkCreateResponse;
+}
+
+/**
+ * 【管理者向け】機器追加（再登録）用ワンタイムリンクを発行する。
+ * @param userId - 発行対象ユーザーID
+ */
+export async function createReregistrationLinkForAdmin(userId: string): Promise<OneTimeLinkCreateResponse> {
+  const response = await apiPost("/auth/one-time-link/create/rereg", { user_id: userId });
+  return response as OneTimeLinkCreateResponse;
+}
+
+/**
+ * 【管理者向け】指定ユーザーの未使用ワンタイムリンクを取得する。
+ * 404の場合は「対象リンクなし」としてnullを返す。
+ * @param userId - 対象ユーザーID
+ * @param linkType - 取得対象のリンク種別
+ */
+export async function getOneTimeLinkByUserIdForAdmin(
+  userId: string,
+  linkType: LinkType,
+): Promise<OneTimeLinkGetResponse | null> {
+  try {
+    const response = await apiGet("/auth/one-time-link/get-by-user-id", {
+      user_id: userId,
+      link_type: linkType,
+    });
+    return response as OneTimeLinkGetResponse;
+  } catch (error) {
+    const apiError = error as ApiError;
+    if (apiError.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }

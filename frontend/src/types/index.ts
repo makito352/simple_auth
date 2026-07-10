@@ -152,6 +152,18 @@ export interface OneTimeLinkCreateResponse {
 }
 
 /**
+ * ワンタイムリンク種別の型定義
+ */
+export type LinkType = "registration" | "device_registration";
+
+/**
+ * ワンタイムリンク取得APIのレスポンスモデル。
+ */
+export interface OneTimeLinkGetResponse extends OneTimeLinkCreateResponse {
+  link_type: LinkType;
+}
+
+/**
  * ワンタイムリンク検証レスポンスの型定義
  * backend/app/schemas/one_time_link.py の TokenVerificationResponse に対応
  */
@@ -169,6 +181,7 @@ export interface UserProfile {
   email: string;          // メールアドレス
   role: "admin" | "user"; // ユーザーの権限レベル
   status: string;          // ユーザーの状態（"pending":ワンタイムリンク生成済み。WebAuthn未登録,"verified":WebAuthn登録済み（認証完了））
+  email_verification_status?: string; // APIレスポンス互換用（status未設定時のフォールバック）
 }
 
 /**
