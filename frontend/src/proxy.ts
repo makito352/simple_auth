@@ -1,5 +1,5 @@
 /**
- * @file middleware.ts
+ * @file proxy.ts
  * 認証状態のチェックおよび、権限のないユーザーへのリダイレクトを制御するミドルウェア。
  */
 import { NextResponse } from 'next/server';
