@@ -101,7 +101,7 @@ export default function Dashboard() {
           })
         ) : fetchError ? (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            ダッシュボードのリンクを取得できませんでした。
+            ダッシュボードのリンクを取得できませんでした。管理者に問い合わせてください。
           </div>
         ) : null}
 
