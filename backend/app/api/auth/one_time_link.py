@@ -7,6 +7,7 @@
 
 from uuid import UUID
 
+from app.api.current_user import get_current_admin_user
 from app.core.config import logger, settings
 from app.db.session import get_db
 from app.schemas.one_time_link import (
@@ -23,7 +24,6 @@ from app.services.one_time_link_service import (
 )
 from app.services.registration_session_service import generate_token
 from app.services.session_service import SessionService
-from app.api.current_user import get_current_admin_user
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
@@ -60,7 +60,9 @@ async def options_create_one_time_link():
 
 @router.post("/create", response_model=OneTimeLinkCreateResponse)
 def create_one_time_link(
-    data: CreateLinkRequest, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+    data: CreateLinkRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ) -> OneTimeLinkCreateResponse:
     """
     【管理用】新しいワンタイムリンクを作成し、トークンを返します。
@@ -84,9 +86,12 @@ def create_one_time_link(
         expires_in_minutes=settings.ONE_TIME_LINK_EXPIRE_MINUTES,
     )
 
+
 @router.post("/create/rereg", response_model=OneTimeLinkCreateResponse)
 def create_rereg_one_time_link(
-    data: CreateLinkRequest, db: Session = Depends(get_db), _admin=Depends(get_current_admin_user)
+    data: CreateLinkRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin_user),
 ) -> OneTimeLinkCreateResponse:
     """
     【管理用】新しいワンタイムリンクを作成し、トークンを返します。
@@ -109,6 +114,7 @@ def create_rereg_one_time_link(
         link_type="device_registration",
         expires_in_minutes=settings.ONE_TIME_LINK_EXPIRE_MINUTES,
     )
+
 
 @router.get("/get-by-user-id", response_model=OneTimeLinkGetResponse)
 def get_one_time_link_by_user_id(
@@ -137,6 +143,7 @@ def get_one_time_link_by_user_id(
         message=link_data.message,
         link_type=data.link_type,
     )
+
 
 @router.post("/create/self", response_model=OneTimeLinkCreateResponse)
 def create_self_device_link(
