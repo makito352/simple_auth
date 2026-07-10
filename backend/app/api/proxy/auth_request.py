@@ -1,45 +1,35 @@
-from app.core.config import settings
-from app.db.session import SessionLocal
+"""
+このモジュールは、プロキシサーバーへの認証リクエストを処理するためのエンドポイントを提供します。
+CookieからセッションIDを取得し、検証した上でユーザー情報を特定し、
+Nginxなどのリバースプロキシに渡すためのヘッダーをセットします。
+"""
+
+from app.api.current_user import get_current_user
 from app.models.user import User
-from app.services.session_service import SessionService
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, Response, status
 
 router = APIRouter(prefix="/proxy", tags=["proxy"])
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@router.get(
+    "/auth-request", response_class=Response, status_code=status.HTTP_204_NO_CONTENT
+)
+def auth_request(response: Response, user: User = Depends(get_current_user)):
+    """
+    認証リクエストを処理し、有効なセッションがある場合にユーザー情報をセットします。
 
+    Args:
+        response (Response): FastAPIのResponseオブジェクト。ヘッダーを書き換えます。
+        user (User): 現在の認証済みユーザー。
 
-@router.get("/auth-request")
-def auth_request(request: Request, response: Response, db: Session = Depends(get_db)):
-    # Cookie からセッションIDを取得
-    session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
-    if not session_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="No session"
-        )
+    Returns:
+        Response: 成功時に204 No Contentを返します。
 
-    # セッション検証
-    session = SessionService.validate_session(db, session_id)
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session"
-        )
-
-    # ユーザ取得
-    user = db.query(User).filter(User.id == session.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
-        )
-
-    # nginx に渡すヘッダ
+    Raises:
+        HTTPException: セッションがない、または無効な場合に401エラーを返します。
+    """
+    # nginxなどのプロキシサーバーが参照するカスタムヘッダにユーザーのメールアドレスを設定
     response.headers["X-User"] = user.email
 
-    return {"ok": True}
+    # 認証成功時、レスポンスボディなしの204 No Contentを返す
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
