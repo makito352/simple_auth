@@ -1,5 +1,6 @@
 /**
- * @file ルートレイアウト
+ * @file frontend/src/app/layout.tsx
+ * @description ルートレイアウトコンポーネント。
  * アプリケーション全体の共通構造とメタデータを定義します。
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file devices.ts
+ * @file frontend/src/lib/api/devices.ts
  * @description WebAuthnデバイス管理APIへのアクセス関数を提供する。
  */
 

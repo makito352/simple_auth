@@ -1,5 +1,5 @@
 /**
- * @file users_server.ts
+ * @file frontend/src/lib/api/users_server.ts
  * @description サーバーサイド（Server Components, Server Actions）向けのユーザー関連API操作
  * 
  * 注意: このファイル内の関数は、Next.jsのサーバー環境でのみ動作するように設計されています。

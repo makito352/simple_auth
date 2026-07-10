@@ -1,6 +1,7 @@
 /**
- * @file フロントエンドのメインページコンポーネント
- * @description ホーム画面のUIを定義するコンポーネントです。
+ * @file frontend/src/app/page.tsx
+ * @description SimpleAuthのホーム画面コンポーネント。
+ *              ログインページへのリンクを提供します。
  */
 
 import Link from 'next/link';

@@ -1,5 +1,5 @@
 /**
- * @file user_options.ts
+ * @file frontend/src/lib/api/user_options.ts
  * @description ユーザーのオプション設定に関するAPI操作
  */
 import { apiGet, apiPatch, apiPost, apiPut } from "./client";
@@ -21,6 +21,10 @@ export async function fetchOptionAttributes(): Promise<OptionAttribute[]> {
   return data as OptionAttribute[];
 }
 
+/**
+ * 新しい属性（マスタ）を作成する
+ * @param body 作成する属性のデータ
+ */
 export async function createOptionAttribute(
   body: Pick<OptionAttribute, 'key' | 'encrypted'>
 ): Promise<OptionAttribute> {
@@ -28,6 +32,11 @@ export async function createOptionAttribute(
   return data as OptionAttribute;
 }
 
+/**
+ * 属性（マスタ）を更新する
+ * @param id 更新する属性のID
+ * @param body 更新する属性のデータ
+ */
 export async function updateOptionAttribute(
   id: string,
   body: Pick<OptionAttribute, 'key' | 'encrypted'>

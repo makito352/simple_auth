@@ -1,5 +1,5 @@
 /**
- * @file oidc.ts
+ * @file frontend/src/lib/api/oidc.ts
  * @description OIDCクレームマッピングに関するAPI操作
  */
 import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from "./client";

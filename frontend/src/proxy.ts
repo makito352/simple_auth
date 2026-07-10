@@ -1,6 +1,6 @@
 /**
- * @file proxy.ts
- * 認証状態のチェックおよび、権限のないユーザーへのリダイレクトを制御するミドルウェア。
+ * @file frontend/src/proxy.ts
+ * @description 認証状態のチェックおよび、権限のないユーザーへのリダイレクトを制御する。
  */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';

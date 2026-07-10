@@ -1,5 +1,5 @@
 /**
- * @file auth.ts
+ * @file frontend/src/lib/config/auth.ts
  * @description 認証関連の共通設定を管理します。
  */
 

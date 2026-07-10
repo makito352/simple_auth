@@ -1,9 +1,8 @@
 /**
- * @file one_time_link.ts
+ * @file frontend/src/lib/api/one_time_link.ts
  * @description ワンタイムリンク関連のAPI操作
  */
 import { apiGet, apiPost } from "./client";
-import { logger } from "@/lib/logger";
 import type { OneTimeLinkCreateResponse, OneTimeLinkVerificationResponse } from "@/types";
 
 /**
@@ -23,7 +22,7 @@ export async function verifyOneTimeLink(token: string | null): Promise<OneTimeLi
   if (!token) {
     // 呼び元でログ出力しているため、ここではログ出力は行わない
     // logger.error("No token provided for verification");
-    
+
     // トークンが提供されていない場合はエラーを投げる
     throw new Error("No token provided for verification");
   }

@@ -1,5 +1,5 @@
 /**
- * @file page.tsx
+ * @file frontend/src/app/login/page.tsx
  * @description WebAuthnを使用した生体認証ログイン画面のコンポーネント。
  */
 "use client";

@@ -1,5 +1,5 @@
 /**
- * @file dashboards.ts
+ * @file frontend/src/lib/api/dashboards.ts
  * @description ダッシュボード関連のAPI操作
  */
 import { apiGet, apiPost, apiPut, apiDelete, apiPostForm, apiPutForm } from "./client";
@@ -8,10 +8,10 @@ import { apiGet, apiPost, apiPut, apiDelete, apiPostForm, apiPutForm } from "./c
  * ダッシュボードリンクの基本情報の型定義 (backend/app/schemas/dashboard_link.py の DashboardLinkRead に対応)
  */
 export interface DashboardLink {
-  id: string; // UUID
-  title: string; // 表示名
-  url: string; // アクセス先URL
-  icon_path?: string; // アイコンのパス
+  id: string;          // UUID
+  title: string;       // 表示名
+  url: string;         // アクセス先URL
+  icon_path?: string;  // アイコンのパス
   order_index: number; // 並び順
 }
 
@@ -19,10 +19,10 @@ export interface DashboardLink {
  * ダッシュボードリンク作成時の入力データ (backend/app/schemas/dashboard_link.py の DashboardLinkCreate に対応)
  */
 export interface CreateDashboardLinkRequest {
-  title: string; // 表示名
-  url: string; // アクセス先URL
-  icon_path?: string; // アイコンのパス
-  order_index?: number; // 並び順
+  title: string;         // 表示名
+  url: string;           // アクセス先URL
+  icon_path?: string;    // アイコンのパス
+  order_index?: number;  // 並び順
 }
 
 /**

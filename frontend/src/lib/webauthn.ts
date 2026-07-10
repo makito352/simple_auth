@@ -1,5 +1,6 @@
 /**
- * WebAuthn (FIDO2) 関連のブラウザ操作用ユーティリティ
+ * @file frontend/src/lib/webauthn.ts
+ * @description WebAuthn (FIDO2) 関連のブラウザ操作用ユーティリティ
  * 
  * このモジュールは、WebAuthn APIとフロントエンド間のデータやり取りを橋渡しします。
  * 特に、バイナリデータを扱うWebAuthnのネイティブ仕様をJSON形式に変換する処理を含みます。

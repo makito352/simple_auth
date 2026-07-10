@@ -1,5 +1,6 @@
 /**
- * WebAuthn認証のAPI連携用モジュール。
+ * @file frontend/src/lib/api/webauthn.ts
+ * @description WebAuthn認証のAPI連携用モジュール
  * サーバーとの通信とブラウザによる生体認証の橋渡しを行います。
  */
 "use client";
