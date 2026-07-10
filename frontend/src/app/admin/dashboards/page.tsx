@@ -14,6 +14,8 @@ import {
   updateDashboardLinkForm, 
   deleteDashboardLink 
 } from "@/lib/api/dashboards";
+import { getErrorMessage } from "@/lib/error";
+import Image from "next/image";
 
 /**
  * ダッシュボードリンクの管理ページコンポーネント
@@ -66,7 +68,8 @@ export default function DashboardsPage() {
       setEditingId(null);
       setStatusMessage({ text: "更新に成功しました", type: "success" });
     } catch (error) {
-      setStatusMessage({ text: "更新に失敗しました", type: "error" });
+      const errorMessage = getErrorMessage(error, "リンク更新に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
     }
 
     // 3秒後に通知メッセージを消去
@@ -96,7 +99,8 @@ export default function DashboardsPage() {
       setNewLinkFormData({ title: "", url: "", icon_path: "", file: null });
       setStatusMessage({ text: "新規登録に成功しました", type: "success" });
     } catch (error) {
-      setStatusMessage({ text: "登録に失敗しました", type: "error" });
+      const errorMessage = getErrorMessage(error, "リンク登録に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
     }
     setTimeout(() => setStatusMessage(null), 3000);
   };
@@ -113,7 +117,8 @@ export default function DashboardsPage() {
       setLinks(prev => prev.filter(link => link.id !== id));
       setStatusMessage({ text: "削除に成功しました", type: "success" });
     } catch (error) {
-      setStatusMessage({ text: "削除に失敗しました", type: "error" });
+      const errorMessage = getErrorMessage(error, "リンク削除に失敗しました");
+      setStatusMessage({ text: errorMessage, type: "error" });
     }
 
     setTimeout(() => setStatusMessage(null), 3000);
@@ -181,7 +186,7 @@ export default function DashboardsPage() {
               <tr key={link.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   {link.icon_path ? (
-                    <img src={link.icon_path} alt={link.title} className="w-8 h-8 rounded" />
+                    <Image src={link.icon_path} alt={link.title} width={32} height={32} className="rounded" unoptimized/>
                   ) : (
                     <div className="w-8 h-8 bg-gray-200 rounded" />
                   )}
