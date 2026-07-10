@@ -13,7 +13,7 @@ import {
 } from "@/lib/api/devices";
 import { createDeviceRegistrationLink } from "@/lib/api/one_time_link";
 import type { DeviceCredential, OneTimeLinkCreateResponse } from "@/types";
-import { logger } from "@/lib/logger";
+import { getErrorMessage } from "@/lib/error";
 import Image from "next/image";
 
 
@@ -61,8 +61,8 @@ export default function DevicesPage() {
         if (!isMounted) {
           return;
         }
-        logger.error(`Failed to fetch device credentials: ${e}`);
-        setError("デバイス一覧の取得に失敗しました。");
+        const errorMessage = getErrorMessage(e, "デバイス一覧の取得に失敗しました");
+        setError(errorMessage);
       })
       .finally(() => {
         if (!isMounted) {
@@ -97,8 +97,8 @@ export default function DevicesPage() {
         ),
       );
     } catch (e) {
-      logger.error(`Failed to update device comment: ${e}`);
-      setError("コメントの更新に失敗しました。");
+      const errorMessage = getErrorMessage(e, "コメントの更新に失敗しました");
+      setError(errorMessage);
     } finally {
       setSavingId(null);
     }
@@ -122,8 +122,8 @@ export default function DevicesPage() {
         );
       });
     } catch (e) {
-      logger.error(`Failed to delete device credential: ${e}`);
-      setError("デバイスの削除に失敗しました。");
+      const errorMessage = getErrorMessage(e, "デバイスの削除に失敗しました。");
+      setError(errorMessage);
     } finally {
       setDeletingId(null);
     }
@@ -144,8 +144,8 @@ export default function DevicesPage() {
       });
       setQrDataUrl(generated);
     } catch (e) {
-      logger.error(`Failed to create registration link: ${e}`);
-      setError("追加デバイス登録リンクの発行に失敗しました。");
+      const errorMessage = getErrorMessage(e, "追加デバイス登録リンクの発行に失敗しました");
+      setError(errorMessage);
       setQrDataUrl(null);
     } finally {
       setLinkLoading(false);
@@ -160,8 +160,8 @@ export default function DevicesPage() {
       await navigator.clipboard.writeText(registrationLink.url);
       window.alert("登録リンクをコピーしました。");
     } catch (e) {
-      logger.error(`Failed to copy registration link: ${e}`);
-      setError("リンクのコピーに失敗しました。");
+      const errorMessage = getErrorMessage(e, "リンクのコピーに失敗しました");
+      setError(errorMessage);
     }
   }
 
