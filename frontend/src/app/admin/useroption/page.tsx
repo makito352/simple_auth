@@ -1,3 +1,10 @@
+/**
+ * @file frontend/src/app/admin/useroption/page.tsx
+ * @description 管理者用のカスタムフィールド定義ページ
+ * このページでは、管理者がシステム内で使用するカスタムフィールド（例: imap_server, smtp_portなど）を定義・更新できます。
+ * フォームを通じて新しい属性を追加したり、既存の属性を編集することが可能です。
+ * また、属性の暗号化設定も行うことができます。
+ */
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -11,13 +18,18 @@ import { toast } from 'sonner';
  * 管理者がシステム内の設定項目（例: imap_server, smtp_portなど）を定義・更新する画面です。
  */
 export default function OptionAttributePage() {
-  // 属性管理用の状態
+  // 属性リストの保持用状態
   const [attributes, setAttributes] = useState<OptionAttribute[]>([]);
+  // データ取得中かどうかのフラグ
   const [loading, setLoading] = useState(true);
+  // 現在編集中の項目のID（nullの場合は新規作成モード）
   const [isEditing, setIsEditing] = useState<string | null>(null);
+  // フォームの入力内容を管理する状態
   const [formData, setFormData] = useState({ id: '', key: '', encrypted: false });
 
-  // 属性データ取得
+  /**
+   * コンポーネントのマウント時に属性データを初期ロードする
+   */
   useEffect(() => {
     async function loadAttributeData() {
       try {
@@ -33,7 +45,10 @@ export default function OptionAttributePage() {
     loadAttributeData();
   }, []);
 
-  // 入力値の変更ハンドラ
+  /**
+   * フォームの入力値が変更された際に呼び出されるハンドラ
+   * @param e ReactのChangeEvent<HTMLInputElement>
+   */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -42,10 +57,15 @@ export default function OptionAttributePage() {
     }));
   };
 
-  // 保存処理
+  /**
+   * フォームの送信時に呼び出されるハンドラ
+   * 新規登録または既存属性の更新を実行し、成功後にリストを再取得します。
+   * @param e ReactのFormEvent
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // 編集モードか新規作成モードかを判定して適切なAPIを呼び出す
       if (isEditing) {
         await updateOptionAttribute(formData.id, {
           key: formData.key,
@@ -58,9 +78,12 @@ export default function OptionAttributePage() {
         });
       }
 
+      // 更新・追加成功後に最新のリストを再取得
       const data = await fetchOptionAttributes();
       setAttributes(data);
       toast.success(isEditing ? "更新しました" : "新規登録しました");
+      
+      // フォームの状態をリセット
       setIsEditing(null);
       setFormData({ id: '', key: '', encrypted: false });
     } catch (error) {
@@ -69,11 +92,12 @@ export default function OptionAttributePage() {
     }
   };
 
+  // 読み込み中の状態表示
   if (loading) return <div className="p-8">読み込み中...</div>;
 
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">属性管理</h1>
+      <h1 className="text-2xl font-bold mb-6">カスタムフィールド定義</h1>
 
       {/* 登録/編集フォーム */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow mb-8 border">
