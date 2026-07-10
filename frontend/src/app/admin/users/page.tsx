@@ -200,13 +200,21 @@ export default function UsersPage() {
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end space-x-4">
                     {editingId === user.id ? (
-                      <button 
-                        onClick={() => handleUpdate(user.id)}
-                        className="bg-blue-500 text-white px-3 py-1 rounded"
-                      >
-                        更新
-                      </button>
-                    ) : (
+                      <>
+                        <button 
+                          onClick={() => handleUpdate(user.id)}
+                          className="bg-blue-500 text-white px-3 py-1 rounded"
+                        >
+                          更新
+                        </button>
+                        <button 
+                          onClick={() => setEditingId(null)}
+                          className="bg-gray-500 text-white px-3 py-1 rounded"
+                        >
+                          キャンセル
+                        </button>
+                      </>
+                      ) : (
                       <>
                         <button 
                           onClick={() => {
