@@ -1,5 +1,5 @@
 /**
- * @file client.ts
+ * @file frontend/src/lib/api/client.ts
  * @description APIリクエストのための共通クライアントモジュール。
  * fetch APIをラップし、ベースURLの処理、クエリパラメータの付与、
  * 共通ヘッダーの設定などを行い、フロントエンドからバックエンドへの通信を簡略化します。

@@ -1,6 +1,7 @@
 /**
- * @file 管理者用ポータルのメインページ
- * @description システム管理機能へのショートカットを含む管理者メニューを表示します。
+ * @file frontend/src/app/admin/page.tsx
+ * @description 管理者用ポータルのメインページ
+ *              システム管理機能へのショートカットを含む管理者メニューを表示します。
  */
 
 import Link from "next/link";

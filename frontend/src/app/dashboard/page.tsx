@@ -1,3 +1,8 @@
+/**
+ * @file frontend/src/app/dashboard/page.tsx
+ * @description ダッシュボードページのコンポーネント。ユーザーがログイン後にアクセスするメイン画面です。
+ *              ユーザーの役割に応じて、利用可能なリンクを表示します。
+ */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -48,6 +53,7 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
+  // ロード中の表示処理
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -58,7 +64,7 @@ export default function Dashboard() {
   return (
     <div className="max-w-md mx-auto p-6">
       {/* ヘッダーエリア */}
-      <header className="flex justify-between items_center mb-8">
+      <header className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-800">SimpleAuth Launcher</h1>
         <button 
           onClick={handleLogout}
