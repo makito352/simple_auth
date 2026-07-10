@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { fetchDashboardLinks, type DashboardLink } from "@/lib/api/dashboards";
-import { fetchUserProfile, isAdmin, type UserProfile } from "@/lib/api/users";
+import { fetchUserProfile, isAdmin } from "@/lib/api/users";
 import { logout } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
+import { type UserProfile } from "@/types";
+import Image from "next/image";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -72,10 +74,13 @@ export default function Dashboard() {
               className="flex items-center gap-4 p-4 bg-white border rounded-lg shadow-sm hover:shadow-md transition-all"
             >
               {link.icon_path ? (
-                <img
+                <Image
                   src={link.icon_path}
                   alt={link.title}
+                  width={40}
+                  height={40}
                   className="w-10 h-10 rounded-md object-cover bg-gray-50"
+                  unoptimized
                 />
               ) : (
                 <div className="w-10 h-10 bg-gray-200 rounded-md" />
