@@ -36,6 +36,14 @@ const STATUS_LABELS: Record<UserStatusValue, string> = {
   verified: "パスキー登録済み",
 };
 
+/**
+ * 役割の表示用ラベル
+ */
+const ROLE_LABELS: Record<"user" | "admin", string> = {
+  user: "一般ユーザー",
+  admin: "管理者",
+};
+
 const getOneTimeLinkByUserIdForAdminTyped: (
   userId: string,
   linkType: LinkType,
@@ -330,7 +338,7 @@ export default function UsersPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
+    <div className="max-w-full mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">ユーザー管理</h1>
 
       {/* エラーや成功の通知メッセージ */}
@@ -364,8 +372,8 @@ export default function UsersPage() {
               value={editFormData.role}
               onChange={(e) => setEditFormData({...editFormData, role: e.target.value as "admin" | "user"})}
             >
-              <option value="user">一般ユーザー</option>
-              <option value="admin">管理者</option>
+              <option value="user">{ROLE_LABELS.user}</option>
+              <option value="admin">{ROLE_LABELS.admin}</option>
             </select>
           </div>
           <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">追加</button>
@@ -373,16 +381,16 @@ export default function UsersPage() {
       </div>
 
       {/* ユーザー一覧テーブル */}
-      <div className="overflow-hidden border rounded-lg shadow-sm">
+      <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr className="divide-x divide-gray-200">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">subject id</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メールアドレス</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">役割</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状態</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ワンタイムリンク</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">ID</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">メールアドレス</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">権限</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">状態</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase min-w-[250px]">リンク操作・詳細</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -408,21 +416,23 @@ export default function UsersPage() {
                        value={editFormData.role}
                        onChange={(e) => setEditFormData({...editFormData, role: e.target.value as "admin" | "user"})}
                      >
-                       <option value="user">一般ユーザー</option>
-                       <option value="admin">管理者</option>
+                       <option value="user">{ROLE_LABELS.user}</option>
+                       <option value="admin">{ROLE_LABELS.admin}</option>
                      </select>
                    ) : (
                      <span className={`font-medium ${user.role === 'admin' ? 'text-red-600' : ''}`}>
-                       {user.role}
+                       {ROLE_LABELS[user.role as "user" | "admin"]}
                      </span>
                    )}
                 </td>
-                <td className="px-6 py-4 text-left">
-                  <span className={`font-medium ${user.status === 'verified' ? 'text-green-600' : 'text-yellow-600'}`}>
+                <td className="px-4 py-3 text-center whitespace-nowrap">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium ${
+                    user.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                  }`}>
                     {getStatusLabel(user.status)}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-left">
+                <td className="px-4 py-3 text-left">
                   <div className="space-y-2 min-w-[280px]">
                     {user.status === "pending" && (
                       <button
@@ -456,24 +466,31 @@ export default function UsersPage() {
                       <p className="text-xs text-gray-700">{linkUsageByUserId[user.id]}</p>
                     )}
 
-                    {linkByUserId[user.id] && (
-                      <div className="rounded border border-gray-200 bg-gray-50 p-2 text-xs space-y-1">
-                        <p>
-                          種別: {linkByUserId[user.id].link_type === "registration" ? "登録用" : "機器追加用"}
-                        </p>
-                        <p>有効期限: {formatDate(linkByUserId[user.id].expires_at)}</p>
-                        <input
-                          type="text"
-                          readOnly
-                          value={linkByUserId[user.id].url}
-                          className="w-full border rounded px-2 py-1 bg-white"
-                        />
-                      </div>
-                    )}
-                  </div>
+                      {linkByUserId[user.id] && (
+                        <div className="rounded border border-gray-200 bg-gray-50 p-2 text-[10px] space-y-0">
+                          <div className="flex gap-2 mb-1">
+                            <span className="text-gray-500 min-w-[40px]">種別:</span>
+                            <span>{linkByUserId[user.id].link_type === "registration" ? "登録用" : "機器追加用"}</span>
+                          </div>
+                          <div className="flex gap-2 mb-1">
+                            <span className="text-gray-500 min-w-[40px]">期限:</span>
+                            <span>{formatDate(linkByUserId[user.id].expires_at)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500 min-w-[40px]">URL:</span>
+                            <input
+                              type="text"
+                              readOnly
+                              value={linkByUserId[user.id].url}
+                              className="w-full border rounded px-1 py-0.5 bg-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end space-x-4">
+                <td className="px-6 py-4 text-center whitespace-nowrap"> 
+                  <div className="flex justify-center space-x-4">
                     {editingId === user.id ? (
                       <>
                         <button 
