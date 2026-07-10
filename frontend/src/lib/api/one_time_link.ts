@@ -21,8 +21,10 @@ export async function createDeviceRegistrationLink(): Promise<OneTimeLinkCreateR
  */
 export async function verifyOneTimeLink(token: string | null): Promise<OneTimeLinkVerificationResponse> {
   if (!token) {
+    // 呼び元でログ出力しているため、ここではログ出力は行わない
+    // logger.error("No token provided for verification");
+    
     // トークンが提供されていない場合はエラーを投げる
-    logger.error("No token provided for verification");
     throw new Error("No token provided for verification");
   }
   const response = await apiGet(`/auth/one-time-link/verify?token=${token}`);

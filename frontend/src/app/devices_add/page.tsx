@@ -11,6 +11,7 @@ import { verifyOneTimeLink } from "@/lib/api/one_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 import { LoadingSpinner } from "@/app/components/loading-spinner";
 import { logger } from "@/lib/logger";
+import { getErrorMessage } from "@/lib/error";
 
 /**
  * @component DeviceAddContent
@@ -43,22 +44,21 @@ function DeviceAddContent() {
    */
   useEffect(() => {
     async function verifyToken() {
+      // トークンが存在しない場合はエラーを設定して終了
       if (!token) {
-        setError("トークンが指定されていません。");
+        logger.warn("No token found in URL for device registration");
+        setError("無効なアクセスリンクです。再度、元のページからQRコードを読み取るかURLをコピーしてください。");
         setLoading(false);
         return;
       }
 
+      // トークン検証のAPI呼び出し
       try {
-        const result = await verifyOneTimeLink(token);
-        if (result) {
-          setIsVerified(true);
-        } else {
-          setError("トークンの検証に失敗しました。");
-        }
+        await verifyOneTimeLink(token);
+        setIsVerified(true);
       } catch (e) {
-        logger.error(`Failed to verify one-time link: ${e}`);
-        setError("トークンが無効か期限切れです。");
+        const errorMessage = getErrorMessage(e, "トークンが無効か期限切れです。");
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -87,8 +87,8 @@ function DeviceAddContent() {
       // 成功時、デバイス一覧ページへ遷移
       window.location.href = "/devices";
     } catch (e) {
-      logger.error(`Failed to register WebAuthn device: ${e}`);
-      setError("追加デバイス登録に失敗しました。");
+      const errorMessage = getErrorMessage(e, "追加デバイス登録に失敗しました。");
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
