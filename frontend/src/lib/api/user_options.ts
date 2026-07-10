@@ -3,7 +3,6 @@
  * @description ユーザーのオプション設定に関するAPI操作
  */
 import { apiGet, apiPatch, apiPost, apiPut } from "./client";
-import { logger } from "@/lib/logger";
 import { OptionAttribute, UserOption } from "@/types";
 
 /**
@@ -18,38 +17,23 @@ export interface UserOptionBulkUpdateRequest {
  * 管理者用機能。例: imap_server, smtp_port 等の定義リスト
  */
 export async function fetchOptionAttributes(): Promise<OptionAttribute[]> {
-  try {
-    const data = await apiGet("/admin//user-options/attributes");
-    return data;
-  } catch (error) {
-    logger.error(`Failed to fetch option attributes: ${error}`);
-    throw error;
-  }
+  const data = await apiGet("/admin//user-options/attributes");
+  return data as OptionAttribute[];
 }
 
 export async function createOptionAttribute(
   body: Pick<OptionAttribute, 'key' | 'encrypted'>
 ): Promise<OptionAttribute> {
-  try {
-    const data = await apiPost("/admin//user-options/attributes", body);
-    return data;
-  } catch (error) {
-    logger.error(`Failed to create option attribute: ${error}`);
-    throw error;
-  }
+  const data = await apiPost("/admin//user-options/attributes", body);
+  return data as OptionAttribute;
 }
 
 export async function updateOptionAttribute(
   id: string,
   body: Pick<OptionAttribute, 'key' | 'encrypted'>
 ): Promise<OptionAttribute> {
-  try {
-    const data = await apiPut(`/admin//user-options/attributes/${id}`, body);
-    return data;
-  } catch (error) {
-    logger.error(`Failed to update option attribute: ${error}`);
-    throw error;
-  }
+  const data = await apiPut(`/admin//user-options/attributes/${id}`, body);
+  return data as OptionAttribute;
 }
 
 /**
@@ -57,13 +41,8 @@ export async function updateOptionAttribute(
  * @param userId ユーザーのUUID
  */
 export async function fetchUserOptions(userId: string): Promise<UserOption[]> {
-  try {
-    const data = await apiGet(`/admin//user-options/${userId}/options`);
-    return data;
-  } catch (error) {
-    logger.error(`Failed to fetch user options for ${userId}: ${error}`);
-    throw error;
-  }
+  const data = await apiGet(`/admin//user-options/${userId}/options`);
+  return data as UserOption[];
 }
 
 /**
@@ -75,13 +54,8 @@ export async function updateUserOptions(
   userId: string,
   options: UserOption[]
 ): Promise<UserOption[]> {
-  try {
-    const data = await apiPatch(`/admin//user-options/${userId}/options`, {
+  const data = await apiPatch(`/admin//user-options/${userId}/options`, {
       options: options,
     });
-    return data;
-  } catch (error) {
-    logger.error(`Failed to update user options for ${userId}: ${error}`);
-    throw error;
-  }
+  return data as UserOption[];
 }

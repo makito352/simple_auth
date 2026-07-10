@@ -33,13 +33,8 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
  * ユーザー一覧を取得する（管理者権限が必要な操作）
  */
 export async function fetchUserList(): Promise<UserProfile[]> {
-  try {
-    const data = await apiGet("/admin/users/");
-    return data as UserProfile[];
-  } catch (error) {
-    logger.error(`Failed to fetch user list: ${error}`);
-    throw error; // リスト取得失敗時は呼び出し元でエラーハンドリングできるように再スロー
-  }
+  const data = await apiGet("/admin/users/");
+  return data as UserProfile[];
 }
 
 /**

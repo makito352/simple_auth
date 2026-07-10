@@ -3,7 +3,6 @@
  * @description ダッシュボード関連のAPI操作
  */
 import { apiGet, apiPost, apiPut, apiDelete, apiPostForm, apiPutForm } from "./client";
-import { logger } from "@/lib/logger";
 
 /**
  * ダッシュボードリンクの基本情報の型定義 (backend/app/schemas/dashboard_link.py の DashboardLinkRead に対応)
@@ -30,13 +29,8 @@ export interface CreateDashboardLinkRequest {
  * ダッシュボードリンク一覧を取得します。
  */
 export async function fetchDashboardLinks(): Promise<DashboardLink[]> {
-  try {
-    const data = await apiGet("/dashboards/");
-    return data as DashboardLink[];
-  } catch (error) {
-    logger.error(`Failed to fetch dashboard links: ${error}`);
-    return [];
-  }
+  const data = await apiGet("/dashboards/");
+  return data as DashboardLink[];
 }
 
 /**
@@ -44,13 +38,8 @@ export async function fetchDashboardLinks(): Promise<DashboardLink[]> {
  * @param id リンクの識別子(UUID)
  */
 export async function fetchDashboardLink(id: string): Promise<DashboardLink | null> {
-  try {
-    const data = await apiGet(`/admin/dashboards/${id}`);
-    return data as DashboardLink;
-  } catch (error) {
-    logger.error(`Failed to fetch dashboard link ${id}: ${error}`);
-    return null;
-  }
+  const data = await apiGet(`/admin/dashboards/${id}`);
+  return data as DashboardLink | null;
 }
 
 /**
