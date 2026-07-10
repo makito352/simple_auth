@@ -1,3 +1,7 @@
+/**
+ * @file page.tsx
+ * @description ログイン中ユーザーのWebAuthnデバイス管理画面。
+ */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -10,11 +14,8 @@ import {
 import { createDeviceRegistrationLink } from "@/lib/api/one_time_link";
 import type { DeviceCredential, OneTimeLinkCreateResponse } from "@/types";
 import { logger } from "@/lib/logger";
+import Image from "next/image";
 
-/**
- * @file page.tsx
- * @description ログイン中ユーザーのWebAuthnデバイス管理画面。
- */
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -40,28 +41,39 @@ export default function DevicesPage() {
   const [registrationLink, setRegistrationLink] = useState<OneTimeLinkCreateResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
-  async function loadDevices() {
-    setLoading(true);
-    setError(null);
-    try {
-      const rows = await fetchDeviceCredentials();
-      setDevices(rows);
-
-      const drafts: Record<string, string> = {};
-      rows.forEach((row) => {
-        drafts[row.credential_id] = row.user_comment ?? "";
-      });
-      setCommentDrafts(drafts);
-    } catch (e) {
-      logger.error(`Failed to fetch device credentials: ${e}`);
-      setError("デバイス一覧の取得に失敗しました。");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    loadDevices();
+    let isMounted = true;
+
+    fetchDeviceCredentials()
+      .then((rows) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const drafts: Record<string, string> = {};
+        rows.forEach((row) => {
+          drafts[row.credential_id] = row.user_comment ?? "";
+        });
+        setDevices(rows);
+        setCommentDrafts(drafts);
+      })
+      .catch((e) => {
+        if (!isMounted) {
+          return;
+        }
+        logger.error(`Failed to fetch device credentials: ${e}`);
+        setError("デバイス一覧の取得に失敗しました。");
+      })
+      .finally(() => {
+        if (!isMounted) {
+          return;
+        }
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   function onChangeComment(credentialId: string, value: string) {
@@ -104,9 +116,10 @@ export default function DevicesPage() {
       await deleteDeviceCredential(credentialId);
       setDevices((prev) => prev.filter((row) => row.credential_id !== credentialId));
       setCommentDrafts((prev) => {
-        const next = { ...prev };
-        delete next[credentialId];
-        return next;
+        const entries = Object.entries(prev);
+        return Object.fromEntries(
+          entries.filter(([key]) => key !== credentialId)
+        );
       });
     } catch (e) {
       logger.error(`Failed to delete device credential: ${e}`);
@@ -210,7 +223,7 @@ export default function DevicesPage() {
                   justifyContent: "center",
                 }}
               >
-                <img src={qrDataUrl} alt="追加デバイス登録用QRコード" width={220} height={220} />
+                <Image src={qrDataUrl} alt="追加デバイス登録用QRコード" width={220} height={220} />
               </div>
             )}
           </div>
