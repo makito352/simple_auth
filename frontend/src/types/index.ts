@@ -165,10 +165,10 @@ export interface OneTimeLinkVerificationResponse {
  * ユーザーの基本情報の型定義 (backend/app/schemas/user.py の UserOut に対応)
  */
 export interface UserProfile {
-  id: string; // UUID
-  email: string;
-  role: "admin" | "user";
-  status: string;
+  id: string;             // UUID
+  email: string;          // メールアドレス
+  role: "admin" | "user"; // ユーザーの権限レベル
+  status: string;          // ユーザーの状態（"pending":ワンタイムリンク生成済み。WebAuthn未登録,"verified":WebAuthn登録済み（認証完了））
 }
 
 /**
