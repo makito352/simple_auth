@@ -162,7 +162,7 @@ class OneTimeLinkService:
             .filter(
                 OneTimeLink.user_id == user_id,
                 OneTimeLink.type == link_type,
-                OneTimeLink.used_at == None,
+                OneTimeLink.used_at is None,
                 OneTimeLink.expires_at > now,
             )
             .first()
