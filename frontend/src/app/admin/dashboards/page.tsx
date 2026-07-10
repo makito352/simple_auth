@@ -42,9 +42,14 @@ export default function DashboardsPage() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const data = await fetchDashboardLinks();
-      setLinks(data);
-      setLoading(false);
+      try {
+        const data = await fetchDashboardLinks();
+        setLinks(data);
+        setLoading(false);
+      } catch (error) {
+        const errorMessage = getErrorMessage(error, "リンクの取得に失敗しました");
+        setStatusMessage({ text: errorMessage, type: "error" });
+      }
     }
     loadData();
   }, []);
