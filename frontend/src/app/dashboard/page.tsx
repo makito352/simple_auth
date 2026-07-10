@@ -11,6 +11,7 @@ import Image from "next/image";
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<DashboardLink[]>([]);
+  const [fetchError, setFetchError] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   // ログアウト処理のハンドラー
   const handleLogout = async () => {
@@ -37,6 +38,7 @@ export default function Dashboard() {
         setLinks(data);
       } catch (error) {
         logger.error(`Failed to fetch dashboard data: ${error}`);
+        setFetchError(true);
       } finally {
         setLoading(false);
       }
@@ -46,7 +48,14 @@ export default function Dashboard() {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-[100vh] bg-gray-50">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 font-medium">読み込み中...</p>
+        </div>
+      </div>
+    );
   }
 
   // 管理者かどうかを判定（共通ロジックを使用）
@@ -66,7 +75,8 @@ export default function Dashboard() {
       </header>
 
       <div className="space-y-4">
-        {links.map((link) => {
+        {links.length > 0 ? (
+          links.map((link) => {
           return (
             <a 
               key={link.id} 
@@ -87,8 +97,13 @@ export default function Dashboard() {
               )}
               <span className="text-lg font-medium text-gray-700">{link.title}</span>
             </a>
-          );
-        })}
+            );
+          })
+        ) : fetchError ? (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            ダッシュボードのリンクを取得できませんでした。
+          </div>
+        ) : null}
 
         <div className="pt-6 border-t mt-6">
           <a 
