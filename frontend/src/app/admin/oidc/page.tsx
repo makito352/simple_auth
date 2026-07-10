@@ -18,6 +18,7 @@ import {
   updateOidcScope,
 } from '@/lib/api/oidc';
 import { fetchOptionAttributes } from '@/lib/api/user_options';
+import { getErrorMessage } from "@/lib/error";
 import { Plus, Edit2, Trash2, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -184,7 +185,8 @@ export default function OidcManagementPage() {
         scope: prev.scope || scopesData[0]?.scope_name || '',
       }));
     } catch (error) {
-      toast.error('スコープの保存に失敗しました');
+      const errorMessage = getErrorMessage(error, 'スコープの保存に失敗しました');
+      toast.error(errorMessage);
     }
   };
 
@@ -195,7 +197,8 @@ export default function OidcManagementPage() {
         setMappings(mappings.filter(m => m.id !== id));
         toast.success("削除しました");
       } catch (error) {
-        toast.error("削除に失敗しました");
+        const errorMessage = getErrorMessage(error, 'マッピングの削除に失敗しました');
+        toast.error(errorMessage);
       }
     }
   };
@@ -222,7 +225,8 @@ export default function OidcManagementPage() {
           }));
         }
       } catch (error) {
-        toast.error('スコープの削除に失敗しました');
+        const errorMessage = getErrorMessage(error, 'スコープの削除に失敗しました');
+        toast.error(errorMessage);
       }
     }
   };
