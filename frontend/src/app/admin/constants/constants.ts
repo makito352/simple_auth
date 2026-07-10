@@ -39,7 +39,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   },
   { 
     title: "OIDCクライアント管理", 
-    href: "/admin/oidc/clients", 
+    href: "/admin/oidc_clients", 
     desc: "Photoprism等の接続先追加・認証キー発行",
     icon: KeyRound
   },
