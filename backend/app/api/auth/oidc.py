@@ -30,6 +30,22 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/oidc", tags=["oidc"])
 
+ACCESS_TOKEN_AUDIENCE = "simpleauth-userinfo"
+
+
+def _build_oidc_issuer() -> str:
+    """
+    OIDCのissuer値を一箇所で構築する。
+    """
+    return f"{str(settings.BACKEND_BASE_URI).rstrip('/')}/oidc"
+
+
+def _raise_oidc_error(status_code: int, error_code: str) -> None:
+    """
+    OIDCで利用するエラーレスポンスを統一する。
+    """
+    raise HTTPException(status_code=status_code, detail=error_code)
+
 
 # ----------------------------
 # OpenID Provider Metadata
@@ -45,7 +61,7 @@ def openid_configuration(db: Session = Depends(get_db)) -> OpenIdConfigurationRe
     # 開始ログ
     logger.debug("OpenID Configuration requested")
 
-    issuer = f"{str(settings.BACKEND_BASE_URI).rstrip('/')}/oidc"
+    issuer = _build_oidc_issuer()
     scope_names = [scope.scope_name for scope in OidcClientService.get_all_scopes(db)]
     supported_scopes = sorted(set(["openid", *scope_names]))
 
@@ -113,9 +129,9 @@ def authorize(
 
     # リクエストパラメータの検証
     if response_type != "code":
-        raise HTTPException(
-            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
-            detail="unsupported_response_type",
+        _raise_oidc_error(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="unsupported_response_type",
         )
 
     # scope をスペース区切りで分割してリスト化
@@ -135,9 +151,10 @@ def authorize(
             client_id,
             redirect_uri,
         )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
-        ) from exc
+        _raise_oidc_error(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code=str(exc),
+        )
 
     try:
         user = get_current_user(request, db)
@@ -194,9 +211,10 @@ async def token(
         )
     except ValidationError as exc:
         logger.debug("Token request validation failed")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_request"
-        ) from exc
+        _raise_oidc_error(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="invalid_request",
+        )
 
     grant_type = token_request.grant_type
     code = token_request.code
@@ -206,8 +224,9 @@ async def token(
 
     if grant_type != "authorization_code":
         logger.debug("Unsupported grant_type: %s", grant_type)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported_grant_type"
+        _raise_oidc_error(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="unsupported_grant_type",
         )
 
     try:
@@ -215,10 +234,10 @@ async def token(
         OidcClientService.validate_token_client(db, client_id, client_secret)
     except ValueError as exc:
         logger.debug("Client validation failed for client_id %s", client_id)
-        raise HTTPException(
-            status_code=status.HTTP_status.HTTP_401_UNAUTHORIZED_UNAUTHORIZED,
-            detail=str(exc),
-        ) from exc
+        _raise_oidc_error(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code=str(exc),
+        )
 
     # 認可コードを取得し、クライアントとの組み合わせを検証する
     auth_code = OidcAuthFlowService.find_auth_code_for_token_exchange(
@@ -228,8 +247,9 @@ async def token(
     )
     if not auth_code:
         logger.debug("Authorization code not found or does not match client_id")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant"
+        _raise_oidc_error(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="invalid_grant",
         )
 
     if not OidcAuthFlowService.is_redirect_uri_match(auth_code, redirect_uri):
@@ -238,15 +258,22 @@ async def token(
             auth_code.redirect_uri,
             redirect_uri,
         )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant"
+        _raise_oidc_error(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="invalid_grant",
         )
 
-    user = UserService.read_user(db=db, user_id=auth_code.user_id)
-    if not user:
-        logger.debug("User %s not found", auth_code.user_id)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant"
+    try:
+        user = UserService.read_user(db=db, user_id=auth_code.user_id)
+    except ValueError as exc:
+        logger.debug(
+            "Auth code user resolution failed for user_id=%s: %s",
+            auth_code.user_id,
+            str(exc),
+        )
+        _raise_oidc_error(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="invalid_grant",
         )
 
     # スコープ
@@ -259,7 +286,7 @@ async def token(
     exp = now + 3600
     exp_dt = datetime.fromtimestamp(exp, tz=timezone.utc)
 
-    issuer = f"{str(settings.BACKEND_BASE_URI).rstrip('/')}/oidc"
+    issuer = _build_oidc_issuer()
     subject = str(user.id)
 
     id_token_claims = {
@@ -280,14 +307,19 @@ async def token(
 
     # アクセストークンの発行
     logger.debug("requested_scopes=%s ", requested_scopes)
+    access_token_claims = {
+        "iss": issuer,
+        "sub": subject,
+        "aud": ACCESS_TOKEN_AUDIENCE,
+        "client_id": client_id,
+        "scope": requested_scopes,
+        "iat": now,
+        "exp": exp,
+    }
     access_token = jwt.encode(
-        {
-            "sub": str(user.id),
-            "scope": requested_scopes,
-            "exp": time.time() + 3600,
-        },
+        access_token_claims,
         settings.OIDC_JWT_PRIVATE_KEY,
-        algorithm="RS256",
+        algorithm=settings.OIDC_JWT_ALG,
     )
 
     OidcAuthFlowService.store_access_token(
@@ -318,8 +350,9 @@ def userinfo(request: Request, db: Session = Depends(get_db)) -> UserInfoRespons
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
         logger.debug("No Authorization header")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+        _raise_oidc_error(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="not_authenticated",
         )
 
     token = auth.split(" ")[1]
@@ -329,41 +362,67 @@ def userinfo(request: Request, db: Session = Depends(get_db)) -> UserInfoRespons
 
     if not token_row:
         logger.debug("Access token not found")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+        _raise_oidc_error(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="not_authenticated",
         )
 
     # 有効期限チェック
     if OidcAuthFlowService.is_access_token_expired(token_row):
         logger.debug("Access token expired")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired"
+        _raise_oidc_error(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="token_expired",
         )
 
-    user = UserService.read_user(db=db, user_id=token_row.user_id)
-    if not user:
-        logger.debug("User not found")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+    try:
+        user = UserService.read_user(db=db, user_id=token_row.user_id)
+    except ValueError as exc:
+        logger.debug(
+            "Access token user resolution failed for user_id=%s: %s",
+            token_row.user_id,
+            str(exc),
+        )
+        _raise_oidc_error(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="not_authenticated",
         )
 
     # tokenからクレームを取得し、不正トークンは認証失敗として扱う
     try:
+        issuer = _build_oidc_issuer()
         payload = jwt.decode(
             token,
             settings.OIDC_JWT_PUBLIC_KEY,
-            algorithms=["RS256"],
+            algorithms=[settings.OIDC_JWT_ALG],
+            audience=ACCESS_TOKEN_AUDIENCE,
+            issuer=issuer,
+            options={"require_sub": True, "require_exp": True, "require_iat": True},
         )
     except ExpiredSignatureError as exc:
         logger.debug("Access token JWT expired")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired"
-        ) from exc
+        _raise_oidc_error(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="token_expired",
+        )
     except JWTError as exc:
         logger.debug("Access token JWT validation failed: %s", str(exc))
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
-        ) from exc
+        _raise_oidc_error(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="not_authenticated",
+        )
+
+    token_subject = payload.get("sub")
+    if token_subject != str(token_row.user_id):
+        logger.debug(
+            "Access token subject mismatch: token_sub=%s db_user_id=%s",
+            token_subject,
+            token_row.user_id,
+        )
+        _raise_oidc_error(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="not_authenticated",
+        )
 
     scope = payload.get("scope", "")
     scopes = scope.split(" ") if isinstance(scope, str) else []
