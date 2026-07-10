@@ -5,11 +5,10 @@
 それを検証してユーザーの認証状態を更新するためのAPIを提供します。
 """
 
-from uuid import UUID
-
-from app.api.current_user import get_current_admin_user
+from app.api.current_user import get_current_admin_user, get_current_user
 from app.core.config import logger, settings
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.one_time_link import (
     CreateLinkRequest,
     GetLinkRequest,
@@ -23,34 +22,10 @@ from app.services.one_time_link_service import (
     OneTimeLinkService,
 )
 from app.services.registration_session_service import generate_token
-from app.services.session_service import SessionService
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth/one-time-link", tags=["OneTimeLink"])
-
-
-def get_current_user_id(request: Request, db: Session) -> UUID:
-    """
-    セッションクッキーから現在ログイン中のユーザーIDを取得する。
-    """
-    session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
-    if not session_id:
-        logger.debug("No session cookie found in request.")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
-
-    session = SessionService.validate_session(db, session_id)
-    if session is None:
-        logger.debug("Invalid or expired session.")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session",
-        )
-
-    return session.user_id
 
 
 @router.options("/create")
@@ -147,14 +122,14 @@ def get_one_time_link_by_user_id(
 
 @router.post("/create/self", response_model=OneTimeLinkCreateResponse)
 def create_self_device_link(
-    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OneTimeLinkCreateResponse:
     """
     ログイン中ユーザー自身の追加デバイス登録用リンクを発行する。
     有効期限は設定値（通常5分）、用途は device_registration に固定する。
     """
-    user_id = get_current_user_id(request, db)
+    user_id = current_user.id
 
     # 同用途の未使用リンクが残っていれば再利用し、同時多発行を避ける。
     existing_link = OneTimeLinkService.get_link_by_user_id(

@@ -6,53 +6,28 @@ WebAuthn資格情報の管理に関するAPIエンドポイント。
 一覧取得、コメントの更新、および削除の処理を提供します。
 """
 
-from uuid import UUID
-
-from app.core.config import logger, settings
+from app.api.current_user import get_current_user
+from app.core.config import logger
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.auth import CredentialCommentUpdateRequest, CredentialOut
-from app.services.session_service import SessionService
 from app.services.webauthn_service import WebAuthnService
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/webauthn", tags=["webauthn"])
 
 
-def get_current_user_id(request: Request, db: Session) -> UUID:
-    """
-    【内部関数】
-    セッションクッキーから現在のユーザーIDを取得する。
-    """
-    session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
-    if not session_id:
-        logger.debug("No session cookie found in request.")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
-
-    session = SessionService.validate_session(db, session_id)
-    if session is None:
-        logger.debug("Invalid or expired session for session_id=%s", session_id)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session",
-        )
-
-    return session.user_id
-
-
 @router.get("/credentials", response_model=list[CredentialOut])
 def list_credentials(
-    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     【一般ユーザー向け】
     ログイン中ユーザーに紐づくWebAuthn資格情報一覧を返す。
     """
-    current_user_id = get_current_user_id(request, db)
+    current_user_id = current_user.id
     credentials = WebAuthnService.get_credentials(db, current_user_id)
     return credentials
 
@@ -63,14 +38,14 @@ def list_credentials(
 def update_credential_comment(
     credential_id: str,
     payload: CredentialCommentUpdateRequest,
-    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     【一般ユーザー向け】
     ログイン中ユーザーが自身の資格情報コメントを更新する。
     """
-    current_user_id = get_current_user_id(request, db)
+    current_user_id = current_user.id
     credential = WebAuthnService.get_by_credential_id_and_user_id(
         db,
         credential_id,
@@ -103,14 +78,14 @@ def update_credential_comment(
 @router.delete("/credentials/{credential_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_credential(
     credential_id: str,
-    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     【一般ユーザー向け】
     ログイン中ユーザーが自身の資格情報を削除する。
     """
-    current_user_id = get_current_user_id(request, db)
+    current_user_id = current_user.id
     credential = WebAuthnService.get_by_credential_id_and_user_id(
         db,
         credential_id,
