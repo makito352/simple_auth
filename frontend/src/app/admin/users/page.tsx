@@ -339,7 +339,7 @@ export default function UsersPage() {
 
   return (
     <div className="max-w-full mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">ユーザー管理</h1>
+      <h1 className="text-2xl font-bold mb-6">ユーザー・権限管理</h1>
 
       {/* エラーや成功の通知メッセージ */}
       {statusMessage && (
