@@ -1,5 +1,5 @@
 /**
- * @file page.tsx
+ * @file frontend/src/app/admin/users/page.tsx
  * @description ユーザー管理ページのコンポーネント。ユーザーの一覧表示、作成、編集、削除を行う。
  */
 "use client";
@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/users";
 import type { UserProfile } from "@/types";
 import { getErrorMessage } from "@/lib/error";
+import { LoadingSpinner } from "@/app/components/loading-spinner";
 
 /**
  * ユーザー管理メインページコンポーネント
@@ -108,9 +109,9 @@ export default function UsersPage() {
   };
 
   // ロード中の表示処理
-  if (loading) return <div className="p-8">読み込み中...</div>;
+  if (loading) return <LoadingSpinner />;
 
-    return (
+  return (
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-2xl font-bold mb-6">ユーザー管理</h1>
 

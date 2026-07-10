@@ -1,5 +1,5 @@
 /**
- * @file page.tsx
+ * @file frontend/src/app/admin/oidc/page.tsx
  * @description OIDCスコープとクレームマッピングの管理画面
  */
 "use client";
@@ -19,7 +19,8 @@ import {
 } from '@/lib/api/oidc';
 import { fetchOptionAttributes } from '@/lib/api/user_options';
 import { getErrorMessage } from "@/lib/error";
-import { Plus, Edit2, Trash2, Loader2, Save } from 'lucide-react';
+import { LoadingSpinner } from "@/app/components/loading-spinner";
+import { Plus, Edit2, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -292,8 +293,9 @@ export default function OidcManagementPage() {
     }
   };
 
+  //--- ローディング中の表示 ---
   if (loading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
+    return <LoadingSpinner />;
   }
 
   return (

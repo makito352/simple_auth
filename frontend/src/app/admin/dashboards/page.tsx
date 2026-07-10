@@ -1,5 +1,6 @@
 /**
- * @file ダッシュボードリンク管理ページ
+ * @file frontend/src/app/admin/dashboards/page.tsx
+ * @description 管理者用のダッシュボードリンク管理ページ
  * 
  * このコンポーネントは、管理者用ダッシュボードに表示される各種リンク（タイトル、URL、アイコン）を
  * 追加、更新、削除するためのインターフェースを提供します。
@@ -15,6 +16,7 @@ import {
   deleteDashboardLink 
 } from "@/lib/api/dashboards";
 import { getErrorMessage } from "@/lib/error";
+import { LoadingSpinner } from "@/app/components/loading-spinner";
 import Image from "next/image";
 
 /**
@@ -130,7 +132,7 @@ export default function DashboardsPage() {
   };
 
   // ローディング中の表示
-  if (loading) return <div className="p-8">読み込み中...</div>;
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="max-w-4xl mx-auto p-8">

@@ -1,5 +1,5 @@
 /**
- * @file page.tsx
+ * @file frontend/src/app/devices/page.tsx
  * @description ログイン中ユーザーのWebAuthnデバイス管理画面。
  * デバイス一覧の表示、コメントの更新、および新規デバイス登録用リンクの発行機能を備えています。
  */
@@ -15,6 +15,7 @@ import {
 import { createDeviceRegistrationLink } from "@/lib/api/one_time_link";
 import type { DeviceCredential, OneTimeLinkCreateResponse } from "@/types";
 import { getErrorMessage } from "@/lib/error";
+import { LoadingSpinner } from "@/app/components/loading-spinner";
 import Image from "next/image";
 
 
@@ -214,6 +215,9 @@ export default function DevicesPage() {
   // 少なくとも1つのデバイスが存在するか判定
   const hasDevices = useMemo(() => devices.length > 0, [devices]);
 
+  // ローディング中の表示
+  if (loading) return <LoadingSpinner />;
+  
   return (
     <main className="p-6 max-w-7xl mx-auto">
       {/* Launcherへのナビゲーション */}
@@ -285,9 +289,7 @@ export default function DevicesPage() {
       {error && <p className="text-red-600 mb-3">{error}</p>}
 
       {/* データ読み込み中および一覧表示の条件分岐 */}
-      {loading ? (
-        <p>読み込み中...</p>
-      ) : !hasDevices ? (
+      { hasDevices ? (
         <p>登録済みデバイスはありません。</p>
       ) : (
         <div className="overflow-x-auto">

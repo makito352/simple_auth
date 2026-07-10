@@ -1,12 +1,11 @@
 /**
- * @file page.tsx
+ * @file frontend/src/app/admin/oidc_clients/page.tsx
  * @description OIDCクライアント管理画面
  * 
  * このページでは、OIDC（OpenID Connect）のクライアント情報の閲覧、新規作成、編集、
  * およびシークレットの再発行を行うことができます。
  * セキュリティの観点から、シークレットの平文は常にマスクされ、コピー機能を通じてのみ取得可能となります。
  */
-
 
 "use client";
 import React, { useEffect, useState } from "react";
@@ -24,7 +23,8 @@ import type {
   OidcScope,
 } from "@/types";
 import { getErrorMessage } from "@/lib/error";
-import { Edit2, KeyRound, Loader2, Plus, Save } from "lucide-react";
+import { LoadingSpinner } from "@/app/components/loading-spinner";
+import { Edit2, KeyRound, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -236,12 +236,9 @@ export default function OidcClientManagementPage() {
     }
   };
 
+  // ローディング中の表示
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (

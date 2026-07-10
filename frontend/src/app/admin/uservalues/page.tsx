@@ -1,5 +1,5 @@
 /**
- * @file page.tsx
+ * @file frontend/src/app/admin/uservalues/page.tsx
  * @description ユーザー設定値の一覧表示、作成、編集、削除を行う。
  */
 "use client";
@@ -9,6 +9,7 @@ import { fetchOptionAttributes, fetchUserOptions, updateUserOptions } from '@/li
 import { fetchUserList } from '@/lib/api/users';
 import { getErrorMessage } from "@/lib/error";
 import type { OptionAttribute, UserOption, UserProfile} from '@/types';
+import { LoadingSpinner } from "@/app/components/loading-spinner";
 import { toast } from 'sonner';
 
 /**
@@ -111,7 +112,8 @@ export default function UserOptionValuesPage() {
     }
   };
 
-  if (attributesLoading) return <div className="p-8">読み込み中...</div>;
+  // ロード中の表示処理
+  if (attributesLoading) return <LoadingSpinner />;
 
   return (
     <div className="max-w-6xl mx-auto">
