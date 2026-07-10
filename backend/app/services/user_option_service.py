@@ -8,7 +8,7 @@ from app.core.config import logger
 from app.models.user_option import UserOption, UserOptionAttribute
 from app.schemas.user_option import (
     OptionAttributeOut,
-    UserOptionBulkUpdate,
+    UserOptionInner,
     UserOptionOut,
 )
 from app.utils.crypto import decrypt_value, encrypt_value
@@ -66,7 +66,9 @@ class UserOptionService:
         )
 
     @staticmethod
-    def create_attribute(db: Session, attrs: dict) -> UserOptionAttribute:
+    def create_attribute(
+        db: Session, attrs: dict[str, str | bool]
+    ) -> UserOptionAttribute:
         """新しい属性情報を作成する"""
         new_attr = UserOptionAttribute(**attrs)
         db.add(new_attr)
@@ -75,7 +77,9 @@ class UserOptionService:
         return new_attr
 
     @staticmethod
-    def update_attribute(db: Session, attr_id: UUID, data: dict) -> UserOptionAttribute:
+    def update_attribute(
+        db: Session, attr_id: UUID, data: dict[str, str | bool]
+    ) -> UserOptionAttribute:
         """特定の属性情報を更新する"""
         attr = (
             db.query(UserOptionAttribute)
@@ -137,7 +141,7 @@ class UserOptionService:
 
     @staticmethod
     def bulk_update_user_options(
-        db: Session, user_id: UUID, options: list[UserOptionBulkUpdate]
+        db: Session, user_id: UUID, options: list[UserOptionInner]
     ) -> list[UserOptionOut]:
         """
         【Bulk Update】

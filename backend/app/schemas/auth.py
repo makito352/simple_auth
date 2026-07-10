@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class StartAuthRequest(BaseModel):
@@ -62,3 +62,19 @@ class LoginOptionsResponse(BaseModel):
     """WebAuthnログインオプション取得レスポンス。"""
 
     options: dict[str, Any] = Field(..., description="WebAuthn認証オプション")
+
+
+class WebAuthnVerificationRequest(BaseModel):
+    """
+    WebAuthn検証リクエストの共通モデル。
+    WebAuthnライブラリが要求する追加フィールドをそのまま受け取れるようにする。
+    """
+
+    id: str = Field(..., description="WebAuthn資格情報ID")
+    device_name: str | None = Field(
+        default=None,
+        max_length=255,
+        description="登録デバイス名。登録系APIのみで利用する任意項目",
+    )
+
+    model_config = ConfigDict(extra="allow")

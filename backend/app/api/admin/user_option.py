@@ -10,7 +10,9 @@ from app.api.current_user import get_current_admin_user
 from app.core.config import logger
 from app.db.session import get_db
 from app.schemas.user_option import (
+    OptionAttributeCreate,
     OptionAttributeOut,
+    OptionAttributeUpdate,
     UserOptionBulkUpdate,
     UserOptionOut,
 )
@@ -18,7 +20,7 @@ from app.services.user_option_service import UserOptionService
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/admin//user-options", tags=["user-options"])
+router = APIRouter(prefix="/admin/user-options", tags=["user-options"])
 
 
 @router.get("/attributes", response_model=list[OptionAttributeOut])
@@ -34,22 +36,22 @@ def list_attributes(
 
 @router.post("/attributes", status_code=status.HTTP_201_CREATED)
 def create_attribute(
+    data: OptionAttributeCreate,
     db: Session = Depends(get_db),
-    data: dict = None,
     _admin=Depends(get_current_admin_user),
 ):
     """
     【管理者向け】
     新しい属性を作成する。
     """
-    return UserOptionService.create_attribute(db, data)
+    return UserOptionService.create_attribute(db, data.model_dump())
 
 
 @router.put("/attributes/{attr_id}")
 def update_attribute(
     attr_id: UUID,
+    data: OptionAttributeUpdate,
     db: Session = Depends(get_db),
-    data: dict = None,
     _admin=Depends(get_current_admin_user),
 ):
     """
@@ -57,7 +59,7 @@ def update_attribute(
     既存の属性を更新する。
     データが存在しない場合は 404 Not Found を返す。
     """
-    updated_attr = UserOptionService.update_attribute(db, attr_id, data or {})
+    updated_attr = UserOptionService.update_attribute(db, attr_id, data.model_dump())
     if not updated_attr:
         logger.debug("Attribute with ID %s not found for update.", attr_id)
         raise HTTPException(

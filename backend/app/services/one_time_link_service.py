@@ -2,7 +2,7 @@
 ワンタイムリンクの生成と検証を行うサービスモジュール。
 """
 
-import hashlib 
+import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -95,7 +95,9 @@ class OneTimeLinkService:
         そのトークンは二度と使えないようになります。
         """
         # トークンの識別用ハッシュを作成 (セキュリティのため生のトークンは出力しない)
-        token_hash = hashlib.sha256(token.encode()).hexdigest()[:10] # 最初の10文字程度を抽出
+        token_hash = hashlib.sha256(token.encode()).hexdigest()[
+            :10
+        ]  # 最初の10文字程度を抽出
 
         # トークンに紐付くOneTimeLinkを取得
         link = db.query(OneTimeLink).filter(OneTimeLink.token == token).first()
@@ -128,7 +130,9 @@ class OneTimeLinkService:
         # 紐付いているユーザーを取得して返す
         user = db.query(User).filter(User.id == link.user_id).first()
         if not user:
-            logger.error(f"User associated with OneTimeLink token (hash={token_hash}) not found.")
+            logger.error(
+                f"User associated with OneTimeLink token (hash={token_hash}) not found."
+            )
             raise IntegrityError(
                 "このリンクに関連付けられたユーザーは存在しません。(User associated with this link no longer exists.)"
             )
@@ -147,7 +151,9 @@ class OneTimeLinkService:
             or link.used_at is not None
             or link.expires_at < datetime.now(timezone.utc)
         ):
-            token_hash = hashlib.sha256(token.encode()).hexdigest()[:10] # 最初の10文字程度を抽出
+            token_hash = hashlib.sha256(token.encode()).hexdigest()[
+                :10
+            ]  # 最初の10文字程度を抽出
             logger.debug(f"Token (hash={token_hash}) is invalid, used, or expired.")
             return None
 

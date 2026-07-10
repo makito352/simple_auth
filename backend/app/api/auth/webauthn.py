@@ -11,11 +11,10 @@ WebAuthn認証用APIエンドポイント。
 """
 
 import json
-from typing import Any
 
 from app.core.config import logger, settings
 from app.db.session import get_db
-from app.schemas.auth import LoginOptionsResponse
+from app.schemas.auth import LoginOptionsResponse, WebAuthnVerificationRequest
 from app.services.auth_options_service import AuthOptionsService
 from app.services.registration_session_service import (
     get_challenge,
@@ -48,7 +47,7 @@ router = APIRouter(prefix="/webauthn", tags=["webauthn"])
 # Registration
 # ----------------------------
 def _verify_registration_and_store(
-    payload: dict[str, Any],
+    payload: WebAuthnVerificationRequest,
     request: Request,
     db: Session,
     update_user_verification: bool,
@@ -57,7 +56,7 @@ def _verify_registration_and_store(
     WebAuthnの登録レスポンスを検証し、有効な場合はデータベースに保存します。
 
     Args:
-        payload (dict): フロントエンドから送信されたWebAuthnの応答データ
+        payload (WebAuthnVerificationRequest): フロントエンドから送信されたWebAuthnの応答データ
         request (Request): クライアントからのリクエスト（Cookie等を含む）
         db (Session): データベースセッション
         update_user_verification (bool): 成功時にユーザーのメール検証済みフラグを更新するかどうか
@@ -82,10 +81,11 @@ def _verify_registration_and_store(
 
     # 保存されているチャレンジを取得
     challenge_data = get_challenge(db, session_token)
-    device_name = payload.get("device_name")
+    payload_dict = payload.model_dump(exclude_none=True)
+    device_name = payload.device_name
     # 非WebAuthn関連のフィールド（device_name等）を除外して検証に渡す
     credential_payload = {
-        key: value for key, value in payload.items() if key != "device_name"
+        key: value for key, value in payload_dict.items() if key != "device_name"
     }
 
     try:
@@ -155,13 +155,15 @@ def _issue_registration_options(request: Request, db: Session):
             detail="Invalid or expired session",
         )
 
-    user = UserService.read_user(db=db, user_id=user_id)
-    if not user:
-        # ここでユーザーが見つからない場合は、セッションが不正である可能性が高い
-        logger.error("User not found for user_id=%s", user_id)
+    try:
+        user = UserService.read_user(db=db, user_id=user_id)
+    except ValueError as exc:
+        # セッショントークンが有効でも、ユーザー状態が不正なら認証失敗として扱う
+        logger.error("User resolution failed for user_id=%s: %s", user_id, str(exc))
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session",
+        ) from exc
 
     # WebAuthn登録オプションを生成
     options = generate_registration_options(
@@ -210,7 +212,9 @@ async def options_register_verify():
 
 @router.post("/register/verify", status_code=status.HTTP_204_NO_CONTENT)
 def register_verify(
-    payload: dict, request: Request, db: Session = Depends(get_db)
+    payload: WebAuthnVerificationRequest,
+    request: Request,
+    db: Session = Depends(get_db),
 ) -> Response:
     """
     WebAuthnの登録プロセスにおける検証レスポンスを受け取り、
@@ -253,7 +257,9 @@ async def options_device_register_verify():
 
 @router.post("/devices/register/verify", status_code=status.HTTP_204_NO_CONTENT)
 def device_register_verify(
-    payload: dict, request: Request, db: Session = Depends(get_db)
+    payload: WebAuthnVerificationRequest,
+    request: Request,
+    db: Session = Depends(get_db),
 ) -> Response:
     """
     追加デバイス登録専用の検証API。
@@ -328,7 +334,7 @@ def login_options(
 
 @router.post("/login/verify", status_code=status.HTTP_204_NO_CONTENT)
 def login_verify(
-    payload: dict,
+    payload: WebAuthnVerificationRequest,
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
@@ -338,7 +344,7 @@ def login_verify(
     成功時には204 No Contentを返します。
 
     Args:
-        payload (dict): フロントエンドから送信されたWebAuthnの応答データ
+        payload (WebAuthnVerificationRequest): フロントエンドから送信されたWebAuthnの応答データ
         request (Request): クライアントからのリクエスト（Cookie参照用）
         response (Response): レスポンスオブジェクト
         db (Session): データベースセッション
@@ -347,13 +353,10 @@ def login_verify(
         Response: 成功時に204 No Contentを返すレスポンス
     """
     # payload["id"] は credential_id を指すと想定
-    logger.debug(
-        "login_verify request received for credential_id: %s", payload.get("id")
-    )
+    logger.debug("login_verify request received for credential_id: %s", payload.id)
     session_token = request.cookies.get(settings.WEB_AUTHN_TEMP_TOKEN_NAME)
-    credential_id = payload.get(
-        "id"
-    )  # frontendから送られてくるのは "id" フィールドであること
+    credential_id = payload.id
+    payload_dict = payload.model_dump(exclude_none=True)
 
     if not session_token:
         logger.error("Missing session token in request cookies")
@@ -361,13 +364,6 @@ def login_verify(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing session token",
         )
-    if not credential_id:
-        logger.error("Missing credential_id in payload")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing credential_id",
-        )
-
     # credential_id から credential を逆引き
     cred = WebAuthnService.get_by_credential_id(db, credential_id)
     if not cred:
@@ -394,7 +390,7 @@ def login_verify(
     try:
         # WebAuthnプロトコルに基づいた署名の検証
         verification = verify_authentication_response(
-            credential=payload,
+            credential=payload_dict,
             expected_challenge=challenge,
             expected_rp_id=settings.WEB_AUTHN_RP_ID,
             expected_origin=settings.WEB_AUTHN_ORIGIN,
