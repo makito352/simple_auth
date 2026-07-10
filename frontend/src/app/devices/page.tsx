@@ -1,6 +1,7 @@
 /**
  * @file page.tsx
  * @description ログイン中ユーザーのWebAuthnデバイス管理画面。
+ * デバイス一覧の表示、コメントの更新、および新規デバイス登録用リンクの発行機能を備えています。
  */
 "use client";
 
@@ -17,6 +18,11 @@ import { getErrorMessage } from "@/lib/error";
 import Image from "next/image";
 
 
+/**
+ * ISO 8601形式の日付文字列を日本向けのローカル形式に変換します。
+ * @param {string} iso - ISO 8601形式の日付文字列
+ * @returns {string} 整形された日付文字列（失敗した場合は "-" を返す）
+ */
 function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
@@ -25,13 +31,23 @@ function formatDate(iso: string): string {
   return date.toLocaleString("ja-JP");
 }
 
+/**
+ * 入力されたコメントの前後にある空白を削除し、空文字の場合はnullを返します。
+ * @param {string} value - ユーザーが入力した生の文字列
+ * @returns {string | null} トリミング後の文字列、またはnull
+ */
 function normalizeCommentInput(value: string): string | null {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/**
+ * デバイス管理ページのメインコンポーネント。
+ * デバイス一覧の取得、コメント更新、削除、および新規登録リンクの発行をハンドリングします。
+ */
 export default function DevicesPage() {
   const [devices, setDevices] = useState<DeviceCredential[]>([]);
+  // 入力中のコメントを一時的に保持するオブジェクト（キーはcredential_id）
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -41,6 +57,9 @@ export default function DevicesPage() {
   const [registrationLink, setRegistrationLink] = useState<OneTimeLinkCreateResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
+  /**
+   * コンポーネントマウント時にデバイス情報を取得します。
+   */
   useEffect(() => {
     let isMounted = true;
 
@@ -50,6 +69,7 @@ export default function DevicesPage() {
           return;
         }
 
+        // 初期データの読み込み時にドラフト状態を同期
         const drafts: Record<string, string> = {};
         rows.forEach((row) => {
           drafts[row.credential_id] = row.user_comment ?? "";
@@ -76,16 +96,26 @@ export default function DevicesPage() {
     };
   }, []);
 
+  /**
+   * デバイスのコメント入力内容を更新します。
+   * @param {string} credentialId - 対象のデバイスID
+   * @param {string} value - 入力された文字列
+   */
   function onChangeComment(credentialId: string, value: string) {
     setCommentDrafts((prev) => ({ ...prev, [credentialId]: value }));
   }
 
+  /**
+   * 選択したデバイスのコメントを保存します。
+   * @param {string} credentialId - 更新対象のデバイスID
+   */
   async function onSaveComment(credentialId: string) {
     setSavingId(credentialId);
     setError(null);
     try {
       const comment = normalizeCommentInput(commentDrafts[credentialId] ?? "");
       await updateDeviceComment(credentialId, comment);
+      // 保存成功時、ローカル状態のデバイス一覧を更新
       setDevices((prev) =>
         prev.map((row) =>
           row.credential_id === credentialId
@@ -104,6 +134,10 @@ export default function DevicesPage() {
     }
   }
 
+  /**
+   * 指定されたデバイスを削除します。
+   * @param {string} credentialId - 削除対象のデバイスID
+   */
   async function onDeleteDevice(credentialId: string) {
     const confirmed = window.confirm("このデバイスを削除します。よろしいですか？");
     if (!confirmed) {
@@ -114,6 +148,7 @@ export default function DevicesPage() {
     setError(null);
     try {
       await deleteDeviceCredential(credentialId);
+      // 削除成功時、ローカルの状態から該当アイテムを除外
       setDevices((prev) => prev.filter((row) => row.credential_id !== credentialId));
       setCommentDrafts((prev) => {
         const entries = Object.entries(prev);
@@ -129,6 +164,9 @@ export default function DevicesPage() {
     }
   }
 
+  /**
+   * 新しいデバイス登録用のワンタイムリンクを発行し、QRコードを生成します。
+   */
   async function onCreateRegistrationLink() {
     setLinkLoading(true);
     setError(null);
@@ -136,7 +174,7 @@ export default function DevicesPage() {
       const link = await createDeviceRegistrationLink();
       setRegistrationLink(link);
 
-      // 外部APIへリンク情報を送らず、ローカルでQRを生成する。
+      // 動的インポートによりqrcodeライブラリを使用し、QRコードをDataURLとして取得。
       const qrcode = await import("qrcode");
       const generated = await qrcode.toDataURL(link.url, {
         width: 220,
@@ -152,6 +190,9 @@ export default function DevicesPage() {
     }
   }
 
+  /**
+   * 発行された登録用URLをクリップボードにコピーします。
+   */
   async function onCopyRegistrationLink() {
     if (!registrationLink?.url) {
       return;
@@ -165,11 +206,12 @@ export default function DevicesPage() {
     }
   }
 
+  // 少なくとも1つのデバイスが存在するか判定
   const hasDevices = useMemo(() => devices.length > 0, [devices]);
 
   return (
     <main style={{ padding: 24 }}>
-      {/* Launcherに戻るリンクを追加 */}
+      {/* Launcherへのナビゲーション */}
       <div style={{ marginBottom: 16 }}>
         <Link href="/dashboard" style={{ color: "#0070f3", textDecoration: "underline" }}>
           ← 🏠Launcherに戻る
@@ -180,6 +222,7 @@ export default function DevicesPage() {
         ログイン中ユーザーのWebAuthnデバイス一覧です。コメント編集と削除が行えます。
       </p>
 
+      {/* 新規デバイス登録セクション */}
       <section
         style={{
           marginBottom: 24,
@@ -188,12 +231,13 @@ export default function DevicesPage() {
           borderRadius: 8,
         }}
       >
-        <h2>新しいデバイスを追加</h2>
-        <p>5分間有効のワンタイムリンクを発行し、別デバイスで開いて登録します。</p>
+        <h2 style={{ marginBottom: 8 }}>新しいデバイスを追加</h2>
+        <p style={{ marginBottom: 8 }}>5分間有効のワンタイムリンクを発行し、別デバイスで開いて登録します。</p>
         <button type="button" onClick={onCreateRegistrationLink} disabled={linkLoading}>
           {linkLoading ? "発行中..." : "追加デバイス登録リンクを発行"}
         </button>
 
+        {/* リンク発行成功後の表示エリア */}
         {registrationLink && (
           <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
             <p>有効期限: {formatDate(registrationLink.expires_at)}</p>
@@ -206,11 +250,12 @@ export default function DevicesPage() {
               />
               <button type="button" onClick={onCopyRegistrationLink}>
                 コピー
-              </button>
+            </button>
             </div>
             <a href={registrationLink.url} target="_blank" rel="noreferrer">
               このリンクを新しいデバイスで開く
             </a>
+            {/* QRコード表示 */}
             {qrDataUrl && (
               <div
                 style={{
@@ -230,8 +275,10 @@ export default function DevicesPage() {
         )}
       </section>
 
+      {/* エラーメッセージの表示 */}
       {error && <p style={{ color: "#b00020", marginBottom: 12 }}>{error}</p>}
 
+      {/* データ読み込み中および一覧表示の条件分岐 */}
       {loading ? (
         <p>読み込み中...</p>
       ) : !hasDevices ? (
