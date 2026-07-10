@@ -23,6 +23,7 @@ import type {
   OidcClientUpdateInput,
   OidcScope,
 } from "@/types";
+import { getErrorMessage } from "@/lib/error";
 import { Edit2, KeyRound, Loader2, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 
@@ -85,7 +86,8 @@ export default function OidcClientManagementPage() {
       setClients(clientsData);
       setScopes(scopesData);
     } catch (error) {
-      toast.error("OIDCクライアント情報の取得に失敗しました");
+      const errorMessage = getErrorMessage(error, "OIDCクライアント情報の取得に失敗しました");
+      toast.error(errorMessage);
     }
   };
 
@@ -188,7 +190,8 @@ export default function OidcClientManagementPage() {
       setEditing(null);// フォームを閉じる
       await loadData(); // リストを再読み込み
     } catch (error) {
-      toast.error("保存に失敗しました");
+      const errorMessage = getErrorMessage(error, "OIDCクライアントの保存に失敗しました");
+      toast.error(errorMessage);
     }
   };
 
@@ -207,7 +210,8 @@ export default function OidcClientManagementPage() {
       await copyToClipboard(result.client_secret, "rotate");
       await loadData();
     } catch (error) {
-      toast.error("シークレット再発行に失敗しました");
+      const errorMessage = getErrorMessage(error, "シークレット再発行に失敗しました");
+      toast.error(errorMessage);
     }
   };
 
@@ -226,8 +230,9 @@ export default function OidcClientManagementPage() {
           ? "シークレットは保存時のみ取得できます。再取得が必要な場合は再発行してください。"
           : "シークレットを再取得する場合は、再度再発行が必要です。",
       );
-    } catch {
-      toast.error("クリップボードへのコピーに失敗しました。再取得する場合は再発行してください");
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "クリップボードへのコピーに失敗しました。再取得する場合は再発行してください");
+      toast.error(errorMessage);
     }
   };
 
