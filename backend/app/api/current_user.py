@@ -33,15 +33,22 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
         )
-    user = UserService.read_user(db, user_id=session.user_id)
-    if not user:
+    
+    # セッションが有効な場合、対応するユーザーを取得
+    try:
+        user = UserService.read_user(db, user_id=session.user_id)
+    except ValueError as exc:
+        # read_user がユーザーを見つけられなかった場合に ValueError をスローため、ここでキャッチして 401 エラーを返す
+        # セッションIDに対応するユーザーが見つからない場合のエラーハンドリング
         logger.debug(
-            "認証エラー: セッションは存在しますが、対応するユーザーが見つかりません。セッションID: %s",
+            "認証エラー: セッションID %s に対応するユーザーの取得に失敗しました。理由: %s",
             session_id,
+            str(exc),
         )
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
-        )
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session",
+        ) from exc
     return user
 
 
