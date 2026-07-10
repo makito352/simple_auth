@@ -11,21 +11,10 @@ import { UserProfile, CreateUserRequest, UpdateUserRequest } from "@/types";
  * 内部で権限チェックなどを行う必要がない「自分の情報」や「一覧（あれば）」の取得に使用
  */
 export async function fetchUserProfile(): Promise<UserProfile | null> {
-  try {
-    const data = await apiGet("/users/me");
-    const profile = data as UserProfile;
-    
-    if (profile) {
-      logger.debug(`Fetched user profile: ${JSON.stringify(profile)}`);
-    } else {
-      logger.warn("Fetched user profile is empty");
-    }
-
-    return profile;
-  } catch (error) {
-    logger.error(`Failed to fetch user profile: ${error}`);
-    return null;
-  }
+  const data = await apiGet("/users/me");
+  const profile = data as UserProfile;
+  
+  return profile;
 }
 
 /**
