@@ -22,9 +22,14 @@ import { getErrorMessage } from "@/lib/error";
 import { Plus, Edit2, Trash2, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
+/**
+ * OIDCスコープのフォーム状態の型定義
+ * @property {string} scope_name - スコープ名
+ * @property {string} description - スコープの説明
+ */
 type ScopeFormState = {
-  scope_name: string;
-  description: string;
+  scope_name: string; // スコープ名
+  description: string;// スコープの説明
 };
 
 /**
@@ -231,6 +236,10 @@ export default function OidcManagementPage() {
     }
   };
 
+  /**
+   * クレームマッピングの編集フォームを開く
+   * @param mapping 編集対象のクレームマッピング
+   */
   const handleEdit = (mapping: ClaimMapping) => {
     setEditingId(mapping.id);
     setFormData({
@@ -244,6 +253,7 @@ export default function OidcManagementPage() {
 
   /**
    * スコープ編集フォームを開く
+   * @param scope 編集対象のOIDCスコープ
    */
   const handleEditScope = (scope: OidcScope) => {
     setEditingScopeName(scope.scope_name);
@@ -253,6 +263,10 @@ export default function OidcManagementPage() {
     });
   };
 
+  /**
+   * クレームマッピングの値ソースを変更する
+   * @param valueSource 入力された値
+   */
   const handleValueSourceChange = (valueSource: ClaimMapping['value_source']) => {
     setFormData((prev) => ({
       ...prev,
@@ -262,6 +276,11 @@ export default function OidcManagementPage() {
     }));
   };
 
+  /**
+   * 値のソースに基づいた表示用ラベルを返します。
+   * @param valueSource ソース種別
+   * @returns 表示用の日本語文字列
+   */
   const getValueSourceLabel = (valueSource: ClaimMapping['value_source']) => {
     switch (valueSource) {
       case 'user_attribute':
