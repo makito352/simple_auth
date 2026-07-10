@@ -25,12 +25,22 @@ import type {
 import { getErrorMessage } from "@/lib/error";
 import { LoadingSpinner } from "@/app/components/loading-spinner";
 
+/**
+ * ユーザーの状態値の型定義
+ */
 type UserStatusValue = "pending" | "verified";
 
+/**
+ * ワンタイムリンクの表示用型定義
+ */
 type DisplayOneTimeLink = OneTimeLinkCreateResponse & {
   link_type: LinkType;
 };
 
+/**
+ * ユーザーの現在のステータスに基づく表示ラベルの定義
+ * @type {Record<UserStatusValue, string>}
+ */
 const STATUS_LABELS: Record<UserStatusValue, string> = {
   pending: "パスキー登録待ち",
   verified: "パスキー登録済み",
@@ -44,6 +54,9 @@ const ROLE_LABELS: Record<"user" | "admin", string> = {
   admin: "管理者",
 };
 
+/**
+ * APIレスポンスの型定義を拡張した、管理画面用リンク情報の取得関数（キャスト済み）
+ */
 const getOneTimeLinkByUserIdForAdminTyped: (
   userId: string,
   linkType: LinkType,
@@ -52,12 +65,18 @@ const getOneTimeLinkByUserIdForAdminTyped: (
   linkType: LinkType,
 ) => Promise<OneTimeLinkGetResponse | null>;
 
+/**
+ * ユーザー向け登録用ワンタイムリンクを生成する関数（キャスト済み）
+ */
 const createRegistrationLinkForAdminTyped: (
   userId: string,
 ) => Promise<OneTimeLinkCreateResponse> = createRegistrationLinkForAdmin as unknown as (
   userId: string,
 ) => Promise<OneTimeLinkCreateResponse>;
 
+/**
+ * ユーザー向け機器追加用ワンタイムリンクを生成する関数（キャスト済み）
+ */
 const createReregistrationLinkForAdminTyped: (
   userId: string,
 ) => Promise<OneTimeLinkCreateResponse> = createReregistrationLinkForAdmin as unknown as (
