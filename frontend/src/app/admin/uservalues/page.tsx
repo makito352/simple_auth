@@ -7,8 +7,8 @@
 import React, { useState, useEffect } from 'react';
 import { fetchOptionAttributes, fetchUserOptions, updateUserOptions } from '@/lib/api/user_options';
 import { fetchUserList } from '@/lib/api/users';
-import { OptionAttribute, UserOption } from '@/types';
-import { UserProfile } from '@/lib/api/users';
+import { getErrorMessage } from "@/lib/error";
+import type { OptionAttribute, UserOption, UserProfile} from '@/types';
 import { toast } from 'sonner';
 
 /**
@@ -25,7 +25,6 @@ export default function UserOptionValuesPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // ユーザー設定値の状態
-  const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const [userOptionsLoading, setUserOptionsLoading] = useState(false);
   const [userOptionFormData, setUserOptionFormData] = useState<Record<string, string>>({});
   const [isSavingUserOptions, setIsSavingUserOptions] = useState(false);
@@ -41,7 +40,8 @@ export default function UserOptionValuesPage() {
         setAttributes(attrData);
         setUsers(userData);
       } catch (error) {
-        toast.error("データの読み込みに失敗しました。");
+        const errorMessage = getErrorMessage(error, "データの読み込みに失敗しました。");
+        toast.error(errorMessage);
       } finally {
         setAttributesLoading(false);
       }
@@ -53,7 +53,6 @@ export default function UserOptionValuesPage() {
   useEffect(() => {
     async function loadUserOptionsData() {
       if (!selectedUserId) {
-        setUserOptions([]);
         setUserOptionFormData({});
         return;
       }
@@ -61,7 +60,6 @@ export default function UserOptionValuesPage() {
       setUserOptionsLoading(true);
       try {
         const options = await fetchUserOptions(selectedUserId);
-        setUserOptions(options);
 
         // フォームデータを初期化
         const formData: Record<string, string> = {};
@@ -70,7 +68,8 @@ export default function UserOptionValuesPage() {
         });
         setUserOptionFormData(formData);
       } catch (error) {
-        toast.error("ユーザーの設定値読み込みに失敗しました。");
+        const errorMessage = getErrorMessage(error, "ユーザーの設定値読み込みに失敗しました。");
+        toast.error(errorMessage);
       } finally {
         setUserOptionsLoading(false);
       }
@@ -105,7 +104,8 @@ export default function UserOptionValuesPage() {
       await updateUserOptions(selectedUserId, options);
       toast.success("設定値を保存しました。");
     } catch (error) {
-      toast.error("保存に失敗しました。");
+      const errorMessage = getErrorMessage(error, "設定値の保存に失敗しました。");
+      toast.error(errorMessage);
     } finally {
       setIsSavingUserOptions(false);
     }
