@@ -56,6 +56,8 @@ export default function DevicesPage() {
   const [linkLoading, setLinkLoading] = useState(false);
   const [registrationLink, setRegistrationLink] = useState<OneTimeLinkCreateResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false); 
+  const COPY_TIMEOUT = 2000; // コピー状態を保持する時間（ミリ秒）
 
   /**
    * コンポーネントマウント時にデバイス情報を取得します。
@@ -199,7 +201,10 @@ export default function DevicesPage() {
     }
     try {
       await navigator.clipboard.writeText(registrationLink.url);
-      window.alert("登録リンクをコピーしました。");
+      // 成功時に状態を更新
+      setCopied(true);
+      // 2秒後に元に戻す
+      setTimeout(() => setCopied(false), COPY_TIMEOUT);
     } catch (e) {
       const errorMessage = getErrorMessage(e, "リンクのコピーに失敗しました");
       setError(errorMessage);
@@ -210,73 +215,74 @@ export default function DevicesPage() {
   const hasDevices = useMemo(() => devices.length > 0, [devices]);
 
   return (
-    <main style={{ padding: 24 }}>
+    <main className="p-6 max-w-7xl mx-auto">
       {/* Launcherへのナビゲーション */}
-      <div style={{ marginBottom: 16 }}>
-        <Link href="/dashboard" style={{ color: "#0070f3", textDecoration: "underline" }}>
+      <div className="mb-4">
+        <Link href="/dashboard" className="text-blue-600 underline hover:text-blue-800">
           ← 🏠Launcherに戻る
         </Link>
       </div>
-      <h1>デバイス管理</h1>
-      <p style={{ marginBottom: 16 }}>
+      <h1 className="text-2xl font-bold mb-2">デバイス管理</h1>
+      <p className="mb-6 text-gray-600">
         ログイン中ユーザーのWebAuthnデバイス一覧です。コメント編集と削除が行えます。
       </p>
 
       {/* 新規デバイス登録セクション */}
-      <section
-        style={{
-          marginBottom: 24,
-          padding: 12,
-          border: "1px solid #ddd",
-          borderRadius: 8,
-        }}
-      >
-        <h2 style={{ marginBottom: 8 }}>新しいデバイスを追加</h2>
-        <p style={{ marginBottom: 8 }}>5分間有効のワンタイムリンクを発行し、別デバイスで開いて登録します。</p>
-        <button type="button" onClick={onCreateRegistrationLink} disabled={linkLoading}>
+      <section className="mb-8 p-4 border border-gray-300 rounded-lg bg-gray-50">
+        <h2 className="text-lg font-bold mb-1">新しいデバイスを追加</h2>
+        <p className="mb-4 text-sm text-gray-600">5分間有効のワンタイムリンクを発行し、別デバイスで開いて登録します。</p>
+        <button 
+          type="button" 
+          onClick={onCreateRegistrationLink} 
+          disabled={linkLoading}
+          className={`px-4 py-2 rounded font-medium transition ${
+            linkLoading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
+        >
           {linkLoading ? "発行中..." : "追加デバイス登録リンクを発行"}
         </button>
 
         {/* リンク発行成功後の表示エリア */}
         {registrationLink && (
-          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-            <p>有効期限: {formatDate(registrationLink.expires_at)}</p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="mt-4 grid gap-3">
+            <p className="text-sm">有効期限: {formatDate(registrationLink.expires_at)}</p>
+            <div className="flex gap-2 flex-wrap">
               <input
                 type="text"
                 readOnly
                 value={registrationLink.url}
-                style={{ flex: 1, minWidth: 280, padding: "6px 8px" }}
+                className="flex-1 min-w-[280px] p-2 border border-gray-300 rounded bg-white"
               />
-              <button type="button" onClick={onCopyRegistrationLink}>
-                コピー
+            <button 
+              type="button" 
+              onClick={onCopyRegistrationLink}
+              className={`px-4 py-2 rounded hover:bg-green-700 transition ${
+                copied ? "bg-green-800" : "bg-green-600"
+              }`}
+            >
+              {copied ? "コピー済み" : "コピー"}
             </button>
             </div>
-            <a href={registrationLink.url} target="_blank" rel="noreferrer">
+            <a 
+              href={registrationLink.url} 
+              target="_blank" 
+              rel="noreferrer"
+              className="text-blue-600 font-bold hover:underline"
+            >
               このリンクを新しいデバイスで開く
             </a>
             {/* QRコード表示 */}
             {qrDataUrl && (
-              <div
-                style={{
-                  width: 220,
-                  height: 220,
-                  border: "1px solid #ddd",
-                  background: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <div className="w-[220px] h-[220px] border border-gray-300 p-2 bg-white flex items-center justify-center mt-2">
                 <Image src={qrDataUrl} alt="追加デバイス登録用QRコード" width={220} height={220} />
               </div>
             )}
           </div>
         )}
       </section>
-
+      
       {/* エラーメッセージの表示 */}
-      {error && <p style={{ color: "#b00020", marginBottom: 12 }}>{error}</p>}
+      {error && <p className="text-red-600 mb-3">{error}</p>}
 
       {/* データ読み込み中および一覧表示の条件分岐 */}
       {loading ? (
@@ -284,57 +290,65 @@ export default function DevicesPage() {
       ) : !hasDevices ? (
         <p>登録済みデバイスはありません。</p>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={{ border: "1px solid #ddd", padding: 8, textAlign: "left" }}>OS</th>
-              <th style={{ border: "1px solid #ddd", padding: 8, textAlign: "left" }}>登録日</th>
-              <th style={{ border: "1px solid #ddd", padding: 8, textAlign: "left" }}>コメント</th>
-              <th style={{ border: "1px solid #ddd", padding: 8, textAlign: "left" }}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {devices.map((device) => {
-              const isSaving = savingId === device.credential_id;
-              const isDeleting = deletingId === device.credential_id;
-              return (
-                <tr key={device.id}>
-                  <td style={{ border: "1px solid #ddd", padding: 8 }}>{device.device_name ?? "Unknown"}</td>
-                  <td style={{ border: "1px solid #ddd", padding: 8 }}>{formatDate(device.created_at)}</td>
-                  <td style={{ border: "1px solid #ddd", padding: 8 }}>
-                    <input
-                      type="text"
-                      value={commentDrafts[device.credential_id] ?? ""}
-                      onChange={(e) => onChangeComment(device.credential_id, e.target.value)}
-                      maxLength={255}
-                      placeholder="例: WindowsメインPC / WindowsノートPC / 個人スマホ"
-                      disabled={isDeleting}
-                      style={{ width: "95%", minWidth: 240, padding: "6px 8px" }}
-                    />
-                  </td>
-                  <td style={{ border: "1px solid #ddd", padding: 8 }}>
-                    <div style={{ display: "flex", gap: 8, whiteSpace: "nowrap" }}>
-                      <button
-                        type="button"
-                        onClick={() => onSaveComment(device.credential_id)}
-                        disabled={isSaving || isDeleting}
-                      >
-                        {isSaving ? "保存中..." : "保存"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteDevice(device.credential_id)}
-                        disabled={isSaving || isDeleting}
-                      >
-                        {isDeleting ? "削除中..." : "削除"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-300 p-2 text-left">OS</th>
+                <th className="border border-gray-300 p-2 text-left">登録日</th>
+                <th className="border border-gray-300 p-2 text-left">コメント</th>
+                <th className="border border-gray-300 p-2 text-left">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices?.map((device) => {
+                const isSaving = savingId === device.credential_id;
+                const isDeleting = deletingId === device.credential_id;
+                return (
+                  <tr key={device.id}>
+                    <td className="border border-gray-300 p-2">{device.device_name ?? "Unknown"}</td>
+                    <td className="border border-gray-300 p-2">{formatDate(device.created_at)}</td>
+                    <td className="border border-gray-300 p-2">
+                      <input
+                        type="text"
+                        value={commentDrafts[device.credential_id] ?? ""}
+                        onChange={(e) => onChangeComment(device.credential_id, e.target.value)}
+                        maxLength={255}
+                        placeholder="例: WindowsメインPC / 会社用スマホ"
+                        disabled={isDeleting}
+                        className="w-full min-w-[240px] p-2 border border-gray-300 rounded"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-2">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onSaveComment(device.credential_id)}
+                          disabled={isSaving || isDeleting}
+                          className={`px-3 py-1 rounded ${
+                            isSaving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"
+                          }`}
+                        >
+                          {isSaving ? "保存中..." : "保存"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteDevice(device.credential_id)}
+                          disabled={isSaving || isDeleting}
+                          className={`px-3 py-1 rounded ${
+                            isDeleting ? "bg-gray-400 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"
+                          }`}
+                        >
+                          {isDeleting ? "削除中..." : "削除"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   );
