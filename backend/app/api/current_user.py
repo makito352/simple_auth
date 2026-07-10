@@ -33,7 +33,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
         )
-    
+
     # セッションが有効な場合、対応するユーザーを取得
     try:
         user = UserService.read_user(db, user_id=session.user_id)
@@ -49,6 +49,9 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
         ) from exc
+
+    request.state.current_user_id = str(user.id)
+    request.state.authenticated = True
     return user
 
 

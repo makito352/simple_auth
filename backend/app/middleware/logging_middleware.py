@@ -5,7 +5,7 @@
 from time import perf_counter
 
 from app.core.config import logger
-from app.utils.request_utils import resolve_client_ip, resolve_request_user_id
+from app.utils.request_utils import resolve_client_ip
 from fastapi import Request
 
 
@@ -18,16 +18,12 @@ async def access_log_middleware(request: Request, call_next):
     if request_path == "/health":
         return await call_next(request)
 
-    root_path = request.scope.get("root_path", "")
-    full_path = f"{root_path}{request_path}"
     client_ip = resolve_client_ip(request)
     started_at = perf_counter()
-    user_id = resolve_request_user_id(request)
-    authenticated = user_id is not None
 
-    # リクエスト状態にユーザー情報を保持
-    request.state.current_user_id = user_id
-    request.state.authenticated = authenticated
+    # リクエスト開始時点では認証状態は未確定のため、後続の依存解決に委ねる
+    request.state.current_user_id = None
+    request.state.authenticated = False
 
     status_code = 500
     try:
@@ -41,13 +37,15 @@ async def access_log_middleware(request: Request, call_next):
     finally:
         # 処理時間をミリ秒単位で計算
         duration_ms = round((perf_counter() - started_at) * 1000, 2)
+        user_id = getattr(request.state, "current_user_id", None)
+        authenticated = getattr(request.state, "authenticated", False)
         # ログ出力
         logger.info(
             "access authenticated=%s user_id=%s method=%s path=%s status_code=%s client_ip=%s duration_ms=%s",
             authenticated,
             user_id,
             request.method,
-            full_path,
+            request.url.path,
             status_code,
             client_ip,
             duration_ms,

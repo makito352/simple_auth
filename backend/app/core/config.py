@@ -46,6 +46,10 @@ class Settings(BaseSettings):
 
     # CORS origins（カンマ区切りで複数指定）
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000,http://localhost"
+    # リバースプロキシから転送されたヘッダーを信頼するかどうか
+    TRUST_PROXY_HEADERS: bool = False
+    # X-Forwarded-For を受け入れる送信元プロキシIP/CIDRの一覧
+    TRUSTED_PROXY_IPS: str = ""
 
     # このバックエンドのベース URL
     BACKEND_BASE_URI: AnyHttpUrl = "http://localhost:8000"
@@ -113,7 +117,7 @@ logger.debug("--- 読み込んだ設定値 (Settings) ---")
 for key, value in settings.__dict__.items():
     if key == "Config" or key == "logger":
         continue
-    
+
     # 機密情報の場合はマスクする
     if key in SENSITIVE_FIELDS:
         logger.debug("  %s: [MASKED]", key)
