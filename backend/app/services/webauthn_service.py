@@ -45,11 +45,12 @@ class WebAuthnService:
         新しい資格情報を登録します。
         """
         logger.debug("register_credential called with user_id: %s", user_id)
-        logger.debug(
-            "DEBUG_REGISTER: raw public_key value = %s (type: %s)",
-            public_key,
-            type(public_key),
-        )
+        # 機密情報はデバッグでも出力しないようにする
+        # logger.debug(
+        #     "DEBUG_REGISTER: raw public_key value = %s (type: %s)",
+        #     public_key,
+        #     type(public_key),
+        # )
 
         # credential_id_str,public_key は webauthn ライブラリから返される bytes 型の場合があるため、
         # 確実に Base64URL 文字列として保存するように変換処理を挟む。
@@ -144,7 +145,7 @@ class WebAuthnService:
     def delete_credential(db: Session, credential_id: str) -> bool:
         """
         指定された credential_id に基づいて資格情報を削除する。
-        成功した場合は True、失敗または存在しない場合は False（または例外）を返す。
+        成功した場合は True を返す。
         """
         cred = (
             db.query(Credential)
@@ -155,7 +156,7 @@ class WebAuthnService:
             logger.error(
                 "Delete failed: Credential with ID %s not found", credential_id
             )
-            return False
+            raise ValueError(f"Credential {credential_id} not found")
 
         try:
             db.delete(cred)
