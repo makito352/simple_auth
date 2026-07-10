@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { performWebAuthnLogin } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
+import Link from 'next/link';
 
 /**
  * ログインページのメインコンポーネント
@@ -37,12 +38,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div>
-      <h1>Login</h1>
-      <p>「次へ」を押して生体認証を開始してください</p>
-      <button onClick={handleNext} disabled={loading}>
-        {loading ? "認証中..." : "次へ (生体認証)"}
-      </button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="p-8 bg-white shadow-lg rounded-xl border border-gray-200 text-center max-w-md w-full">
+        <h1 className="text-3xl font-bold mb-4 text-gray-900">SimpleAuthのログイン</h1>
+        <p className="mb-6 text-gray-600">「パスキーでログイン」を押して、パスキーによる認証を開始してください。</p>
+        <button 
+          onClick={handleNext} 
+          disabled={loading}
+          className={`w-full px-6 py-3 rounded-lg font-medium transition-colors ${
+            loading 
+              ? "bg-gray-400 cursor-not-allowed" 
+              : "bg-blue-600 hover:bg-blue-700 text-white"
+          }`}
+        >
+          {loading ? "認証中..." : "パスキーでログイン"}
+        </button>
+        <div className="mt-6">
+          <Link href="/" className="text-sm text-gray-500 hover:underline">ホームに戻る</Link>
+        </div>
+      </div>
     </div>
   );
 }
