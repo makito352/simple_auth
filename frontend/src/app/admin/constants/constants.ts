@@ -13,9 +13,16 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+/**
+ * 管理者用メニュー項目の型定義
+ * @property {string} title - メニュー項目のタイトル
+ * @property {string} href - メニュー項目のリンク先URL
+ * @property {string} [desc] - メニュー項目の説明（省略可能）
+ * @property {LucideIcon} icon - メニュー項目に対応するアイコンコンポーネント
+ */
 export interface AdminMenuItem {
-  title: string;
-  href: string;
+  title: string;    // メニュー項目のタイトル
+  href: string;     // メニュー項目のリンク先URL
   desc?: string;    // ページ一覧用の説明
   icon: LucideIcon; // アイコンコンポーネントそのものを保持する
 }
