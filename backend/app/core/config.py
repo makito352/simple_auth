@@ -5,7 +5,7 @@
 
 import logging
 
-from pydantic import AnyHttpUrl
+from pydantic import AnyHttpUrl, EmailStr, Field
 from pydantic_settings import BaseSettings
 
 
@@ -68,12 +68,12 @@ class Settings(BaseSettings):
     WEB_AUTHN_ORIGIN: str = "http://localhost"
 
     # 初期設定用の管理者ユーザーのメールアドレス（登録済みの場合は None）
-    INITIAL_ADMIN_USER_EMAIL: str | None = (
+    INITIAL_ADMIN_USER_EMAIL: EmailStr | None = (
         None  # 初期管理者ユーザーのメールアドレス（未設定の場合は None）
     )
     # 初期設定用の管理者ユーザーのパスワード（登録済みの場合は Noneにすること）
-    INITIAL_ADMIN_USER_PASSWORD: str | None = (
-        None  # 初期管理者ユーザーのパスワード（未設定の場合は None）
+    INITIAL_ADMIN_USER_PASSWORD: str | None = Field(
+        default=None, min_length=8, description="初期設定用の管理者ユーザーのパスワード"
     )
     # 招待リンク用ベースアドレス
     FRONTEND_BASE_URL: str = "http://localhost"
