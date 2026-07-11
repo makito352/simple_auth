@@ -67,8 +67,14 @@ class Settings(BaseSettings):
     WEB_AUTHN_RP_NAME: str = "SimpleAuth"
     WEB_AUTHN_ORIGIN: str = "http://localhost"
 
-    # 初期設定用
-    INITIAL_ADMIN_USER_EMAIL: str = "admin@example"
+    # 初期設定用の管理者ユーザーのメールアドレス（登録済みの場合は None）
+    INITIAL_ADMIN_USER_EMAIL: str | None = (
+        None  # 初期管理者ユーザーのメールアドレス（未設定の場合は None）
+    )
+    # 初期設定用の管理者ユーザーのパスワード（登録済みの場合は Noneにすること）
+    INITIAL_ADMIN_USER_PASSWORD: str | None = (
+        None  # 初期管理者ユーザーのパスワード（未設定の場合は None）
+    )
     # 招待リンク用ベースアドレス
     FRONTEND_BASE_URL: str = "http://localhost"
 

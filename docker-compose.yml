@@ -58,6 +58,7 @@ services:
       OIDC_JWT_PRIVATE_KEY_PATH: /app/keys/oidc_private.pem
       OIDC_JWT_PUBLIC_KEY_PATH: /app/keys/oidc_public.pem
       INITIAL_ADMIN_USER_EMAIL: ${INITIAL_ADMIN_USER_EMAIL}
+      INITIAL_ADMIN_USER_PASSWORD: ${INITIAL_ADMIN_USER_PASSWORD}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
       ENV: ${ENV}
     volumes:

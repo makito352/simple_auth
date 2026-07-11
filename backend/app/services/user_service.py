@@ -65,6 +65,79 @@ class UserService:
         return new_user
 
     @staticmethod
+    def is_initial_setup_required(db: Session) -> User:
+        """
+        システムがまだ初期セットアップ（初期管理者の登録）を完了していないか判定します。
+        
+        初期設定が未完了の場合は True を返す。
+        """
+        # 初期管理者のメールアドレスとパスワードが設定されていない場合は、初期管理者ログインをスキップ
+        admin_email = settings.INITIAL_ADMIN_USER_EMAIL
+        admin_password = settings.INITIAL_ADMIN_USER_PASSWORD
+        if not admin_email or not admin_password:
+            logger.debug("Initial admin credentials not set. Skipping.")
+            raise ValueError("初期管理者設定が完了していません。")
+
+        # 全ユーザー数をカウント
+        user_count = db.query(User).count()
+        if user_count != 1:
+            logger.warning("Initial admin login failed: count is %d", user_count)
+            raise ValueError(
+                "初期管理画面チェック失敗しました。システムの状態が正しくありません。"
+            )
+        
+        # 管理者（Admin）が存在するか確認
+        user = db.query(User).filter(User.role == UserRole.ADMIN.value).first()
+        
+        # 管理者が存在しない場合も、セットアップを促す必要がある（または状況により判断）
+        if not user or user.email_verification_status != UserStatus.PENDING.value:
+            logger.warning("Initial admin login failed: status invalid.")
+            raise ValueError("認証に失敗しました。")
+
+        return user
+    
+    @staticmethod
+    def initial_admin_login(db: Session, email: str, password: str) -> User:
+        """
+        初期管理者（Initial Admin）の認証を検証します。
+        成功した場合はUserオブジェクトを返し、失敗した場合は適切な例外を投げます。
+        """
+        # 初期管理者のメールアドレスとパスワードが設定されていない場合は、初期管理者ログインをスキップ
+        admin_email = settings.INITIAL_ADMIN_USER_EMAIL
+        admin_password = settings.INITIAL_ADMIN_USER_PASSWORD
+        if not admin_email or not admin_password:
+            logger.debug("Initial admin credentials not set. Skipping.")
+            raise ValueError("初期管理者設定が完了していません。")
+
+        # 1. システム全体のユーザー数をチェック
+        user_count = db.query(User).count()
+        if user_count != 1:
+            logger.warning("Initial admin login failed: count is %d", user_count)
+            raise ValueError(
+                "初期管理者ログインに失敗しました。システムの状態が正しくありません。"
+            )
+
+        # 2 & 3. 設定値と入力値の照合
+        if (
+            email != settings.INITIAL_ADMIN_USER_EMAIL
+            or password != settings.INITIAL_ADMIN_USER_PASSWORD
+        ):
+            logger.warning("Initial admin login failed: credential mismatch.")
+            raise ValueError("認証情報が正しくありません。")
+
+        # 4. 対象ユーザーの存在とステータスの確認
+        user = db.query(User).filter(User.email == email).first()
+        if not user or user.email_verification_status != UserStatus.PENDING.value:
+            logger.warning("Initial admin login failed: status invalid.")
+            raise ValueError("認証に失敗しました。")
+        # 5. ユーザーのロールが ADMIN であることを確認
+        if user.role != UserRole.ADMIN.value:
+            logger.warning("Initial admin login failed: role is not admin.")
+            raise ValueError("権限がありません。")
+
+        return user
+
+    @staticmethod
     def _ensure_initial_admin(db: Session) -> User:
         """
         ユーザーが0件の場合、初期管理者のメールアドレスを使用して
@@ -72,14 +145,15 @@ class UserService:
         """
         count = db.query(User).count()
         admin_email = settings.INITIAL_ADMIN_USER_EMAIL
+        admin_password = settings.INITIAL_ADMIN_USER_PASSWORD
+        if not admin_email or not admin_password:
+            logger.debug(
+                "INITIAL_ADMIN_USER_EMAIL or INITIAL_ADMIN_USER_PASSWORD is not set. Skipping initial admin user creation."
+            )
+            return None
         if count == 0:
             user = UserService.create_user(db, email=admin_email, role=UserRole.ADMIN)
-            link = OneTimeLinkService.create_link(db, user.id)
-            logger.info(
-                "Created initial admin user with email: %s, onetime link: %s",
-                admin_email,
-                link.url,
-            )
+            logger.info("Initial admin user created with email: %s", user.email)
             return user
         return db.query(User).filter(User.email == admin_email).first()
 
@@ -89,6 +163,11 @@ class UserService:
         初期セットアップ用のエントリーポイント。
         管理者の作成と、必要な場合の認証用URLの表示を行います。
         """
+        if not settings.INITIAL_ADMIN_USER_EMAIL:
+            logger.debug(
+                "INITIAL_ADMIN_USER_EMAIL is not set. Skipping initial admin user creation."
+            )
+            return
 
         # 管理者権限を持つユーザーを自動作成
         # ※生成済みの場合は管理者Userを返す
@@ -99,21 +178,22 @@ class UserService:
             return
 
         # ステータスが pending の場合はリンクを表示する
-        if user.email_verification_status == UserStatus.PENDING.value:
-            link = OneTimeLinkService.get_link_by_user_id(db, user.id)
-            if link is None:
-                logger.warning(
-                    "Warning: No active OneTimeLink found for user %s (ID: %s)",
-                    user.email,
-                    user.id,
-                )
-            else:
-                logger.info("Admin user setup complete. Status: pending.")
-                logger.info(
-                    "Please use the following link to verify the admin account: %s",
-                    link.url,
-                )
-        else:
+        # if user.email_verification_status == UserStatus.PENDING.value:
+        #     link = OneTimeLinkService.get_link_by_user_id(db, user.id)
+        #     if link is None:
+        #         logger.warning(
+        #             "Warning: No active OneTimeLink found for user %s (ID: %s)",
+        #             user.email,
+        #             user.id,
+        #         )
+        #     else:
+        #         logger.info("Admin user setup complete. Status: pending.")
+        #         logger.info(
+        #             "Please use the following link to verify the admin account: %s",
+        #             link.url,
+        #         )
+        # else:
+        if user.email_verification_status != UserStatus.PENDING.value:
             logger.debug(
                 "Admin user setup complete. Status: %s", user.email_verification_status
             )

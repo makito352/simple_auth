@@ -16,7 +16,7 @@ echo "OK: OIDC keys saved to [backend/secrets/]"
 POSTGRES_PASS=$(openssl rand -base64 32 | tr -d '\n\r')
 ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n\r')
 SESSION_TOKEN_SECRET=$(openssl rand -base64 32 | tr -d '\n\r')
-
+INITIAL_ADMIN_USER_PASSWORD=$(openssl rand -base64 32 | tr -d '\n\r')
 
 # --- 結果の出力 ---
 echo ""
@@ -26,6 +26,8 @@ echo "------------------------------------------------------------------------"
 echo "POSTGRES_PASSWORD=\"$POSTGRES_PASS\""
 echo "ENCRYPTION_KEY=\"$ENCRYPTION_KEY\""
 echo "SESSION_TOKEN_SECRET=\"$SESSION_TOKEN_SECRET\""
+echo "# 管理者ユーザーの初期パスワード（初期セットアップ時に使用）使用後は空欄コメントアウトしてください。"
+echo "INITIAL_ADMIN_USER_PASSWORD=\"$INITIAL_ADMIN_USER_PASSWORD\""
 
 echo ""
 echo "------------------------------------------------------------------------"

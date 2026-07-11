@@ -10,6 +10,21 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
+class InitialAdminLoginRequest(BaseModel):
+    """初期管理者のログインリクエスト。"""
+
+    email: EmailStr = Field(..., description="管理者用メールアドレス")
+    password: str = Field(..., min_length=8, description="パスワード（最低8文字）")
+
+
+class InitialAdminLoginResponse(BaseModel):
+    """初期管理者のログイン成功時レスポンス。"""
+
+    user_id: str = Field(..., description="ユーザーのID")
+    email: EmailStr = Field(..., description="ユーザーのメールアドレス")
+    status: str = Field(..., description="メール認証ステータス")
+
+
 class StartAuthRequest(BaseModel):
     email: EmailStr = Field(
         ...,
