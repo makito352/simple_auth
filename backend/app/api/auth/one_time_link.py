@@ -152,7 +152,7 @@ def create_self_device_link(
 
 @router.get("/verify", response_model=TokenVerificationResponse)
 def verify_one_time_link(
-    token: str, db: Session = Depends(get_db), response: Response = None
+    token: str, db: Session = Depends(get_db), response: Response = Response()
 ) -> TokenVerificationResponse:
     """
     トークンを検証し、消費します。

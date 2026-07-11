@@ -30,6 +30,8 @@ def auth_request(response: Response, user: User = Depends(get_current_user)):
     """
     # nginxなどのプロキシサーバーが参照するカスタムヘッダにユーザーのメールアドレスを設定
     response.headers["X-User"] = user.email
+    # 明示的に204 No Contentを返す
+    response.status_code = status.HTTP_204_NO_CONTENT
 
     # 認証成功時、レスポンスボディなしの204 No Contentを返す
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return response
