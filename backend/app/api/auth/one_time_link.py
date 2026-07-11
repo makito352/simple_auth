@@ -25,7 +25,7 @@ from app.services.registration_session_service import generate_token
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/auth/one-time-link", tags=["OneTimeLink"])
+router = APIRouter(prefix="/auth/one-time-link", tags=["one-time-link"])
 
 
 @router.options("/create")
