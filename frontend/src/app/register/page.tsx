@@ -1,6 +1,6 @@
 /**
- * @file page.tsx
- * @description WebAuthnデバイス登録ページ
+ * @file frontend/src/app/register/page.tsx
+ * @description 新規ユーザーのWebAuthnデバイス登録ページ
  * ユーザーがパスキー（WebAuthn）を登録するためのUIを提供します。
  */
 "use client";
