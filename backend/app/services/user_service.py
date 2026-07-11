@@ -68,7 +68,7 @@ class UserService:
     def is_initial_setup_required(db: Session) -> User:
         """
         システムがまだ初期セットアップ（初期管理者の登録）を完了していないか判定します。
-        
+
         初期設定が未完了の場合は True を返す。
         """
         # 初期管理者のメールアドレスとパスワードが設定されていない場合は、初期管理者ログインをスキップ
@@ -85,17 +85,17 @@ class UserService:
             raise ValueError(
                 "初期管理画面チェック失敗しました。システムの状態が正しくありません。"
             )
-        
+
         # 管理者（Admin）が存在するか確認
         user = db.query(User).filter(User.role == UserRole.ADMIN.value).first()
-        
+
         # 管理者が存在しない場合も、セットアップを促す必要がある（または状況により判断）
         if not user or user.email_verification_status != UserStatus.PENDING.value:
             logger.warning("Initial admin login failed: status invalid.")
             raise ValueError("認証に失敗しました。")
 
         return user
-    
+
     @staticmethod
     def initial_admin_login(db: Session, email: str, password: str) -> User:
         """

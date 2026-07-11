@@ -29,6 +29,7 @@ def get_initial_setup_status(db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+
 @router.post("/login", response_model=InitialAdminLoginResponse)
 def login_initial_admin(
     data: InitialAdminLoginRequest,
