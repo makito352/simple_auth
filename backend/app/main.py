@@ -19,6 +19,7 @@ from app.api.admin.user_option import router as user_option_router
 from app.api.auth.oidc import router as oidc_router
 from app.api.auth.one_time_link import router as one_time_link_router
 from app.api.auth.webauthn import router as webauthn_router
+from app.api.auth.init_admin import router as init_admin_router
 from app.api.credentials_management import router as credentials_management_router
 from app.api.dashboard_links import router as dashboard_links_router
 from app.api.health import router as health_router
@@ -125,6 +126,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_oidc_router)
     app.include_router(admin_dashboard_links_router)
     app.include_router(credentials_management_router)
+    app.include_router(init_admin_router)
 
     # 静的ファイルのパスを絶対パスで指定する
     static_path = ensure_static_dirs_exists()
