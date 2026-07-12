@@ -51,7 +51,7 @@ export async function updateOptionAttribute(
  * @param userId ユーザーのUUID
  */
 export async function fetchUserOptions(userId: string): Promise<UserOption[]> {
-  const data = await apiGet(`/admin//user-options/${userId}/options`);
+  const data = await apiGet(`/admin/user-options/${userId}/options`);
   return data as UserOption[];
 }
 
@@ -64,7 +64,7 @@ export async function updateUserOptions(
   userId: string,
   options: UserOption[]
 ): Promise<UserOption[]> {
-  const data = await apiPatch(`/admin//user-options/${userId}/options`, {
+  const data = await apiPatch(`/admin/user-options/${userId}/options`, {
       options: options,
     });
   return data as UserOption[];
