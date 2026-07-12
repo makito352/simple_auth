@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
+import { resolveRegisterErrorMessage } from "@/components/common/common_utils";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
-import { resolveRegisterErrorMessage } from "@/components/common/register_shared";
 
 import { DeviceRow } from "./renderDeviceRows";
 import { useDeviceActions } from "./useDeviceActions";

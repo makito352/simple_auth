@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 
+import { COPY_SUCCESS_DISPLAY_DURATION_MS } from "@/components/common/common_utils";
 import { createDeviceRegistrationLink } from "@/lib/api/one_time_link";
 import { getErrorMessage } from "@/lib/error";
 import type { OneTimeLinkCreateResponse } from "@/types";
@@ -19,11 +20,6 @@ export function useRegistrationLink() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  /**
-   * リンク発行完了時のコピー待機時間（ミリ秒）。
-   */
-  const COPY_TIMEOUT_MS = 2000;
-
   /**
    * 新しいデバイス登録用のワンタイムリンクを発行し、QRコードを生成します。
    */
@@ -56,7 +52,7 @@ export function useRegistrationLink() {
     try {
       await navigator.clipboard.writeText(registrationLink.url);
       setCopied(true);
-      setTimeout(() => setCopied(false), COPY_TIMEOUT_MS);
+      setTimeout(() => setCopied(false), COPY_SUCCESS_DISPLAY_DURATION_MS);
     } catch (e) {
       const errorMessage = getErrorMessage(e, "リンクのコピーに失敗しました");
       setError(errorMessage);

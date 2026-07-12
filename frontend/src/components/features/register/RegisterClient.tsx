@@ -12,7 +12,7 @@ import { verifyOneTimeLink } from "@/lib/api/one_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
 
-import { REGISTER_REDIRECT_DELAY_MS, resolveRegisterErrorMessage } from "../../common/register_shared";
+import { REGISTER_REDIRECT_DELAY_MS, resolveRegisterErrorMessage } from "../../common/common_utils";
 import { useSuccessRedirect } from "./useSuccessRedirect";
 
 /**

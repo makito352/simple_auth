@@ -1,15 +1,19 @@
 /**
- * @file frontend/src/components/features/register/register_shared.ts
- * @description 登録画面（通常/初期管理者）で共通利用する定数とエラーユーティリティ。
+ * @file frontend/src/components/common/register_shared.ts
+ * @description 画面で共通利用する定数とエラーユーティリティ。
  */
 
 import type { ApiError } from "@/lib/api/client";
 import { getErrorMessage } from "@/lib/error";
 
 /**
- * 成功後の自動遷移待機時間（ミリ秒）。
+ * ユーザ登録成功後の自動遷移待機時間（ミリ秒）。
  */
 export const REGISTER_REDIRECT_DELAY_MS = 3000;
+/**
+ * クリップボードコピー成功時に「コピー済み」状態を維持する待機時間（ミリ秒）。
+ */
+export const COPY_SUCCESS_DISPLAY_DURATION_MS = 2000;
 
 /**
  * 指定したエラーオブジェクトがAPIエラーかどうかを判定する型ガード。
