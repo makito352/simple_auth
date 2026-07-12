@@ -11,6 +11,10 @@ import { getErrorMessage } from "@/lib/error";
  */
 export const REGISTER_REDIRECT_DELAY_MS = 3000;
 /**
+ * ステータスメッセージの表示期間（ミリ秒）。
+ */
+export const STATUS_MESSAGE_DURATION_MS = 3000;
+/**
  * クリップボードコピー成功時に「コピー済み」状態を維持する待機時間（ミリ秒）。
  */
 export const COPY_SUCCESS_DISPLAY_DURATION_MS = 2000;
