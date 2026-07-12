@@ -18,7 +18,7 @@ export interface UserOptionBulkUpdateRequest {
  * 管理者用機能。例: imap_server, smtp_port 等の定義リスト
  */
 export async function fetchOptionAttributes(): Promise<OptionAttribute[]> {
-  const data = await apiGet("/admin//user-options/attributes");
+  const data = await apiGet("/admin/user-options/attributes");
   return data as OptionAttribute[];
 }
 
@@ -29,7 +29,7 @@ export async function fetchOptionAttributes(): Promise<OptionAttribute[]> {
 export async function createOptionAttribute(
   body: Pick<OptionAttribute, 'key' | 'encrypted'>
 ): Promise<OptionAttribute> {
-  const data = await apiPost("/admin//user-options/attributes", body);
+  const data = await apiPost("/admin/user-options/attributes", body);
   return data as OptionAttribute;
 }
 
@@ -42,7 +42,7 @@ export async function updateOptionAttribute(
   id: string,
   body: Pick<OptionAttribute, 'key' | 'encrypted'>
 ): Promise<OptionAttribute> {
-  const data = await apiPut(`/admin//user-options/attributes/${id}`, body);
+  const data = await apiPut(`/admin/user-options/attributes/${id}`, body);
   return data as OptionAttribute;
 }
 
