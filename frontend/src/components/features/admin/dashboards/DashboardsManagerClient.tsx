@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { STATUS_MESSAGE_DURATION_MS } from "@/components/common/common_utils";
+import { Button, Label } from "@/components/ui/common";
 import {
   createDashboardLinkForm,
   type DashboardLink,
@@ -203,7 +204,7 @@ export default function DashboardsManagerClient({
 
   return (
     <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">ダッシュボードリンクの管理</h1>
+      <h1 className="text-2xl font-bold mb-6">ダッシュボード設定</h1>
 
       {statusMessage && (
         <div
@@ -215,7 +216,8 @@ export default function DashboardsManagerClient({
 
       <div className="mb-8 p-6 bg-gray-50 rounded-lg border">
         <h2 className="text-lg font-semibold mb-4">新規リンクの追加</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+          <Label>タイトル</Label>
           <input
             placeholder="タイトル"
             className="border p-2 rounded"
@@ -224,14 +226,16 @@ export default function DashboardsManagerClient({
               setNewLinkFormData({ ...newLinkFormData, title: e.target.value })
             }
           />
+          <Label>URL</Label>
           <input
             placeholder="URL"
-            className="border p-2 rounded"
+            className="border p-2 rounded w-full"
             value={newLinkFormData.url}
             onChange={(e) =>
               setNewLinkFormData({ ...newLinkFormData, url: e.target.value })
             }
           />
+          <Label>アイコン</Label>
           <input
             type="file"
             accept="image/*"
@@ -243,13 +247,12 @@ export default function DashboardsManagerClient({
               })
             }
           />
-          <button
+          <Button
             onClick={handleCreate}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-70"
             disabled={isProcessing}
           >
             追加する
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -266,7 +269,7 @@ export default function DashboardsManagerClient({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 URL
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
               </th>
             </tr>
@@ -330,16 +333,15 @@ export default function DashboardsManagerClient({
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end space-x-3">
                     {editingId === link.id ? (
-                      <button
+                      <Button
                         onClick={() => handleUpdate(link.id)}
-                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 disabled:opacity-70"
                         disabled={isProcessing}
                       >
                         確定
-                      </button>
+                      </Button>
                     ) : (
                       <>
-                        <button
+                        <Button
                           onClick={() => {
                             setEditingId(link.id);
                             setEditFormData({
@@ -349,18 +351,17 @@ export default function DashboardsManagerClient({
                               file: null,
                             });
                           }}
-                          className="text-blue-600 hover:underline"
                           disabled={isProcessing}
                         >
                           編集
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => handleDelete(link.id)}
-                          className="text-red-600 hover:underline disabled:opacity-70"
+                          variant="secondary"
                           disabled={isProcessing}
                         >
                           削除
-                        </button>
+                        </Button>
                       </>
                     )}
                   </div>

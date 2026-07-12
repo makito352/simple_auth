@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 
-import { Button, PageWrapper, SuccessCard } from "@/components/ui/common";
+import { Button, Label, PageWrapper, SuccessCard } from "@/components/ui/common";
 import { loginInitialAdmin } from "@/lib/api/init_admin";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
@@ -125,7 +125,7 @@ export function RegisterInitContent() {
           <p className="text-gray-700">初期管理者のログイン情報を入力してください。</p>
           {globalError && <p className="text-red-600 font-medium">{globalError}</p>}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">メールアドレス</label>
+            <Label>メールアドレス</Label>
             <input
               type="email"
               placeholder="admin@example.com"
@@ -134,7 +134,7 @@ export function RegisterInitContent() {
               onChange={(e) => setEmail(e.target.value)}
             />
             {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
-            <label className="block text-sm font-medium text-gray-700">パスワード</label>
+            <Label>パスワード</Label>
             <input
               type="password"
               placeholder="パスワード"

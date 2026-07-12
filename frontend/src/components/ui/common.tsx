@@ -39,6 +39,15 @@ export const Button = ({
 };
 
 /**
+ * フォームラベルコンポーネント
+ */
+export const Label = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <label className={`block text-sm font-medium text-gray-700 ${className}`}>
+    {children}
+  </label>
+);
+
+/**
  * 成功通知用のカードコンポーネント
  */
 export const SuccessCard = ({ title, message, subtext }: { title: string; message: string; subtext?: string }) => (
