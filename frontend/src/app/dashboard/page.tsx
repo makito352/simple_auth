@@ -5,14 +5,15 @@
  */
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
-import { fetchDashboardLinks, type DashboardLink } from "@/lib/api/dashboards";
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { type DashboardLink,fetchDashboardLinks } from "@/lib/api/dashboards";
 import { fetchUserProfile, isAdmin } from "@/lib/api/users";
 import { logout } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
 import { type UserProfile } from "@/types";
-import { LoadingSpinner } from "@/app/components/loading-spinner";
-import Image from "next/image";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);

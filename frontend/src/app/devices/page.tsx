@@ -5,18 +5,19 @@
  */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
 import {
   deleteDeviceCredential,
   fetchDeviceCredentials,
   updateDeviceComment,
 } from "@/lib/api/devices";
 import { createDeviceRegistrationLink } from "@/lib/api/one_time_link";
-import type { DeviceCredential, OneTimeLinkCreateResponse } from "@/types";
 import { getErrorMessage } from "@/lib/error";
-import { LoadingSpinner } from "@/app/components/loading-spinner";
-import Image from "next/image";
+import type { DeviceCredential, OneTimeLinkCreateResponse } from "@/types";
 
 
 /**

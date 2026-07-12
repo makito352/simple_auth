@@ -7,10 +7,11 @@
  */
 
 import { cookies } from "next/headers";
-import { type UserProfile } from "@/types";
-import { logger } from "@/lib/logger";
+
 import { buildUrl } from "@/lib/api/client";
 import { SESSION_COOKIE_NAME } from "@/lib/config/auth";
+import { logger } from "@/lib/logger";
+import { type UserProfile } from "@/types";
 
 /**
  * サーバーサイドで実行されるユーザープロフィール取得関数

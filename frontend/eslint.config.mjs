@@ -1,7 +1,11 @@
-// eslint.config.mjs
+/**
+ * @file  frontend/eslint.config.mjs
+ * ESLint 設定ファイル
+ */
 import { defineConfig } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import tseslint from "typescript-eslint";
+import simpleImportSort from "eslint-plugin-simple-import-sort"; // ← 追加
 
 export default defineConfig([
   // Next.js 推奨ルール
@@ -13,6 +17,9 @@ export default defineConfig([
 
   {
     files: ["**/*.ts", "**/*.tsx"],
+    plugins: {
+      "simple-import-sort": simpleImportSort,
+    },
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -24,6 +31,7 @@ export default defineConfig([
       "@typescript-eslint/no-unsafe-assignment": "warn",
       "@typescript-eslint/no-unsafe-call": "warn",
       "@typescript-eslint/no-unsafe-member-access": "warn",
+      "simple-import-sort/imports": "error",
     },
   },
 ]);

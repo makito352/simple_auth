@@ -5,13 +5,14 @@
  */
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { verifyOneTimeLink } from "@/lib/api/one_time_link";
 import { registerWebAuthnDevice } from "@/lib/api/webauthn";
-import { LoadingSpinner } from "@/app/components/loading-spinner";
-import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/error";
+import { logger } from "@/lib/logger";
 
 /**
  * @component DeviceAddContent

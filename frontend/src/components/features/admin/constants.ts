@@ -3,15 +3,15 @@
  * @description メニューのタイトル、リンク先、説明、および対応するアイコンを一元管理します。
  */
 
+import type { LucideIcon } from "lucide-react";
 import { 
+  KeyRound, 
   LayoutDashboard, 
   Settings, 
-  KeyRound, 
   SlidersHorizontal, 
   User, 
   Users 
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 /**
  * 管理者用メニュー項目の型定義

@@ -2,8 +2,9 @@
  * @file frontend/src/proxy.ts
  * @description 認証状態のチェックおよび、権限のないユーザーへのリダイレクトを制御する。
  */
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+
 import { SESSION_COOKIE_NAME } from "@/lib/config/auth";
 
 /**

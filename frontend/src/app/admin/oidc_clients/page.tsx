@@ -8,7 +8,11 @@
  */
 
 "use client";
+import { Edit2, KeyRound, Plus, Save } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
 import {
   createOidcClient,
   fetchOidcClients,
@@ -16,16 +20,13 @@ import {
   rotateOidcClientSecret,
   updateOidcClient,
 } from "@/lib/api/oidc";
+import { getErrorMessage } from "@/lib/error";
 import type {
   OidcClient,
   OidcClientInput,
   OidcClientUpdateInput,
   OidcScope,
 } from "@/types";
-import { getErrorMessage } from "@/lib/error";
-import { LoadingSpinner } from "@/app/components/loading-spinner";
-import { Edit2, KeyRound, Plus, Save } from "lucide-react";
-import { toast } from "sonner";
 
 /**
  * 編集モードの状態を定義する型

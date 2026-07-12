@@ -6,13 +6,14 @@
  * 特に、バイナリデータを扱うWebAuthnのネイティブ仕様をJSON形式に変換する処理を含みます。
  */
 
-import { logger } from "@/lib/logger";
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from "@simplewebauthn/browser";
+
+import { logger } from "@/lib/logger";
 
 /**
  * 最新の WebAuthn JSON 変換メソッド（parseCreationOptionsFromJSON, parseRequestOptionsFromJSON）

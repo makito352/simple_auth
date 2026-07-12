@@ -4,9 +4,11 @@
  */
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { ClaimMapping, ClaimMappingInput, OidcScope, OptionAttribute } from '@/types';
-import { logger } from '@/lib/logger';
+import { Edit2, Plus, Save,Trash2 } from 'lucide-react';
+import React, { useEffect,useState } from 'react';
+import { toast } from 'sonner';
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
 import {
   createClaimMapping,
   createOidcScope,
@@ -19,9 +21,8 @@ import {
 } from '@/lib/api/oidc';
 import { fetchOptionAttributes } from '@/lib/api/user_options';
 import { getErrorMessage } from "@/lib/error";
-import { LoadingSpinner } from "@/app/components/loading-spinner";
-import { Plus, Edit2, Trash2, Save } from 'lucide-react';
-import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
+import { ClaimMapping, ClaimMappingInput, OidcScope, OptionAttribute } from '@/types';
 
 /**
  * OIDCスコープのフォーム状態の型定義

@@ -2,8 +2,9 @@
  * @file frontend/src/lib/api/user_options.ts
  * @description ユーザーのオプション設定に関するAPI操作
  */
-import { apiGet, apiPatch, apiPost, apiPut } from "./client";
 import { OptionAttribute, UserOption } from "@/types";
+
+import { apiGet, apiPatch, apiPost, apiPut } from "./client";
 
 /**
  * 一括更新用のデータ構造 (backend/app/schemas/user_option.py の UserOptionBulkUpdate に対応)

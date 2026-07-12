@@ -3,10 +3,11 @@
  * 管理権限の検証、サイドバーナビゲーション、メインコンテンツエリアの構成を提供します。
  */
 import { redirect } from "next/navigation";
+
+import Sidebar from "@/components/features/admin/Sidebar";
 import { isAdmin } from "@/lib/api/users";
-import { logger } from "@/lib/logger";
 import { fetchUserProfileForServer } from "@/lib/api/users_server";
-import Sidebar from "./components/Sidebar";
+import { logger } from "@/lib/logger";
 
 /**
  * 管理者権限チェック用の関数

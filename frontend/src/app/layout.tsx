@@ -4,8 +4,9 @@
  * アプリケーション全体の共通構造とメタデータを定義します。
  */
 
-import { Toaster } from 'sonner';
 import "./globals.css";
+
+import { Toaster } from 'sonner';
 
 /**
  * アプリケーションのメタデータ設定（アイコン等）

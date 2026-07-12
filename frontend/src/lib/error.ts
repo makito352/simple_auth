@@ -3,8 +3,8 @@
  * @file frontend/src/lib/error.ts
  * @description APIエラー処理に関するユーティリティ関数を提供します。
  */
-import { logger } from "@/lib/logger";
 import type { ApiError } from "@/lib/api/client";
+import { logger } from "@/lib/logger";
 
 /**
  * APIエラーの内容に基づいて表示用メッセージを生成する

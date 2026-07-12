@@ -1,134 +1,32 @@
 /**
  * @file frontend/src/app/register/page.tsx
- * @description 新規ユーザーのWebAuthnデバイス登録ページ
- * ユーザーがパスキー（WebAuthn）を登録するためのUIを提供します。
+ * @description 新規ユーザーのWebAuthnデバイス登録ページ（サーバーエントリ）。
  */
-"use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { verifyOneTimeLink } from "@/lib/api/one_time_link";
-import { registerWebAuthnDevice } from "@/lib/api/webauthn";
-import type { ApiError } from "@/lib/api/client";
-import { getErrorMessage } from "@/lib/error";
-import { logger } from "@/lib/logger";
+import RegisterClient from "@/components/features/register/RegisterClient";
 
 /**
- * 登録処理のメインコンテンツを管理するコンポーネント。
- * トークンの検証と、WebAuthnデバイスの登録フローを担当します。
- * @returns 認証状態に応じたUI要素
+ * registerページで受け取るsearchParams型。
  */
-function RegistrationContent() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-  const [loading, setLoading] = useState(true);
-  const [isVerified, setIsVerified] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    /**
-     * @description コンポーネントのマウント時にURLから取得したトークンを検証する処理。
-     */
-    async function verifyTokenAndStart() {
-      if (!token) {
-        setError("登録用リンクが見つかりませんでした。もう一度リンクから開いてください。");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const result = await verifyOneTimeLink(token);
-        if (result) {
-          setIsVerified(true);
-          setError(null);
-        }
-      } catch (error) {
-        const isApiError = (error && typeof error === 'object' && 'status' in error);
-        // ApiError型の場合、共通のメッセージから取得。それ以外（通常のError等）の場合は「URL不正です」を表示
-        const errorMessage = (isApiError) 
-          ? getErrorMessage(error as ApiError, "認証中に問題が発生しました。")
-          : "URLが正しくありません。";
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    verifyTokenAndStart();
-  }, [token]);
-
-  /**
-   * @description WebAuthnデバイス登録を実行する処理。
-   */
-  const handleRegister = async () => {
-    if (!isVerified) return;
-
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      await registerWebAuthnDevice();
-      window.location.href = "/";
-    } catch (error) {
-      logger.error(`WebAuthn registration failed: ${error}`);
-      setError("デバイス登録に失敗しました。内容を確認してもう一度お試しください。");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleRetry = () => {
-    window.location.reload();
-  };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] px-6 py-8 text-center">
-        <h1 className="text-2xl font-bold mb-4">デバイス登録</h1>
-        <p className="text-gray-600">登録用リンクを確認しています。少々お待ちください。</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-[560px] mx-auto px-6 py-12">
-      <h1 className="text-2xl font-bold mb-8 border-b pb-2">デバイス登録</h1>
-      {isVerified ? (
-        <div className="space-y-4">
-          <p className="text-gray-700">リンクの確認が完了しました。次へ進むには、この端末でパスキーを登録してください。</p>
-          {error && <p className="text-red-600 font-medium">{error}</p>}
-          <button 
-            onClick={handleRegister} 
-            disabled={submitting}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md transition-colors"
-          >
-            {submitting ? "登録中..." : "パスキーを登録する"}
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-red-600 font-medium">{error ?? "登録用リンクを確認できませんでした。"}</p>
-          <button 
-            onClick={handleRetry} 
-            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition-colors"
-          >
-            再読み込み
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
+type RegisterPageSearchParams = {
+  token?: string | string[];
+};
 
 /**
- * WebAuthn登録ページのメインエントリーポイント。
- * useSearchParamsの利用に伴うクライアントサイドでのSuspense境界を設定します。
+ * registerページの入力プロパティ。
  */
-export default function WebAuthnRegPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <RegistrationContent />
-    </Suspense>
-  );
+type RegisterPageProps = {
+  searchParams?: RegisterPageSearchParams | Promise<RegisterPageSearchParams>;
+};
+
+/**
+ * 通常登録ページ。
+ * Server Componentでqueryを受け取り、Client Componentへ必要値のみを受け渡す。
+ */
+export default async function WebAuthnRegPage({ searchParams }: RegisterPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const tokenParam = resolvedSearchParams?.token;
+  const token = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam ?? null;
+
+  return <RegisterClient token={token} />;
 }

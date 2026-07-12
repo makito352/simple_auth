@@ -6,8 +6,9 @@
  * クライアントコンポーネントからは呼び出さないでください。
  */
 
-import { buildUrl } from "./client";
 import { logger } from "@/lib/logger";
+
+import { buildUrl } from "./client";
 
 /**
  * 初期設定が必要かどうかを判定するサーバー用関数

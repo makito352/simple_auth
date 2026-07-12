@@ -7,12 +7,13 @@
  */
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { fetchOptionAttributes, createOptionAttribute, updateOptionAttribute } from '@/lib/api/user_options';
-import { OptionAttribute } from '@/types';
-import { getErrorMessage } from "@/lib/error";
-import { LoadingSpinner } from "@/app/components/loading-spinner";
+import React, { useEffect,useState } from 'react';
 import { toast } from 'sonner';
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { createOptionAttribute, fetchOptionAttributes, updateOptionAttribute } from '@/lib/api/user_options';
+import { getErrorMessage } from "@/lib/error";
+import { OptionAttribute } from '@/types';
 
 /**
  * 属性管理ページ

@@ -6,7 +6,8 @@
  */
 
 import { notFound } from "next/navigation";
-import RegisterInitContent from "./RegisterInitClient";
+
+import RegisterInitContent from "@/components/features/register/RegisterInitClient";
 import { checkInitialSetupRequired } from "@/lib/api/init_admin_server";
 import { logger } from "@/lib/logger";
 

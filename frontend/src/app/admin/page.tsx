@@ -5,7 +5,8 @@
  */
 
 import Link from "next/link";
-import { ADMIN_MENU_ITEMS } from "./constants/constants";
+
+import { ADMIN_MENU_ITEMS } from "@/components/features/admin/constants";
 
 /**
  * 管理者メニューコンポーネント

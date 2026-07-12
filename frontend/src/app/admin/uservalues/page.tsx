@@ -4,13 +4,14 @@
  */
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect,useState } from 'react';
+import { toast } from 'sonner';
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { fetchOptionAttributes, fetchUserOptions, updateUserOptions } from '@/lib/api/user_options';
 import { fetchUserList } from '@/lib/api/users';
 import { getErrorMessage } from "@/lib/error";
 import type { OptionAttribute, UserOption, UserProfile} from '@/types';
-import { LoadingSpinner } from "@/app/components/loading-spinner";
-import { toast } from 'sonner';
 
 /**
  * ユーザー設定値管理ページ

@@ -2,7 +2,6 @@
  * @file frontend/src/lib/api/oidc.ts
  * @description OIDCクレームマッピングに関するAPI操作
  */
-import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from "./client";
 import {
   ClaimMapping,
   ClaimMappingInput,
@@ -14,6 +13,8 @@ import {
   OidcScopeInput,
   OidcScopeUpdateInput,
 } from "@/types";
+
+import { apiDelete, apiGet, apiPatch,apiPost, apiPut } from "./client";
 
 /**
  * すべてのマッピングルールを取得する

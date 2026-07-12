@@ -7,7 +7,8 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
-import { ADMIN_MENU_ITEMS } from "../constants/constants";
+
+import { ADMIN_MENU_ITEMS } from "./constants";
 
 /**
  * 管理者用サイドバーのコンポーネント

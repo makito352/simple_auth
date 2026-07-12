@@ -7,17 +7,17 @@
  */
 "use client";
 
-import { useState, useEffect } from "react";
-import { 
-  fetchDashboardLinks, 
-  type DashboardLink, 
-  createDashboardLinkForm,
-  updateDashboardLinkForm, 
-  deleteDashboardLink 
-} from "@/lib/api/dashboards";
-import { getErrorMessage } from "@/lib/error";
-import { LoadingSpinner } from "@/app/components/loading-spinner";
 import Image from "next/image";
+import { useEffect,useState } from "react";
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { 
+  createDashboardLinkForm,
+  type DashboardLink, 
+  deleteDashboardLink, 
+  fetchDashboardLinks, 
+  updateDashboardLinkForm} from "@/lib/api/dashboards";
+import { getErrorMessage } from "@/lib/error";
 
 /**
  * ダッシュボードリンクの管理ページコンポーネント

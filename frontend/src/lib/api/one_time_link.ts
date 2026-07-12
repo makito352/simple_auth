@@ -2,14 +2,15 @@
  * @file frontend/src/lib/api/one_time_link.ts
  * @description ワンタイムリンク関連のAPI操作
  */
-import { apiGet, apiPost } from "./client";
 import type {
   LinkType,
   OneTimeLinkCreateResponse,
   OneTimeLinkGetResponse,
   OneTimeLinkVerificationResponse,
 } from "@/types";
+
 import type { ApiError } from "./client";
+import { apiGet, apiPost } from "./client";
 
 /**
  * ログイン中ユーザー向けの追加デバイス登録リンクを発行する。

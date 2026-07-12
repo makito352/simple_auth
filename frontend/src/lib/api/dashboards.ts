@@ -2,7 +2,7 @@
  * @file frontend/src/lib/api/dashboards.ts
  * @description ダッシュボード関連のAPI操作
  */
-import { apiGet, apiPost, apiPut, apiDelete, apiPostForm, apiPutForm } from "./client";
+import { apiDelete, apiGet, apiPost, apiPostForm, apiPut, apiPutForm } from "./client";
 
 /**
  * ダッシュボードリンクの基本情報の型定義 (backend/app/schemas/dashboard_link.py の DashboardLinkRead に対応)

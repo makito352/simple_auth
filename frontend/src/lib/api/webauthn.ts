@@ -4,13 +4,15 @@
  * サーバーとの通信とブラウザによる生体認証の橋渡しを行います。
  */
 "use client";
-import { apiPost } from "./client";
-import { webauthnLogin, webauthnRegister, detectClientOs } from "@/lib/webauthn";
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from "@simplewebauthn/browser";
+
+import { detectClientOs,webauthnLogin, webauthnRegister } from "@/lib/webauthn";
+
+import { apiPost } from "./client";
 
 /**
  * ログインオプション取得APIのレスポンス型。
