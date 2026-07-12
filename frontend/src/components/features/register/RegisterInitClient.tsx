@@ -12,7 +12,7 @@ import { registerWebAuthnDevice } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
 import { validateEmail } from "@/lib/utils";
 
-import { isApiError, REGISTER_REDIRECT_DELAY_MS, resolveRegisterErrorMessage } from "./register_shared";
+import { isApiError, REGISTER_REDIRECT_DELAY_MS, resolveRegisterErrorMessage } from "../../common/register_shared";
 import { useSuccessRedirect } from "./useSuccessRedirect";
 
 /**
