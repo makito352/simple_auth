@@ -8,7 +8,7 @@
  */
 
 "use client";
-import OidcClientsManagementPage from "@/components/features/admin/oidc_clients/OidcClientsManagementPage";
+import OidcClientsManagementPage from "@/components/features/admin/oidc-clients/OidcClientsManagementPage";
 
 /**
  * OIDCクライアント管理のメインコンポーネント

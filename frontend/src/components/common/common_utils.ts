@@ -3,6 +3,8 @@
  * @description 画面で共通利用する定数とエラーユーティリティ。
  */
 
+import { toast } from "sonner";
+
 import type { ApiError } from "@/lib/api/client";
 import { getErrorMessage } from "@/lib/error";
 
@@ -48,3 +50,26 @@ export function resolveRegisterErrorMessage(
 
   return nonApiMessage;
 }
+/**
+ * テキストをクリップボードにコピーし、成功・失敗時に通知を表示する。
+ * 
+ * @param text コピーする内容
+ * @param successMessage 成功時に表示するメインメッセージ（任意）
+ * @param infoMessage 成功時に追加で表示する補足情報（任意）
+ */
+export const copyToClipboard = async (
+  text: string,
+  successMessage: string = "クリップボードにコピーしました",
+  infoMessage?: string
+) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(successMessage);
+    if (infoMessage) {
+      toast.info(infoMessage);
+    }
+  } catch (error) {
+    const errorMessage = getErrorMessage(error, "クリップボードへのコピーに失敗しました。");
+    toast.error(`${errorMessage} 再取得が必要な場合は再発行してください。`);
+  }
+};
