@@ -1,5 +1,5 @@
 /**
- * @file logger.ts
+ * @file frontend/src/lib/logger.ts
  * @description 開発環境と本番環境でコンソール出力の挙動を制御するためのロガー
  */
 

@@ -1,14 +1,24 @@
+/**
+ * @file frontend/src/app/dashboard/page.tsx
+ * @description ダッシュボードページのコンポーネント。ユーザーがログイン後にアクセスするメイン画面です。
+ *              ユーザーの役割に応じて、利用可能なリンクを表示します。
+ */
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
-import { fetchDashboardLinks, type DashboardLink } from "@/lib/api/dashboards";
-import { fetchUserProfile, isAdmin, type UserProfile } from "@/lib/api/users";
+
+import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { type DashboardLink,fetchDashboardLinks } from "@/lib/api/dashboards";
+import { fetchUserProfile, isAdmin } from "@/lib/api/users";
 import { logout } from "@/lib/api/webauthn";
 import { logger } from "@/lib/logger";
+import { type UserProfile } from "@/types";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<DashboardLink[]>([]);
+  const [fetchError, setFetchError] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   // ログアウト処理のハンドラー
   const handleLogout = async () => {
@@ -35,6 +45,7 @@ export default function Dashboard() {
         setLinks(data);
       } catch (error) {
         logger.error(`Failed to fetch dashboard data: ${error}`);
+        setFetchError(true);
       } finally {
         setLoading(false);
       }
@@ -43,8 +54,9 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
+  // ロード中の表示処理
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingSpinner />;
   }
 
   // 管理者かどうかを判定（共通ロジックを使用）
@@ -53,7 +65,7 @@ export default function Dashboard() {
   return (
     <div className="max-w-md mx-auto p-6">
       {/* ヘッダーエリア */}
-      <header className="flex justify-between items_center mb-8">
+      <header className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-800">SimpleAuth Launcher</h1>
         <button 
           onClick={handleLogout}
@@ -64,7 +76,8 @@ export default function Dashboard() {
       </header>
 
       <div className="space-y-4">
-        {links.map((link) => {
+        {links.length > 0 ? (
+          links.map((link) => {
           return (
             <a 
               key={link.id} 
@@ -72,18 +85,26 @@ export default function Dashboard() {
               className="flex items-center gap-4 p-4 bg-white border rounded-lg shadow-sm hover:shadow-md transition-all"
             >
               {link.icon_path ? (
-                <img
+                <Image
                   src={link.icon_path}
                   alt={link.title}
+                  width={40}
+                  height={40}
                   className="w-10 h-10 rounded-md object-cover bg-gray-50"
+                  unoptimized
                 />
               ) : (
                 <div className="w-10 h-10 bg-gray-200 rounded-md" />
               )}
               <span className="text-lg font-medium text-gray-700">{link.title}</span>
             </a>
-          );
-        })}
+            );
+          })
+        ) : fetchError ? (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            ダッシュボードのリンクを取得できませんでした。管理者に問い合わせてください。
+          </div>
+        ) : null}
 
         <div className="pt-6 border-t mt-6">
           <a 

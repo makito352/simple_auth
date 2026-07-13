@@ -1,7 +1,12 @@
+"""
+ダッシュボードリンク関連のスキーマを定義するモジュール。
+このモジュールでは、ダッシュボードリンクの作成、取得、更新のデータ構造を定義します。
+"""
+
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 
 class DashboardLinkBase(BaseModel):
@@ -29,7 +34,6 @@ class DashboardLinkRead(DashboardLinkBase):
     """
 
     id: UUID
-    # created_at を含める場合はここに追加
 
     class Config:
         from_attributes = True

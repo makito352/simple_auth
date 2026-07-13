@@ -1,8 +1,12 @@
+"""
+UserService: ユーザーの作成・取得・更新・削除を行うサービスクラス
+"""
+
 from datetime import datetime, timedelta, timezone
 
 from app.core.config import logger, settings
-from app.models.user import User
-from app.services.one_time_link_service import OneTimeLinkService
+from app.models.user import User, UserRole, UserStatus
+from pydantic.networks import validate_email
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session
 
@@ -10,19 +14,35 @@ from sqlalchemy.orm import Session
 class UserService:
 
     @staticmethod
-    def create_user(db: Session, email: str, role: str = "user") -> User:
+    def create_user(db: Session, email: str, role: str = UserRole.USER.value) -> User:
         """
         新しいユーザーを作成します。
         """
+        actual_role = role
+        if hasattr(role, "value"):
+            actual_role = role.value
+
         existing_user = db.query(User).filter(User.email == email).first()
 
         if existing_user:
-            if existing_user.email_verification_status in ["pending", "verified"]:
-                logger.error(f"User with email {email} is already pending or verified.")
-                raise ValueError("Email already exists and is pending or verified.")
+            if existing_user.email_verification_status in [
+                UserStatus.PENDING.value,
+                UserStatus.VERIFIED.value,
+            ]:
+                # 既に存在する場合はエラーを返す
+                logger.error(
+                    "User with email %s is already pending or verified.", email
+                )
+                raise ValueError(
+                    "メールアドレスが既に登録されています。(Email already exists.)"
+                )
 
-            elif existing_user.email_verification_status in ["expired", "disabled"]:
-                existing_user.email_verification_status = "pending"
+            elif existing_user.email_verification_status in [
+                UserStatus.EXPIRED.value,
+                UserStatus.DISABLED.value,
+            ]:
+                # 既存ユーザーのステータスが expired または disabled の場合、再度 pending に更新する
+                existing_user.email_verification_status = UserStatus.PENDING.value
                 existing_user.email_verified_at = None
                 existing_user.email_verification_expires_at = datetime.now(
                     timezone.utc
@@ -33,8 +53,8 @@ class UserService:
 
         new_user = User(
             email=email,
-            role=role,
-            email_verification_status="pending",
+            role=actual_role,
+            email_verification_status=UserStatus.PENDING.value,
             email_verified_at=None,
             email_verification_expires_at=datetime.now(timezone.utc)
             + timedelta(days=1),
@@ -45,21 +65,144 @@ class UserService:
         return new_user
 
     @staticmethod
+    def is_initial_setup_required(db: Session) -> User:
+        """
+        システムがまだ初期セットアップ（初期管理者の登録）を完了していないか判定します。
+
+        初期設定が未完了の場合は True を返す。
+        """
+        # 初期管理者のメールアドレスとパスワードが設定されていない場合は、初期管理者ログインをスキップ
+        admin_email = settings.INITIAL_ADMIN_USER_EMAIL
+        admin_password = settings.INITIAL_ADMIN_USER_PASSWORD
+        if not admin_email or not admin_password or len(admin_password) < 8:
+            logger.debug("Initial admin credentials not set. Skipping.")
+            raise ValueError("初期管理者設定が完了していません。")
+
+        # 全ユーザー数をカウント
+        user_count = db.query(User).count()
+        if user_count != 1:
+            logger.warning("Initial admin login failed: count is %d", user_count)
+            raise ValueError(
+                "初期管理画面チェック失敗しました。システムの状態が正しくありません。"
+            )
+
+        # 管理者（Admin）が存在するか確認
+        user = db.query(User).filter(User.role == UserRole.ADMIN.value).first()
+
+        # 管理者が存在しない場合も、セットアップを促す必要がある（または状況により判断）
+        if not user or user.email_verification_status != UserStatus.PENDING.value:
+            logger.warning("Initial admin login failed: status invalid.")
+            raise ValueError("認証に失敗しました。")
+
+        return user
+
+    @staticmethod
+    def initial_admin_login(db: Session, email: str, password: str) -> User:
+        """
+        初期管理者（Initial Admin）の認証を検証します。
+        成功した場合はUserオブジェクトを返し、失敗した場合は適切な例外を投げます。
+        """
+        # 初期管理者のメールアドレスとパスワードが設定されていない場合は、初期管理者ログインをスキップ
+        admin_email = settings.INITIAL_ADMIN_USER_EMAIL
+        admin_password = settings.INITIAL_ADMIN_USER_PASSWORD
+        if (
+            not admin_email
+            or not admin_password
+            or len(admin_password) < 8
+            or len(admin_email) < 1
+        ):
+            logger.debug("Initial admin credentials not set. Skipping.")
+            raise ValueError("初期管理者設定が完了していません。")
+
+        # システム全体のユーザー数をチェック
+        user_count = db.query(User).count()
+        if user_count != 1:
+            logger.warning("Initial admin login failed: count is %d", user_count)
+            raise ValueError(
+                "初期管理者ログインに失敗しました。システムの状態が正しくありません。"
+            )
+
+        # 設定値と入力値の照合
+        if (
+            email != settings.INITIAL_ADMIN_USER_EMAIL
+            or password != settings.INITIAL_ADMIN_USER_PASSWORD
+        ):
+            logger.warning("Initial admin login failed: credential mismatch.")
+            raise ValueError("認証情報が正しくありません。")
+
+        # 対象ユーザーの存在とステータスの確認
+        user = db.query(User).filter(User.email == email).first()
+        if not user or user.email_verification_status != UserStatus.PENDING.value:
+            logger.warning("Initial admin login failed: status invalid.")
+            raise ValueError("認証に失敗しました。")
+        # ユーザーのロールが ADMIN であることを確認
+        if user.role != UserRole.ADMIN.value:
+            logger.warning("Initial admin login failed: role is not admin.")
+            raise ValueError("権限がありません。")
+
+        return user
+
+    @staticmethod
+    def _is_initial_setup_required(db: Session) -> bool:
+        """
+        システムがまだ初期セットアップを完了していないか判定します。
+        """
+        admin_email = settings.INITIAL_ADMIN_USER_EMAIL
+        admin_password = settings.INITIAL_ADMIN_USER_PASSWORD
+
+        # 初期管理者のメールアドレスとパスワードが設定されていない場合は、初期管理者ログインをスキップ
+        if not admin_email or not admin_password:
+            logger.debug(
+                "INITIAL_ADMIN_USER_EMAIL or INITIAL_ADMIN_USER_PASSWORD is not set or invalid. Skipping initial admin user creation."
+            )
+            return False
+
+        # 初期管理者のパスワードが8文字未満の場合は、初期管理者ログインをスキップ
+        if len(admin_password) < 8:
+            logger.debug(
+                "INITIAL_ADMIN_USER_PASSWORD is too short. Skipping initial admin user creation."
+            )
+            return False
+
+        # メールアドレスの形式を検証
+        try:
+            validate_email(admin_email)
+        except ValueError:
+            logger.debug(
+                "INITIAL_ADMIN_USER_EMAIL is not a valid email address. Skipping initial admin user creation."
+            )
+            return False
+
+        # ユーザーが存在するかどうかを確認
+        count = db.query(User).count()
+        if count != 0:
+            # 初期管理者の作成は不要
+            logger.debug(
+                "Users already exist in the system. Skipping initial admin user creation."
+            )
+            return False
+        else:
+            # 初期管理者の作成が必要
+            return True
+
+    @staticmethod
     def _ensure_initial_admin(db: Session) -> User:
         """
         ユーザーが0件の場合、初期管理者のメールアドレスを使用して
         管理者権限を持つユーザーを自動作成します。
         """
-        count = db.query(User).count()
-        admin_email = settings.INITIAL_ADMIN_USER_EMAIL
-        if count == 0:
-            user = UserService.create_user(db, email=admin_email, role="admin")
-            link = OneTimeLinkService.create_link(db, user.id)
-            logger.info(
-                f"Created initial admin user with email: {admin_email}, onetime link:{link.url}"
+        _is_initial_setup_required = UserService._is_initial_setup_required(db)
+        if not _is_initial_setup_required:
+            logger.debug(
+                "Initial admin user creation skipped. Either users already exist or initial setup is not required."
             )
-            return user
-        return db.query(User).filter(User.email == admin_email).first()
+            return None
+
+        # 初期管理者のメールアドレスを使用して管理者ユーザーを作成
+        admin_email = settings.INITIAL_ADMIN_USER_EMAIL
+        user = UserService.create_user(db, email=admin_email, role=UserRole.ADMIN)
+        logger.info("Initial admin user created with email: %s", user.email)
+        return user
 
     @staticmethod
     def initialize_system(db: Session) -> None:
@@ -67,31 +210,16 @@ class UserService:
         初期セットアップ用のエントリーポイント。
         管理者の作成と、必要な場合の認証用URLの表示を行います。
         """
-
         # 管理者権限を持つユーザーを自動作成
         # ※生成済みの場合は管理者Userを返す
         user = UserService._ensure_initial_admin(db)
 
+        # 初期管理者が作成済みの場合は、ログに情報を出力
         if not user:
-            logger.warning("Initial admin user not found.")
             return
-
-        # ステータスが pending の場合はリンクを表示する
-        # user = UserService.read_user_by_email(db, settings.INITIAL_ADMIN_USER_EMAIL)
-        if user.email_verification_status == "pending":
-            link = OneTimeLinkService.get_link_by_user_id(db, user.id)
-            if link is None:
-                logger.warning(
-                    f"Warning: No active OneTimeLink found for user {user.email} (ID: {user.id})"
-                )
-            else:
-                logger.info(f"Admin user setup complete. Status: pending.")
-                logger.info(
-                    f"Please use the following link to verify the admin account: {link.url}"
-                )
-        else:
+        if user.email_verification_status != UserStatus.PENDING.value:
             logger.debug(
-                f"Admin user setup complete. Status: {user.email_verification_status}"
+                "Admin user setup complete. Status: %s", user.email_verification_status
             )
 
     @staticmethod
@@ -107,16 +235,19 @@ class UserService:
         if not user:
             raise ValueError("User not found")
 
-        if user.email_verification_status == "verified":
+        if user.email_verification_status == UserStatus.VERIFIED.value:
             return user
-        elif user.email_verification_status == "pending":
+        elif user.email_verification_status == UserStatus.PENDING.value:
             if user.email_verification_expires_at > datetime.now(timezone.utc):
                 return user
             else:
-                logger.error(f"User with email {user.email} has expired verification.")
+                logger.error("User with email %s has expired verification.", user.email)
                 raise ValueError("Email verification has expired.")
-        elif user.email_verification_status in ["expired", "disabled"]:
-            logger.error(f"User with email {user.email} is disabled or expired.")
+        elif user.email_verification_status in [
+            UserStatus.EXPIRED.value,
+            UserStatus.DISABLED.value,
+        ]:
+            logger.error("User with email %s is disabled or expired.", user.email)
             raise ValueError("User is disabled or expired.")
 
     @staticmethod
@@ -139,16 +270,19 @@ class UserService:
         if not user:
             return None
 
-        if user.email_verification_status == "verified":
+        if user.email_verification_status == UserStatus.VERIFIED.value:
             return user
-        elif user.email_verification_status == "pending":
+        elif user.email_verification_status == UserStatus.PENDING.value:
             if user.email_verification_expires_at > datetime.now(timezone.utc):
                 return user
             else:
-                logger.error(f"User with email {user.email} has expired verification.")
+                logger.error("User with email %s has expired verification.", user.email)
                 return None
-        elif user.email_verification_status in ["expired", "disabled"]:
-            logger.error(f"User with email {user.email} is disabled or expired.")
+        elif user.email_verification_status in [
+            UserStatus.EXPIRED.value,
+            UserStatus.DISABLED.value,
+        ]:
+            logger.error("User with email %s is disabled or expired.", user.email)
             return None
 
     @staticmethod
@@ -175,7 +309,7 @@ class UserService:
         if not user:
             raise ValueError("User not found")
 
-        user.email_verification_status = "verified"
+        user.email_verification_status = UserStatus.VERIFIED.value
         user.email_verified_at = datetime.now(timezone.utc)
 
         db.commit()

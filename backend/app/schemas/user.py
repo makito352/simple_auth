@@ -5,7 +5,8 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from app.models.user import UserRole, UserStatus
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserBase(BaseModel):
@@ -14,8 +15,8 @@ class UserBase(BaseModel):
     """
 
     email: EmailStr = Field(..., description="ユーザーのメールアドレス")
-    role: str = Field(
-        default="user", description="ユーザーの権限ロール（例: admin, user）"
+    role: UserRole = Field(
+        default=UserRole.USER, description="ユーザーの権限ロール（例: admin, user）"
     )
 
 
@@ -33,7 +34,7 @@ class UserUpdate(BaseModel):
     """
 
     email: Optional[EmailStr] = Field(None, description="更新するメールアドレス")
-    role: Optional[str] = Field(None, description="更新する権限ロール")
+    role: Optional[UserRole] = Field(None, description="更新する権限ロール")
 
 
 class UserOut(BaseModel):
@@ -43,12 +44,18 @@ class UserOut(BaseModel):
 
     id: UUID = Field(..., description="ユーザーの一意識別子")
     email: EmailStr = Field(..., description="ユーザーのメールアドレス")
-    role: str = Field(
+    role: UserRole = Field(
         ..., description="ユーザーの権限ロール(user:user権限/admin:admin権限)"
     )
-    status: str = Field(
-        ..., alias="email_verification_status", description="アカウントの状態"
+    status: UserStatus = Field(
+        ...,
+        alias="email_verification_status",
+        validation_alias="email_verification_status",
+        description="アカウントの状態",
     )
 
-    class Config:
-        from_attributes = True  # SQLAlchemyモデルをそのまま展開可能にする
+    model_config = ConfigDict(
+        from_attributes=True,
+        # 複数名のソースからの読み込みを許可
+        populate_by_name=True,
+    )

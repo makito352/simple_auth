@@ -1,8 +1,11 @@
+"""
+WebAuthnService: WebAuthn 認証に関連する操作を行うサービスクラス
+"""
+
 from app.core.config import logger
 from app.models.credential import Credential
 from sqlalchemy.orm import Session
 from webauthn.helpers import bytes_to_base64url
-
 
 ALLOWED_DEVICE_NAMES = {
     "Windows",
@@ -38,12 +41,16 @@ class WebAuthnService:
         device_name: str | None = None,
         user_comment: str | None = None,
     ):
+        """
+        新しい資格情報を登録します。
+        """
         logger.debug("register_credential called with user_id: %s", user_id)
-        logger.debug(
-            "DEBUG_REGISTER: raw public_key value = %s (type: %s)",
-            public_key,
-            type(public_key),
-        )
+        # 機密情報はデバッグでも出力しないようにする
+        # logger.debug(
+        #     "DEBUG_REGISTER: raw public_key value = %s (type: %s)",
+        #     public_key,
+        #     type(public_key),
+        # )
 
         # credential_id_str,public_key は webauthn ライブラリから返される bytes 型の場合があるため、
         # 確実に Base64URL 文字列として保存するように変換処理を挟む。
@@ -71,16 +78,24 @@ class WebAuthnService:
             db.rollback()
             raise
         return cred
-    
+
     @staticmethod
-    def update_credential_comment(db: Session, credential_id: str, comment: str | None) -> bool:
+    def update_credential_comment(
+        db: Session, credential_id: str, comment: str | None
+    ) -> bool:
         """
         特定の資格情報のユーザーコメントのみを更新する。
         成功した場合は True を返す。
         """
-        cred = db.query(Credential).filter(Credential.credential_id == credential_id).first()
+        cred = (
+            db.query(Credential)
+            .filter(Credential.credential_id == credential_id)
+            .first()
+        )
         if not cred:
-            logger.error("Update failed: Credential with ID %s not found", credential_id)
+            logger.error(
+                "Update failed: Credential with ID %s not found", credential_id
+            )
             raise ValueError(f"Credential {credential_id} not found")
 
         cred.user_comment = comment
@@ -93,13 +108,19 @@ class WebAuthnService:
             logger.error(f"DB update failed: {e}")
             db.rollback()
             raise
-    
+
     @staticmethod
     def get_credentials(db: Session, user_id: str):
+        """
+        指定されたユーザーIDに関連付けられたすべての資格情報を取得します。
+        """
         return db.query(Credential).filter(Credential.user_id == user_id).all()
 
     @staticmethod
     def get_by_credential_id(db: Session, credential_id: str):
+        """
+        指定された credential_id に基づいて資格情報を取得します。
+        """
         return (
             db.query(Credential)
             .filter(Credential.credential_id == credential_id)
@@ -124,12 +145,18 @@ class WebAuthnService:
     def delete_credential(db: Session, credential_id: str) -> bool:
         """
         指定された credential_id に基づいて資格情報を削除する。
-        成功した場合は True、失敗または存在しない場合は False（または例外）を返す。
+        成功した場合は True を返す。
         """
-        cred = db.query(Credential).filter(Credential.credential_id == credential_id).first()
+        cred = (
+            db.query(Credential)
+            .filter(Credential.credential_id == credential_id)
+            .first()
+        )
         if not cred:
-            logger.error("Delete failed: Credential with ID %s not found", credential_id)
-            return False
+            logger.error(
+                "Delete failed: Credential with ID %s not found", credential_id
+            )
+            raise ValueError(f"Credential {credential_id} not found")
 
         try:
             db.delete(cred)

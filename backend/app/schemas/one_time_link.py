@@ -1,24 +1,32 @@
-from typing import Optional
+"""
+one time link（ワンタイムURL）関連のスキーマを定義するモジュール。
+このモジュールでは、ワンタイムリンクの作成、取得、検証のデータ構造を定義します。
+"""
+
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+
 # --- Request Models ---
-
-
 class CreateLinkRequest(BaseModel):
     """新規トークン生成リクエスト用モデル"""
 
     user_id: UUID = Field(description="ユーザーのユニークID")
-    link_type: str = Field(
+
+
+class GetLinkRequest(BaseModel):
+    """既存ワンタイムリンク取得（GET）用リクエストモデル"""
+
+    user_id: UUID = Field(description="ユーザーのユニークID")
+    link_type: Literal["registration", "device_registration"] = Field(
         default="registration",
-        description="リンクの種類（例: registration, verification）",
+        description="取得対象のリンク種別（registration/device_registration）",
     )
 
 
 # --- Response Models ---
-
-
 class OneTimeLinkCreateResponse(BaseModel):
     """
     トークン作成成功時のレスポンス。
@@ -31,6 +39,14 @@ class OneTimeLinkCreateResponse(BaseModel):
     message: str = Field(description="処理結果に関するメッセージ")
 
 
+class OneTimeLinkGetResponse(OneTimeLinkCreateResponse):
+    """既存ワンタイムリンク取得（GET）用レスポンスモデル"""
+
+    link_type: Literal["registration", "device_registration"] = Field(
+        description="取得したリンクの種別（registration/device_registration）"
+    )
+
+
 class TokenVerificationResponse(BaseModel):
     """
     トークン検証成功時のレスポンス。
@@ -40,4 +56,6 @@ class TokenVerificationResponse(BaseModel):
 
     user_id: str = Field(description="検証されたユーザーのID")
     email: str = Field(description="検証されたユーザーのメールアドレス")
-    status: str = Field(description="検証結果の状態（例: success, pending）")
+    status: str = Field(
+        description="ユーザーの状態（例: success:認証済み, pending:登録中）"
+    )

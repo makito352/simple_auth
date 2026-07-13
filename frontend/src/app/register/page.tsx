@@ -1,96 +1,32 @@
-"use client";
+/**
+ * @file frontend/src/app/register/page.tsx
+ * @description 新規ユーザーのWebAuthnデバイス登録ページ（サーバーエントリ）。
+ */
 
-import { useEffect, useState, Suspense } from "react"; // Suspenseを追加
-import { useSearchParams } from "next/navigation";
-import { apiPost,apiGet } from "@/lib/api/client";
-import { detectClientOs, webauthnRegister } from "@/lib/webauthn";
+import RegisterClient from "@/components/features/register/RegisterClient";
 
-// コンテンツ部分を別コンポーネントとして定義
-function RegistrationContent() {
-  const searchParams = useSearchParams();
-  // URLからトークンを取得 (例: ?token=tok_xxx)
-  const token = searchParams.get("token");
-  const [isVerified, setIsVerified] = useState(false);
+/**
+ * registerページで受け取るsearchParams型。
+ */
+type RegisterPageSearchParams = {
+  token?: string | string[];
+};
 
-  useEffect(() => {
-    async function verifyTokenAndStart() {
-      if (!token) {
-        console.error("No token provided in URL");
-        return;
-      }
+/**
+ * registerページの入力プロパティ。
+ */
+type RegisterPageProps = {
+  searchParams?: RegisterPageSearchParams | Promise<RegisterPageSearchParams>;
+};
 
-      try {
-        // バックエンドでトークンを検証し、消費する
-        const response = await apiGet(`/auth/one-time-link/verify?token=${token}`);
-        
-        if (response && response.user_id) {
-          setIsVerified(true);
-        }
-      } catch (error) {
-        console.error("Failed to verify token:", error);
-      }
-    }
+/**
+ * 通常登録ページ。
+ * Server Componentでqueryを受け取り、Client Componentへ必要値のみを受け渡す。
+ */
+export default async function WebAuthnRegPage({ searchParams }: RegisterPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const tokenParam = resolvedSearchParams?.token;
+  const token = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam ?? null;
 
-    verifyTokenAndStart();
-  }, [token]);
-
-  const handleRegister = async () => {
-    if (!isVerified) return;
-
-    try {
-      // 検証済みであれば、WebAuthnの登録フローを実行
-      // console.log("Step 1: Fetching WebAuthn options...");
-      const options = await apiPost("/webauthn/register/options");
-      // console.log("Options received:", options);
-
-      // console.log("Step 2: Executing webauthnRegister with provided options...");
-      const cred = await webauthnRegister(options);
-      if (!cred) {
-        console.error("Credential is null/undefined");
-        return;
-      }
-      // console.log("Credential received from device:", cred);
-
-      // 監査用途で保存するOS名をWebAuthnの検証payloadへ付与する
-      const verifyPayload = {
-        ...cred,
-        device_name: detectClientOs(),
-      };
-
-      // console.log("Step 3: Verifying credentials on server...");
-      const verifyResponse = await apiPost("/webauthn/register/verify", verifyPayload);
-      // console.log("Verification response from server:", verifyResponse);
-
-      // トップページへリダイレクト
-      window.location.href = "/";
-    } catch (error) {
-      console.error("WebAuthn registration failed:", error);
-    }
-  };
-
-  if (!isVerified) {
-    return (
-      <div style={{ padding: "20px" }}>
-        <h1>デバイス登録</h1>
-        <p>アクセス用リンクを確認しています。少々お待ちください...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ padding: "20px" }}>
-      <h1>デバイス登録</h1>
-      <p>リンクの確認が完了しました。次へ進むには、あなたのデバイスにパスキー（WebAuthn）を登録してください。</p>
-      <button onClick={handleRegister}>Register WebAuthn</button>
-    </div>
-  );
-}
-
-// メインのページコンポーネントでSuspenseを適用
-export default function WebAuthnRegPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <RegistrationContent />
-    </Suspense>
-  );
+  return <RegisterClient token={token} />;
 }

@@ -22,9 +22,11 @@
         "name": "next"
       }
     ],
-    "paths": {                              // エイリアスのマッピング
-      "@/*": ["./src/*"]                    // '@/something'  → 'src/something'
-    },
+    "paths": { // エイリアスのマッピング
+      "@/*": [
+        "./src/*"
+      ] // '@/something'  → 'src/something'
+    }
   },
   "include": [
     "next-env.d.ts",
@@ -32,10 +34,10 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".next/dev/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
-  ],
-
+  ]
 }

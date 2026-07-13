@@ -1,3 +1,9 @@
+"""
+ワンタイムリンクの生成と検証を行うサービスモジュール。
+"""
+
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -7,6 +13,18 @@ from app.models.user import User
 from app.schemas.one_time_link import OneTimeLinkCreateResponse
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session
+
+
+class LinkValidationError(ValueError):
+    """トークンに関するクライアントエラー（期限切れ、無効など）"""
+
+    pass
+
+
+class IntegrityError(Exception):
+    """データの不整合や予期せぬ状態によるエラー"""
+
+    pass
 
 
 class OneTimeLinkService:
@@ -21,14 +39,14 @@ class OneTimeLinkService:
         内部的な共通ロジックとして使用します。
         """
         if link.type == "device_registration":
-            url = f"{settings.FRONTEND_BASE_URL}/devices/add?token={link.token}"
+            url = f"{settings.FRONTEND_BASE_URL}/devices_add?token={link.token}"
         else:
             url = f"{settings.FRONTEND_BASE_URL}/register?token={link.token}"
         return OneTimeLinkCreateResponse(
             token=link.token,
             url=url,
             expires_at=link.expires_at.isoformat(),
-            message="Link prepared",  # または適切なメッセージ
+            message="Link prepared",
         )
 
     @staticmethod
@@ -49,21 +67,19 @@ class OneTimeLinkService:
         """
         # 本来は security ライブラリ等を用いてランダムな文字列を生成すべきですが、
         # ここでは簡略化のためuuidの文字列などを利用する想定です。
-        import secrets
-
         token = f"tok_{secrets.token_urlsafe(32)}"
 
-        expires_at = datetime.now().replace(
-            tzinfo=None
-        )  # タイムゾーン処理はモデル側かConfigで調整
-        # もしDBがタイムゾーンを要求する場合は、ここで適切なTimezone付与を行う
-        # 以下は単純な例です。実際の実装ではdatetime.now(timezone.utc)などを使用します。
+        expires_at = datetime.now().replace(tzinfo=None)
+
+        # 期限を設定
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_in_minutes)
 
+        # 新しいOneTimeLinkを作成
         new_link = OneTimeLink(
             user_id=user_id, token=token, type=link_type, expires_at=expires_at
         )
 
+        # データベースに保存
         db.add(new_link)
         db.commit()
         db.refresh(new_link)
@@ -78,21 +94,33 @@ class OneTimeLinkService:
         このメソッドは「ワンタイム」なので、一度呼び出されると
         そのトークンは二度と使えないようになります。
         """
+        # トークンの識別用ハッシュを作成 (セキュリティのため生のトークンは出力しない)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()[
+            :10
+        ]  # 最初の10文字程度を抽出
+
+        # トークンに紐付くOneTimeLinkを取得
         link = db.query(OneTimeLink).filter(OneTimeLink.token == token).first()
 
         if not link:
-            logger.error(f"Invalid OneTimeLink token: {token}")
-            raise ValueError("Invalid or non-existent link.")
+            logger.error(f"Invalid OneTimeLink token: (hash={token_hash})")
+            raise LinkValidationError(
+                "無効なまたは存在しないリンクです。(Invalid or non-existent link.)"
+            )
 
         # 使用済み、または期限切れのチェック
         now = datetime.now(timezone.utc)
         if link.used_at is not None:
-            logger.warning(f"Already used OneTimeLink token: {token}")
-            raise ValueError("This link has already been used.")
+            logger.warning(f"Already used OneTimeLink token: (hash={token_hash})")
+            raise LinkValidationError(
+                "このリンクは既に使用されています。(This link has already been used.)"
+            )
 
         if link.expires_at < now:
-            logger.warning(f"Expired OneTimeLink token: {token}")
-            raise ValueError("This link has expired.")
+            logger.warning(f"Expired OneTimeLink token: (hash={token_hash})")
+            raise LinkValidationError(
+                "このリンクは期限切れです。(This link has expired.)"
+            )
 
         # トークンを消費（使用済みにする）
         link.used_at = now
@@ -102,7 +130,12 @@ class OneTimeLinkService:
         # 紐付いているユーザーを取得して返す
         user = db.query(User).filter(User.id == link.user_id).first()
         if not user:
-            raise ValueError("User associated with this link no longer exists.")
+            logger.error(
+                f"User associated with OneTimeLink token (hash={token_hash}) not found."
+            )
+            raise IntegrityError(
+                "このリンクに関連付けられたユーザーは存在しません。(User associated with this link no longer exists.)"
+            )
 
         return user
 
@@ -118,6 +151,10 @@ class OneTimeLinkService:
             or link.used_at is not None
             or link.expires_at < datetime.now(timezone.utc)
         ):
+            token_hash = hashlib.sha256(token.encode()).hexdigest()[
+                :10
+            ]  # 最初の10文字程度を抽出
+            logger.debug(f"Token (hash={token_hash}) is invalid, used, or expired.")
             return None
 
         user = db.query(User).filter(User.id == link.user_id).first()
@@ -137,13 +174,16 @@ class OneTimeLinkService:
             .filter(
                 OneTimeLink.user_id == user_id,
                 OneTimeLink.type == link_type,
-                OneTimeLink.used_at == None,
+                OneTimeLink.used_at is None,
                 OneTimeLink.expires_at > now,
             )
             .first()
         )
 
         if not link:
+            logger.debug(
+                f"No valid OneTimeLink found for user_id {user_id} and type {link_type}."
+            )
             return None
 
         return OneTimeLinkService._build_response(db, link)
