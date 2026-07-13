@@ -1,3 +1,8 @@
+/**
+ * @file frontend/src/components/features/admin/oidc-clients/components/client-form.tsxx
+ * @description OIDCクライアントの作成および編集を行うためのフォームコンポーネント。
+ */
+
 import { Save } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -8,6 +13,14 @@ import { getErrorMessage } from "@/lib/error";
 import type { OidcScope } from "@/types"; 
 import { OidcClientInput } from "@/types";
 
+/**
+ * OIDCクライアント情報の入力フォーム
+ * 
+ * @param {Object} props - プロパティ
+ * @param {OidcClientInput} props.initialData - 初期データ（編集時は既存のクライアント情報）
+ * @param {OidcScope[]} props.scopes - 利用可能なスコープのリスト
+ * @param {Function} props.onSuccess - 保存成功時またはキャンセル時に実行されるコールバック
+ */
 export const ClientForm = ({ 
   initialData, 
   scopes,
@@ -18,12 +31,23 @@ export const ClientForm = ({
   onSuccess: () => void 
 }) => {
   const [formData, setFormData] = useState<OidcClientInput>(initialData);
+  // リダイレクトURIを改行区切りのテキストとして管理
   const [redirectUrisText, setRedirectUrisText] = useState(initialData.allowed_redirect_uris.join("\n"));
+  // client_idが存在するかで編集モードか新規作成モードかを判定
   const isEditMode = initialData.client_id !== "";
 
+  /**
+   * 改行区切りのテキストからリダイレクトURIの配列を抽出する
+   * @param {string} text - 入力されたテキスト
+   * @returns {string[]} クリーニング済みのURI配列
+   */
   const parseRedirectUris = (text: string): string[] =>
     text.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
 
+  /**
+   * スコープの選択状態を切り替える
+   * @param {string} scopeName - 対象のスコープ名
+   */
   const handleToggleScope = (scopeName: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -33,19 +57,26 @@ export const ClientForm = ({
     }));
   };
 
+  /**
+   * フォームの送信処理
+   * @param {React.FormEvent} e - フォームイベント
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const normalizedUris = parseRedirectUris(redirectUrisText);
 
+    // バリデーションチェック
     if (normalizedUris.length === 0) return toast.error("リダイレクトURIを1件以上入力してください");
     if (formData.scope_names.length === 0) return toast.error("スコープを1件以上選択してください");
 
     try {
       if (!isEditMode) {
+        // 新規作成処理
         const result = await createOidcClient({ ...formData, allowed_redirect_uris: normalizedUris });
-        // toast.success("作成成功。シークレットをコピーします");
+        // 作成成功時、シークレットをクリップボードにコピー
         await copyToClipboard(result.client_secret, "作成成功。クリップボードにコピーしました"); 
       } else {
+        // 更新処理
         await updateOidcClient(formData.client_id, {
           ...formData,
           allowed_redirect_uris: normalizedUris,
@@ -54,6 +85,7 @@ export const ClientForm = ({
       }
       onSuccess();
     } catch (err) {
+      // エラーメッセージを取得してトースト通知
       toast.error(getErrorMessage(err, "保存に失敗しました"));
     }
   };
@@ -63,12 +95,14 @@ export const ClientForm = ({
       <h2 className="text-lg font-semibold mb-4 border-b pb-2">
         {isEditMode ? "OIDCクライアント編集" : "新規OIDCクライアント作成"}
       </h2>
+      {/* 注意事項の表示 */}
       <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
         {isEditMode 
           ? "シークレットの再取得はできません。必要なら一覧で再発行してください。" 
           : "作成時に通知されるシークレットは、このタイミングのみ取得可能です。"}
       </div>
       <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
+        {/* アプリ名の入力 */}
         <div>
           <label className="block text-sm mb-1">アプリ名</label>
           <input
@@ -78,6 +112,7 @@ export const ClientForm = ({
             required
           />
         </div>
+        {/* Client IDの入力（編集モードでは変更不可） */}
         <div>
           <label className="block text-sm mb-1">client_id</label>
           <input
@@ -88,6 +123,7 @@ export const ClientForm = ({
             required
           />
         </div>
+        {/* 説明文の入力 */}
         <div className="md:col-span-2">
           <label className="block text-sm mb-1">説明</label>
           <input
@@ -96,6 +132,7 @@ export const ClientForm = ({
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
         </div>
+        {/* リダイレクトURIの入力 */}
         <div className="md:col-span-2">
           <label className="block text-sm mb-1">リダイレクトURI（1行に1件）</label>
           <textarea
@@ -104,6 +141,7 @@ export const ClientForm = ({
             onChange={(e) => setRedirectUrisText(e.target.value)}
           />
         </div>
+        {/* スコープの選択 */}
         <div className="md:col-span-2">
           <label className="block text-sm mb-2">許可スコープ</label>
           <div className="flex flex-wrap gap-3">
@@ -119,6 +157,7 @@ export const ClientForm = ({
             ))}
           </div>
         </div>
+        {/* 操作ボタン */}
         <div className="md:col-span-2 flex gap-2">
           <button type="submit" className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
             <Save size={18} /> 保存

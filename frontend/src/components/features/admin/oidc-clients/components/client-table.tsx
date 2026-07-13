@@ -1,3 +1,7 @@
+/**
+ * @file frontend/src/components/features/admin/oidc-clients/components/client-table.tsx
+ * @description OIDCクライアントの一覧を表示するテーブルコンポーネント。
+ */
 import { Edit2, KeyRound } from "lucide-react";
 import React from "react";
 
@@ -5,6 +9,12 @@ import { OidcClient } from "@/types";
 
 import { ClientTableHeader } from "./table-header";
 
+/**
+ * OIDCクライアントの一覧を表示するためのテーブルコンポーネント
+ * @param clients - 表示するOIDCクライアントのリスト
+ * @param onEdit - クライアント編集ボタン押下時のコールバック
+ * @param onRotateSecret - シークレット再発行ボタン押下時のコールバック
+ */
 export const ClientTable = ({
   clients,
   onEdit,
@@ -14,7 +24,7 @@ export const ClientTable = ({
   onEdit: (client: OidcClient) => void;
   onRotateSecret: (clientId: string) => Promise<void>;
 }) => {
-  return (
+   return (
     <div className="border rounded overflow-hidden bg-white">
       <table className="w-full text-left border-collapse">
         <ClientTableHeader />
@@ -23,6 +33,7 @@ export const ClientTable = ({
             <tr key={client.id} className="hover:bg-gray-50">
               <td className="p-3 border-b">{client.name}</td>
               <td className="p-3 border-b font-mono text-sm">{client.client_id}</td>
+              {/* シークレットはマスク処理されたものを表示 */}
               <td className="p-3 border-b font-mono text-sm">{client.client_secret_masked}</td>
               <td className="p-3 border-b text-sm">{client.scope_names.join(" ")}</td>
               <td className="p-3 border-b">
@@ -36,6 +47,7 @@ export const ClientTable = ({
               </td>
               <td className="p-3 border-b">
                 <div className="flex items-center gap-2">
+                  {/* 編集ボタン */}
                   <button
                     className="text-blue-600"
                     onClick={() => onEdit(client)}
@@ -43,6 +55,7 @@ export const ClientTable = ({
                   >
                     <Edit2 size={18} />
                   </button>
+                  {/* シークレット再発行ボタン */}
                   <button
                     className="text-amber-600"
                     onClick={() => onRotateSecret(client.client_id)}
