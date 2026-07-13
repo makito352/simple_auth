@@ -23,7 +23,9 @@ export const Button = ({
 }) => {
   const baseClass = "px-6 py-2 rounded-md transition-colors disabled:opacity-50 font-medium";
   const variants = {
+    // 共通の主要アクション
     primary: "bg-blue-600 hover:bg-blue-700 text-white",
+    // キャンセルなど
     secondary: "bg-gray-500 hover:bg-gray-600 text-white",
   };
 
@@ -42,7 +44,7 @@ export const Button = ({
  * フォームラベルコンポーネント
  */
 export const Label = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <label className={`block text-sm font-medium text-gray-700 ${className}`}>
+  <label className={`block text-sm font-sm text-gray-700 ${className}`}>
     {children}
   </label>
 );
