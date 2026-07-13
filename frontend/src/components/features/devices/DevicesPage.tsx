@@ -1,7 +1,11 @@
-
+/**
+ * @file DevicesPage.tsx
+ * @description デバイス管理画面のメインコンポーネント。
+ * 登録済みWebAuthnデバイスの一覧表示、コメントの編集、削除、および新規デバイス登録用のリンク発行機能を提供します。
+ */
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { resolveRegisterErrorMessage } from "@/components/common/common_utils";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
@@ -12,7 +16,10 @@ import { useDevicesList } from "./useDevicesList";
 import { useRegistrationLink } from "./useRegistrationLink";
 
 /**
- * 日付フォーマットなどのユーティリティは、必要であれば別ファイルに切り出します。
+ * ISO形式の日付文字列を、ユーザーのロケールに合わせた読みやすい形式に変換します。
+ * 
+ * @param iso - ISO 8601形式の文字列
+ * @returns フォーマットされた日付文字列（無効な場合は "-"）
  */
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -20,25 +27,50 @@ function formatDate(iso: string): string {
   return date.toLocaleString("ja-JP");
 }
 
+/**
+ * デバイス管理ページコンポーネント。
+ * 
+ * このコンポーネントは以下の機能を持ちます：
+ * - 登録済みデバイスの一覧表示
+ * - デバイスに対するコメントの編集・保存機能
+ * - デバイスの削除機能
+ * - 新規デバイス登録用のワンタイムリンク（QRコード含む）の発行
+ * 
+ * @returns デバイス管理画面のJSX
+ */
 export default function DevicesPage() {
   // 各種フックから状態を取得
   const [devices, loading, error] = useDevicesList();
   const { savingId, deletingId, onSaveAction, onDeleteAction } = useDeviceActions();
   const { linkLoading, registrationLink, qrDataUrl, copied, error: linkError, onCopyRegistrationLink, onCreateRegistrationLink } = useRegistrationLink();
 
-  // 内部状態（入力中のドラフト）を管理
-  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
 
   /**
-   * 入力内容の更新をハンドリング（useDeviceActionsと連携）
+   * 表示用のコメント一覧。
+   * 「サーバーから取得した値」と「ユーザーが入力中の値」をマージして算出する。
+   */
+  const displayComments = useMemo(() => {
+    return devices.reduce((acc, device) => {
+      acc[device.credential_id] = inputValues[device.credential_id] ?? device.user_comment ?? "";
+      return acc;
+    }, {} as Record<string, string>);
+  }, [devices, inputValues]);
+
+  /**
+   * コメント入力欄の変更をハンドリングし、ローカルの状態を更新します。
+   * 
+   * @param id - デバイスのcredential_id
+   * @param value - 入力された新しいコメント文字列
    */
   const handleCommentChange = (id: string, value: string) => {
-    setCommentDrafts((prev) => ({ ...prev, [id]: value }));
+    setInputValues((prev) => ({ ...prev, [id]: value }));
   };
 
   // 有効なデータがあるかチェック
   const hasDevices = devices.length > 0;
 
+  // データ取得中はローディング表示
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -132,13 +164,13 @@ export default function DevicesPage() {
             <tbody>
               {devices.map((device) => (
                 <DeviceRow
-                  key={device.credential_id} // IDをキーにする
+                  key={device.credential_id}
                   device={device}
                   savingId={savingId}
                   deletingId={deletingId}
-                  commentDrafts={commentDrafts}
+                  commentDrafts={displayComments}
                   onCommentChange={handleCommentChange}
-                  onSaveAction={onSaveAction}
+                  onSaveAction={(id) => onSaveAction(id, displayComments[id] || "")}
                   onDeleteAction={onDeleteAction}
                 />
               ))}
