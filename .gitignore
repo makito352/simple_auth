@@ -23,3 +23,9 @@ infra/roundcube
 # backend secrets
 backend/secrets/oidc_private.pem
 backend/secrets/oidc_public.pem
+
+# 内部メモは除外
+docs/memo.md
+
+# vscode settings
+.vscode/settings.json
