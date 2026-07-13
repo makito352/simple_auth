@@ -404,7 +404,7 @@ export default function UsersManagementPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr className="divide-x divide-gray-200">
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">ID</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Subject ID</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">メールアドレス</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">権限</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">状態</th>
