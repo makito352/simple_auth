@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from app.models.oidc import OidcAccessToken, OidcAuthCode
+from app.models.oidc import OidcAccessToken, OidcAuthCode, OidcRefreshToken
 from sqlalchemy.orm import Session
 
 
@@ -98,6 +98,72 @@ class OidcAuthFlowService:
         token 文字列に一致するアクセストークンを取得する。
         """
         return db.query(OidcAccessToken).filter(OidcAccessToken.token == token).first()
+
+    @staticmethod
+    def store_refresh_token(
+        db: Session,
+        client_id: str,
+        scope: str,
+        user_id: UUID,
+        expires_at: datetime,
+    ) -> OidcRefreshToken:
+        """
+        発行したリフレッシュトークンを保存して返す。
+        """
+        token = secrets.token_urlsafe(48)
+        refresh_token = OidcRefreshToken(
+            token=token,
+            client_id=client_id,
+            scope=scope,
+            user_id=user_id,
+            expires_at=expires_at,
+        )
+        db.add(refresh_token)
+        db.commit()
+        db.refresh(refresh_token)
+        return refresh_token
+
+    @staticmethod
+    def find_refresh_token(
+        db: Session, token: str, client_id: str
+    ) -> Optional[OidcRefreshToken]:
+        """
+        リフレッシュトークン文字列と client_id に一致するトークンを取得する。
+        """
+        return (
+            db.query(OidcRefreshToken)
+            .filter(
+                OidcRefreshToken.token == token,
+                OidcRefreshToken.client_id == client_id,
+            )
+            .first()
+        )
+
+    @staticmethod
+    def revoke_refresh_token(db: Session, refresh_token: OidcRefreshToken) -> None:
+        """
+        リフレッシュトークンを失効状態にする。
+        """
+        refresh_token.revoked_at = datetime.now(timezone.utc)
+        db.commit()
+
+    @staticmethod
+    def is_refresh_token_expired(
+        refresh_token: OidcRefreshToken,
+        now: Optional[datetime] = None,
+    ) -> bool:
+        """
+        リフレッシュトークンの有効期限切れを判定する。
+        """
+        current_time = now or datetime.now(timezone.utc)
+        return refresh_token.expires_at < current_time
+
+    @staticmethod
+    def is_refresh_token_revoked(refresh_token: OidcRefreshToken) -> bool:
+        """
+        リフレッシュトークンが失効済みかどうかを判定する。
+        """
+        return refresh_token.revoked_at is not None
 
     @staticmethod
     def is_access_token_expired(
