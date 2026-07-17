@@ -40,6 +40,14 @@ def _build_oidc_issuer() -> str:
     return f"{str(settings.BACKEND_BASE_URI).rstrip('/')}/oidc"
 
 
+def _build_oidc_kid() -> str:
+    """
+    OIDC署名鍵の公開鍵から、JWKSとJWTヘッダーで共有するkidを生成する。
+    """
+    key = jwk.JWK.from_pem(settings.OIDC_JWT_PUBLIC_KEY.encode("utf-8"))
+    return key.thumbprint()
+
+
 def _raise_oidc_error(status_code: int, error_code: str) -> None:
     """
     OIDCで利用するエラーレスポンスを統一する。
@@ -93,8 +101,8 @@ def jwks() -> JwksResponse:
     # JWK オブジェクトを生成
     key = jwk.JWK.from_pem(public_key_pem.encode("utf-8"))
 
-    # kid を自動生成（公開鍵の fingerprint）
-    key_thumbprint = key.thumbprint()
+    # 公開鍵の fingerprint を共通ロジックで算出
+    key_thumbprint = _build_oidc_kid()
 
     # kid を設定
     key_dict = key.export(as_dict=True)
@@ -320,6 +328,7 @@ async def token(
         access_token_claims,
         settings.OIDC_JWT_PRIVATE_KEY,
         algorithm=settings.OIDC_JWT_ALG,
+        headers={"kid": _build_oidc_kid()},
     )
 
     OidcAuthFlowService.store_access_token(
