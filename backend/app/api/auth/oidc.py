@@ -291,7 +291,7 @@ async def token(
     OidcAuthFlowService.consume_auth_code(db=db, auth_code=auth_code)
 
     now = int(time.time())
-    exp = now + 3600
+    exp = now + settings.OIDC_ACCESS_TOKEN_EXPIRE_SECONDS
     exp_dt = datetime.fromtimestamp(exp, tz=timezone.utc)
 
     issuer = _build_oidc_issuer()
@@ -341,7 +341,7 @@ async def token(
     return TokenResponse(
         access_token=access_token,
         token_type="Bearer",
-        expires_in=3600,
+        expires_in=settings.OIDC_ACCESS_TOKEN_EXPIRE_SECONDS,
         id_token=id_token,
     )
 
