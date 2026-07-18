@@ -569,9 +569,11 @@ class OidcClientService:
         allowed_scopes = set(OidcClientService.get_scopes_by_client_id(db, client_id))
         requested_scopes = set(scope for scope in requested_scope_names if scope)
         if not requested_scopes:
+            logger.info("No scopes requested by client %s, requested_scopes: %s, allowed_scopes: %s", client_id, requested_scopes, allowed_scopes)
             raise ValueError("invalid_scope")
 
         if not requested_scopes.issubset(allowed_scopes):
+            logger.info("Requested scopes by client %s are not allowed, requested_scopes: %s, allowed_scopes: %s", client_id, requested_scopes, allowed_scopes)
             raise ValueError("invalid_scope")
 
         return client
