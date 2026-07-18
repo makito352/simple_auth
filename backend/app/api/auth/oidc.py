@@ -47,6 +47,13 @@ def _build_userinfo_audience() -> str:
     return f"{_build_oidc_issuer()}/userinfo"
 
 
+def _has_email_scope(scope_text: str) -> bool:
+    """
+    スコープ文字列に email スコープが含まれるか判定する。
+    """
+    return "email" in scope_text.split()
+
+
 def _is_valid_access_token_audience(audience: object) -> bool:
     """
     アクセストークンの audience が現在値または旧値に一致するか確認する。
@@ -121,6 +128,7 @@ def _build_access_token(
     scope: str,
     now: int,
     exp: int,
+    email: Optional[str] = None,
 ) -> str:
     """
     ユーザー向けのアクセストークンを組み立てる。
@@ -134,6 +142,8 @@ def _build_access_token(
         "iat": now,
         "exp": exp,
     }
+    if email:
+        access_token_claims["email"] = email
     logger.debug("access_token_claims=%s", access_token_claims)
     return jwt.encode(
         access_token_claims,
@@ -252,6 +262,7 @@ def _handle_authorization_code_grant(
     )
 
     logger.debug("requested scopes=%s", scope_text)
+    email_claim = user.email if _has_email_scope(scope_text) else None
     access_token = _build_access_token(
         issuer=issuer,
         subject=subject,
@@ -259,6 +270,7 @@ def _handle_authorization_code_grant(
         scope=scope_text,
         now=now,
         exp=access_expires_at,
+        email=email_claim,
     )
 
     refresh_token_row = OidcAuthFlowService.store_refresh_token(
@@ -348,6 +360,7 @@ def _handle_refresh_token_grant(
     )
 
     logger.debug("requested_scopes=%s", scope_text)
+    email_claim = user.email if _has_email_scope(scope_text) else None
     access_token = _build_access_token(
         issuer=issuer,
         subject=subject,
@@ -355,6 +368,7 @@ def _handle_refresh_token_grant(
         scope=scope_text,
         now=now,
         exp=access_expires_at,
+        email=email_claim,
     )
 
     new_refresh_token_row = OidcAuthFlowService.store_refresh_token(
