@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ソースコードのコピー
-COPY . ./app
+COPY . .
 
 # entrypoint.shをコピーし、実行権限を与える
 COPY scripts/entrypoint.sh .
