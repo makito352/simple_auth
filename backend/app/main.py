@@ -102,12 +102,8 @@ def create_app() -> FastAPI:
     )
     logger.debug("CORS middleware 追加しました")
 
-    # ----------------------------
-    # DB 初期化（初回のみ）
-    # ----------------------------
-    Base.metadata.create_all(bind=engine)
-
     # 初期管理者が存在しない場合に作成する
+    #----------------------------
     with get_db_session() as db:
         UserService.initialize_system(db)
 

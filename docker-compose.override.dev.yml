@@ -9,6 +9,11 @@ services:
   # (開発環境ではnginxを介さず直接ポートを公開する)
   # ============================
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev # 開発時はこちらを指定
+    volumes:
+      - ./backend:/app  # ホストのソースをコンテナにマウント
     ports:
       - 8000:8000
   # ============================

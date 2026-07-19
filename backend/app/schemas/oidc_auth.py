@@ -10,8 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class TokenRequest(BaseModel):
     grant_type: str = Field(..., description="グラントタイプ（例: authorization_code）")
-    code: str = Field(..., description="認可コード")
-    redirect_uri: str = Field(..., description="リダイレクトURI")
+    code: Optional[str] = Field(None, description="認可コード")
+    refresh_token: Optional[str] = Field(None, description="リフレッシュトークン")
+    redirect_uri: Optional[str] = Field(None, description="リダイレクトURI")
+    scope: Optional[str] = Field(None, description="要求スコープ")
     client_id: str = Field(..., description="クライアントID")
     client_secret: Optional[str] = Field(
         None, description="クライアント秘密鍵（必要に応じて）"
@@ -22,6 +24,10 @@ class TokenResponse(BaseModel):
     access_token: str = Field(..., description="アクセストークン")
     token_type: str = Field("Bearer", description="トークンタイプ")
     expires_in: int = Field(..., description="有効期限（秒）")
+    refresh_token: Optional[str] = Field(None, description="リフレッシュトークン")
+    refresh_token_expires_in: Optional[int] = Field(
+        None, description="リフレッシュトークンの有効期限（秒）"
+    )
     id_token: Optional[str] = Field(None, description="IDトークン（必要に応じて）")
 
 

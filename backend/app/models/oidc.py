@@ -32,7 +32,25 @@ class OidcAccessToken(Base):
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    expires_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class OidcRefreshToken(Base):
+    """OIDCリフレッシュトークンを保持するモデル。"""
+
+    __tablename__ = "oidc_refresh_tokens"
+
+    token = Column(String, primary_key=True)
+    client_id = Column(
+        String(255), ForeignKey("oidc_clients.client_id", ondelete="CASCADE"), nullable=False
+    )
+    scope = Column(String(1024), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class ValueSourceType(Enum):

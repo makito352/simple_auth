@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     OIDC_JWT_PRIVATE_KEY: str = ""
     OIDC_JWT_PUBLIC_KEY: str = ""
 
+    # OIDCのアクセストークンの有効期限（秒）
+    OIDC_ACCESS_TOKEN_EXPIRE_SECONDS: int = 3600
+
     # WebAuthn の設定項目
     WEB_AUTHN_RP_ID: str = "localhost"
     WEB_AUTHN_RP_NAME: str = "SimpleAuth"

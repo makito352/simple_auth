@@ -13,3 +13,4 @@ qrcode
 python-jose
 jwcrypto
 cryptography
+alembic

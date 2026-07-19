@@ -5,6 +5,8 @@ venv/
 frontend/node_modules/
 frontend/.next/
 
+*__pycache__*
+
 # Environment variables file
 .env
 .env_homesv
@@ -23,6 +25,7 @@ infra/roundcube
 # backend secrets
 backend/secrets/oidc_private.pem
 backend/secrets/oidc_public.pem
+backend/keys
 
 # 内部メモは除外
 docs/memo.md

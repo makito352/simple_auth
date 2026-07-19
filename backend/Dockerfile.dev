@@ -13,11 +13,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ソースコードのコピー
-COPY . .
+# 開発環境では docker-compose.override.yml によるホストとのマウントを行うため、
+# Dockerfile内での COPY . はコメントアウト。
+# COPY app ./app
 
-# entrypoint.shをコピーし、実行権限を与える
-COPY scripts/entrypoint.sh .
-RUN chmod +x entrypoint.sh
-
-# CMDの代わりにENTRYPOINTを使用
-ENTRYPOINT ["./entrypoint.sh"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
