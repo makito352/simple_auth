@@ -30,8 +30,6 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/oidc", tags=["oidc"])
 
-LEGACY_ACCESS_TOKEN_AUDIENCE = "simpleauth-userinfo"
-
 
 def _build_oidc_issuer() -> str:
     """
@@ -58,7 +56,7 @@ def _is_valid_access_token_audience(audience: object) -> bool:
     """
     アクセストークンの audience が現在値または旧値に一致するか確認する。
     """
-    valid_audiences = {_build_userinfo_audience(), LEGACY_ACCESS_TOKEN_AUDIENCE}
+    valid_audiences = _build_userinfo_audience()
     if isinstance(audience, str):
         return audience in valid_audiences
     if isinstance(audience, list):
@@ -136,7 +134,7 @@ def _build_access_token(
     access_token_claims = {
         "iss": issuer,
         "sub": subject,
-        "aud": _build_userinfo_audience(),
+        "aud":  [_build_userinfo_audience(), client_id],
         "client_id": client_id,
         "scope": scope,
         "iat": now,
