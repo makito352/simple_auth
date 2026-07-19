@@ -102,8 +102,12 @@ docker compose -f docker-compose.yml -f docker-compose.override.extras.yml down
    - **username**: Photoprism側のユーザー名を指定します。
    ![ユーザ管理者用画面](docs/user_management_subjectid.png)
    ```bash
-   docker compose exec photoprism users mod --auth=oidc --auth-id=[sub] [username]
+   docker compose exec photoprism photoprism users mod --auth=oidc --auth-id=[sub] [username]
    ```
+   ※失敗した場合は、ダブルクォーテーションをsubにつける
+
+※ リダイレクトURIは"https://your-domain/api/v1/oidc/redirect"を本ソフトウェアに設定する。
+   参考：https://docs.photoprism.app/getting-started/advanced/openid-connect/#redirect-url
 
 #### Roundcube Mail を連携する場合
 1. OIDCプラグインをインストールします。
@@ -111,6 +115,7 @@ docker compose -f docker-compose.yml -f docker-compose.override.extras.yml down
    docker compose exec roundcubemail composer require cymdeveloppement/roundcube-new-oidc
    ```
 2. 構成ファイル(roundcubemail:/var/www/html/plugins/roundcube_new_oidc/config.inc.php)を編集して、OIDCの接続情報を設定してください。
+※ リダイレクトURIは"https://your-domain/"を本ソフトウェアに設定。
 
 ## ⚠️ 注意事項（重要）
 **ローカル環境でのアクセスについて**

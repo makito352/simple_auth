@@ -241,5 +241,6 @@ INSERT INTO oidc_scopes (scope_name, description)
 VALUES
     ('openid', 'OpenID Connect の必須スコープ'),
     ('profile', 'ユーザープロファイル情報の参照'),
-    ('email', 'ユーザーのメール情報の参照')
+    ('email', 'ユーザーのメール情報の参照'),
+    ('offline_access', 'リフレッシュトークンの発行を許可（オフラインでのアクセス権限）')
 ON CONFLICT (scope_name) DO NOTHING;

@@ -1,3 +1,7 @@
+-- ============================
+-- SimpleAuth 追加スキーマ(明示的に別ファイルにしておく)
+-- ============================
+
 -- ----------------------------
 -- oidc_refresh_tokens (OIDCリフレッシュトークン)
 -- ----------------------------
@@ -14,3 +18,11 @@ CREATE TABLE IF NOT EXISTS oidc_refresh_tokens (
 CREATE INDEX IF NOT EXISTS idx_oidc_refresh_tokens_client_id ON oidc_refresh_tokens(client_id);
 CREATE INDEX IF NOT EXISTS idx_oidc_refresh_tokens_user_id ON oidc_refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_oidc_refresh_tokens_expires_at ON oidc_refresh_tokens(expires_at);
+
+-- ----------------------------
+-- oidc_scopes 初期データ+リフレッシュトークン
+-- ----------------------------
+INSERT INTO oidc_scopes (scope_name, description)
+VALUES
+    ('offline_access', 'リフレッシュトークンの発行を許可（オフラインでのアクセス権限）')
+ON CONFLICT (scope_name) DO NOTHING;
