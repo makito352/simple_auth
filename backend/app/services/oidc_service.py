@@ -28,10 +28,9 @@ from app.utils.crypto import decrypt_value, encrypt_value
 from sqlalchemy.orm import Session
 
 # OIDCの標準スコープ名のセット
-SYSTEM_SCOPE_NAMES = {"openid", "profile", "email"}
+SYSTEM_SCOPE_NAMES = {"openid", "profile", "email", "offline_access"}
 
 
-# ... existing code ...
 class OidcScopeService:
     """OidcScopeクラスの操作と、スコープに関連するバリデーションを担当するサービス。"""
 
@@ -50,7 +49,7 @@ class OidcScopeService:
         """
         提供されているスコープがシステム標準の（変更不可な）ものか判定する。
         """
-        return scope_name in SYSTEM_SCOPE_NAMES
+        return OidcScopeService._normalize_scope_name(scope_name) in SYSTEM_SCOPE_NAMES
 
     @staticmethod
     def get_scope_by_name(db: Session, scope_name: str) -> Optional[OidcScope]:
