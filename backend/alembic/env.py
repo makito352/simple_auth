@@ -13,7 +13,8 @@ from app.models import (
     dashboard_links, 
     one_time_link, 
     registration_session, 
-    user_option
+    user_option,
+    auth_options
 )
 from app.db.session import Base, engine 
 

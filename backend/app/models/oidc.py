@@ -32,7 +32,7 @@ class OidcAccessToken(Base):
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    expires_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class OidcRefreshToken(Base):
